@@ -211,7 +211,7 @@ class ContactAngleHysteresisExtractor(object):
     pass
 
 
-if True:
+if __name__ == '__main__':
     # simple display
     path = "/home/muahah/Postdoc_GSLIPS/180112-Test_DSA_Images/data/Test Sample 2.bmp"
     # # TEMP
