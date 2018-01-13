@@ -18,6 +18,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
+import copy
 
 
 """  """
@@ -39,8 +40,10 @@ class Image(object):
         self.path = None
         self.data = None
         self.used_threshold = None
+        self.baseline = None
+        self.dx = None
 
-    def import_from_file(self, filepath):
+    def import_from_file(self, filepath, dx=1):
         """
         Import greyscale image from an image file.
         """
@@ -49,8 +52,9 @@ class Image(object):
         if data.shape == [0, 0]:
             raise IOError()
         self.data = np.array(data, dtype=np.uint8)
+        self.dx = dx
 
-    def import_from_array(self, data):
+    def import_from_array(self, data, dx=1):
         """
         Import greyscale image from an array.
         """
@@ -61,10 +65,38 @@ class Image(object):
         if np.any(data > 255) or np.any(data < 0):
             raise ValueError()
         self.data = data
+        self.dx = dx
+
+    def copy(self):
+        return copy.deepcopy(self)
 
     def display(self):
-        plt.imshow(self.data, cmap='gray', interpolation='nearest')
+        plt.imshow(self.data, cmap='gray', interpolation='nearest',
+                   extent=[0, self.dx*self.data.shape[1],
+                           0, self.dx*self.data.shape[0]])
         plt.xticks([]), plt.yticks([])
+        if self.baseline is not None:
+            pt1, pt2 = self.baseline
+            plt.plot([pt1[0], pt2[0]],
+                     [pt1[1], pt2[1]],
+                     color='g',
+                     ls='none',
+                     marker='o')
+            plt.plot([pt1[0], pt2[0]],
+                     [pt1[1], pt2[1]],
+                     color='g',
+                     ls='-')
+
+    def set_baseline(self, pt1, pt2):
+        """
+        Set the baseline.
+
+        Parameters
+        ==========
+        pt1, pt2 : 2x1 arrays of numbers
+            Points defining the baseline.
+        """
+        self.baseline = [pt1, pt2]
 
     def binarize(self, method='adaptative', threshold=None, inplace=False):
         """
@@ -109,15 +141,15 @@ class Image(object):
         new_img: Image object
             Binarized image
         """
-        ret_val, new_img = cv2.threshold(self.data,
+        if inplace:
+            tmp_im = self
+        else:
+            tmp_im = self.copy()
+        ret_val, new_img = cv2.threshold(tmp_im.data,
                                          threshold,
                                          255,
                                          cv2.THRESH_BINARY)
-        if inplace:
-            self.data = new_img
-            self.used_threshold = int(ret_val)
-        tmp_im = Image()
-        tmp_im.import_from_array(new_img)
+        tmp_im.data = new_img
         tmp_im.used_threshold = int(ret_val)
         return tmp_im
 
@@ -155,17 +187,18 @@ class Image(object):
             warnings.warn(f"size should be odd and has been set to {size}"
                           f" instead of {size - 1}")
         #
-        new_img = cv2.adaptiveThreshold(self.data,
+        if inplace:
+            tmp_im = self
+        else:
+            tmp_im = self.copy()
+        new_img = cv2.adaptiveThreshold(tmp_im.data,
                                         255,
                                         kind,
                                         cv2.THRESH_BINARY,
                                         size,
                                         1)
-        if inplace:
-            self.data = new_img
-            self.used_threshold = 'adapt'
-        tmp_im = Image()
-        tmp_im.import_from_array(new_img)
+        tmp_im.data = new_img
+        tmp_im.used_threshold = 'adapt'
         return tmp_im
 
     def _binarize_otsu(self, inplace=True):
@@ -182,17 +215,20 @@ class Image(object):
         new_img: Image object
             Binarized image
         """
+        if inplace:
+            tmp_im = self
+        else:
+            tmp_im = self.copy()
         ret_val, new_img = cv2.threshold(self.data,
                                          0,
                                          255,
                                          cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-        if inplace:
-            self.data = new_img
-            self.used_threshold = int(ret_val)
-        tmp_im = Image()
-        tmp_im.import_from_array(new_img)
+        tmp_im.data = new_img
         tmp_im.used_threshold = int(ret_val)
         return tmp_im
+
+    def edge_detection(self):
+        pass
 
 
 class ImageSequence(object):
@@ -212,15 +248,15 @@ class ContactAngleHysteresisExtractor(object):
 
 
 if __name__ == '__main__':
-    # simple display
+    # Create image
     path = "/home/muahah/Postdoc_GSLIPS/180112-Test_DSA_Images/data/Test Sample 2.bmp"
-    # # TEMP
-    # img = cv2.imread(path, 0)
-    # ret,thresh1 = cv2.threshold(img,127,255,cv2.THRESH_BINARY)
-    # bug
-    # # TEMP - End
     im = Image()
     im.import_from_file(path)
+    # set baseline
+    pt1 = [604.8, 68.6]
+    pt2 = [157.6, 72.3]
+    im.set_baseline(pt1, pt2)
+    # Simple display
     im.display()
     plt.title('Raw image')
     # binarize
