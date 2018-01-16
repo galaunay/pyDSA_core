@@ -275,7 +275,8 @@ class Image(ScalarField):
         tmp_im.data = tmp_data
         return tmp_im
 
-    def edge_detection(self, threshold1=None, threshold2=None, inplace=False):
+    def edge_detection(self, threshold1=None, threshold2=None, inplace=False,
+                       verbose=False):
         """
         Make Canny edge detection.
 
@@ -289,6 +290,10 @@ class Image(ScalarField):
             tmp_im = self
         else:
             tmp_im = self.copy()
+        if verbose:
+            plt.figure()
+            self.display()
+            plt.title('Initial image')
         # Get thresholds from histograms
         if threshold2 is None or threshold1 is None:
             cumhist = self.get_histogram(cum=True).y
@@ -301,13 +306,34 @@ class Image(ScalarField):
         # Perform Canny detection
         im_edges = cv2.Canny(np.array(tmp_im.values, dtype=np.uint8),
                              threshold1, threshold2)
+        if verbose:
+            plt.figure()
+            im = Image()
+            im.import_from_arrays(self.axe_x, self.axe_y,
+                                  im_edges, mask=self.mask,
+                                  unit_x=self.unit_x, unit_y=self.unit_y)
+            im.display()
+            plt.title('Canny edge detection')
         # Keep only the bigger edge
         labels, nmb = spim.label(im_edges, np.ones((3, 3)))
         sizes = [np.sum(labels == label) for label in np.arange(1, nmb + 1)]
         bigger_label = np.argmax(sizes) + 1
         im_edges[labels != bigger_label] = 0
+        if verbose:
+            plt.figure()
+            im = Image()
+            im.import_from_arrays(self.axe_x, self.axe_y,
+                                  im_edges, mask=self.mask,
+                                  unit_x=self.unit_x, unit_y=self.unit_y)
+            im.display()
+            plt.title('Canny edge detection + blob selection')
         # Get points coordinates
         xs, ys = np.where(im_edges)
+        if verbose:
+            plt.figure()
+            self.display()
+            plt.plot(xs, ys, ".k")
+            plt.title('Initial image + edge points')
         return xs, ys
 
 
@@ -345,9 +371,12 @@ if __name__ == '__main__':
     im.display()
     plt.title('Raw image')
     # make Canny edge detection
-    xs, ys = im.edge_detection()
+    xs, ys = im.edge_detection(verbose=True)
+    plt.show()
+    bug
     plt.plot(xs, ys, ".r")
     plt.title('Canny edge detection + area selection')
+    plt.show()
     # Fit
     raise Exception('Todo')
     spl = spint.UnivariateSpline(xs, ys, k=3)
