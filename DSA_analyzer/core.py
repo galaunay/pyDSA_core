@@ -17,6 +17,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.ndimage as spim
 import warnings
 import copy
 
@@ -97,6 +98,41 @@ class Image(object):
             Points defining the baseline.
         """
         self.baseline = [pt1, pt2]
+
+    def crop(self, x1=None, x2=None, y1=None, y2=None, inplace=False):
+        """
+        Crop the image.
+
+        Parameters
+        ==========
+        x1, x2, y1, y2: integers
+            Line where to cut.
+
+        Returns
+        =======
+        new_im : Image object
+            Cropped image.
+        """
+        raise Exception('Need proper axis implementation')
+        if inplace:
+            tmp_im = self
+        else:
+            tmp_im = self.copy()
+        x1 = x1 or 0
+        x2 = x2 or self.data.shape[1] - 1
+        y1 = y1 or 0
+        y2 = y2 or self.data.shape[0] - 1
+        y1 = self.data.shape[0] - 1 - y1
+        y2 = self.data.shape[0] - 1 - y2
+        print(y1, y2)
+        print(x1, x2)
+        print(self.data.shape)
+        tmp_im.data = tmp_im.data[y2:y1, x1:x2]
+        self.baseline = [[self.baseline[0][0] - x1,
+                          self.baseline[0][1] - y2],
+                         [self.baseline[1][0] - x1,
+                          self.baseline[1][1] - y2]]
+        return tmp_im
 
     def binarize(self, method='adaptative', threshold=None, inplace=False):
         """
@@ -227,6 +263,60 @@ class Image(object):
         tmp_im.used_threshold = int(ret_val)
         return tmp_im
 
+    def fill_holes(self, size=2, iterations=1, inplace=False):
+        """
+        Fill the holes in the image.
+
+        Parameters
+        ==========
+        size: integer
+            Size of the hole to fill.
+        iterations: integet
+            Number of iterations
+
+        Returns
+        =======
+        tmp_im : Image object
+            Transformation of the initial image where holes have been filled.
+        """
+        if inplace:
+            tmp_im = self
+        else:
+            tmp_im = self.copy()
+        # first, remove holes
+        tmp_im.data = spim.binary_closing(tmp_im.data,
+                                          structure=np.ones((size, size)),
+                                          iterations=iterations)
+        # remove black border
+        border = size + iterations
+        tmp_im.data = tmp_im.data[border:-border, border:-border]
+        raise Exception('Need proper axis implementation to handle baseline modifs')
+        self.baseline = [[self.baseline[0][0] + border*self.dx,
+                          self.baseline[0][1] + border*self.dx],
+                         [self.baseline[1][0] + border*self.dx,
+                          self.baseline[1][1] + border*self.dx]]
+        # second, only keep biggest white area
+        labels, nmb = spim.label(tmp_im.data)
+        sizes = [np.sum(labels == label) for label in np.arange(1, nmb + 1)]
+        bigger_label = np.argmax(sizes) + 1
+        labels[labels != bigger_label] = 0
+        tmp_im.data = labels
+        # third, only keep biggest black area
+        tmp_data = tmp_im.data.copy()
+        tmp_data[tmp_im.data == 1] = 0
+        tmp_data[tmp_im.data == 0] = 1
+        labels, nmb = spim.label(tmp_data)
+        sizes = [np.sum(labels == label) for label in np.arange(1, nmb + 1)]
+        bigger_label = np.argmax(sizes) + 1
+        labels[labels != bigger_label] = 1
+        # store
+        tmp_data = labels.copy()
+        tmp_data[labels == 1] = 0
+        tmp_data[labels == 0] = 1
+        tmp_im.data = tmp_data
+        return tmp_im
+
+
     def edge_detection(self):
         pass
 
@@ -248,6 +338,10 @@ class ContactAngleHysteresisExtractor(object):
 
 
 if __name__ == '__main__':
+    # spim.label
+    spim.binary_closing
+    # spim.binary_fill_holes
+
     # Create image
     path = "/home/muahah/Postdoc_GSLIPS/180112-Test_DSA_Images/data/Test Sample 2.bmp"
     im = Image()
@@ -263,13 +357,17 @@ if __name__ == '__main__':
     im1 = im._binarize_simple(threshold=100)
     im2 = im._binarize_adaptative(size=400)
     im3 = im._binarize_otsu()
+    imf = im3.fill_holes(3, iterations=10)
+    # plt.figure()
+    # im1.display()
+    # plt.title(f'Simple threshold at {im1.used_threshold}')
+    # plt.figure()
+    # im2.display()
+    # plt.title(f'Adaptative threshold of size 400')
+    # plt.figure()
+    # im3.display()
+    # plt.title(f'Otsu optimized threshold at {im3.used_threshold}')
     plt.figure()
-    im1.display()
-    plt.title(f'Simple threshold at {im1.used_threshold}')
-    plt.figure()
-    im2.display()
-    plt.title(f'Adaptative threshold of size 400')
-    plt.figure()
-    im3.display()
-    plt.title(f'Otsu optimized threshold at {im3.used_threshold}')
+    imf.display()
+    plt.title(f'Otsu optimized + filled holes')
     plt.show()
