@@ -18,8 +18,10 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.ndimage as spim
+import scipy.interpolate as spint
 import warnings
 import copy
+from IMTreatment import ScalarField, Profile
 
 
 """  """
@@ -33,49 +35,16 @@ __email__ = "gaby.launay@tutanota.com"
 __status__ = "Development"
 
 
-class Image(object):
+class Image(ScalarField):
     def __init__(self):
         """
         Class representing a greyscale image.
         """
-        self.path = None
-        self.data = None
-        self.used_threshold = None
+        super().__init__()
         self.baseline = None
-        self.dx = None
 
-    def import_from_file(self, filepath, dx=1):
-        """
-        Import greyscale image from an image file.
-        """
-        self.path = filepath
-        data = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)
-        if data.shape == [0, 0]:
-            raise IOError()
-        self.data = np.array(data, dtype=np.uint8)
-        self.dx = dx
-
-    def import_from_array(self, data, dx=1):
-        """
-        Import greyscale image from an array.
-        """
-        self.path = None
-        data = np.array(data, dtype=np.uint8)
-        if data.ndim != 2:
-            raise ValueError
-        if np.any(data > 255) or np.any(data < 0):
-            raise ValueError()
-        self.data = data
-        self.dx = dx
-
-    def copy(self):
-        return copy.deepcopy(self)
-
-    def display(self):
-        plt.imshow(self.data, cmap='gray', interpolation='nearest',
-                   extent=[0, self.dx*self.data.shape[1],
-                           0, self.dx*self.data.shape[0]])
-        plt.xticks([]), plt.yticks([])
+    def display(self, *args, **kwargs):
+        super().display(*args, **kwargs)
         if self.baseline is not None:
             pt1, pt2 = self.baseline
             plt.plot([pt1[0], pt2[0]],
@@ -99,40 +68,29 @@ class Image(object):
         """
         self.baseline = [pt1, pt2]
 
-    def crop(self, x1=None, x2=None, y1=None, y2=None, inplace=False):
+    def get_histogram(self, cum=False, normalized=False):
         """
-        Crop the image.
+        Return the image histogram.
 
         Parameters
         ==========
-        x1, x2, y1, y2: integers
-            Line where to cut.
+        cum: boolean
+            If True, get a cumulative histogram.
 
         Returns
         =======
-        new_im : Image object
-            Cropped image.
+        hist: array of numbers
+            Histogram.
         """
-        raise Exception('Need proper axis implementation')
-        if inplace:
-            tmp_im = self
-        else:
-            tmp_im = self.copy()
-        x1 = x1 or 0
-        x2 = x2 or self.data.shape[1] - 1
-        y1 = y1 or 0
-        y2 = y2 or self.data.shape[0] - 1
-        y1 = self.data.shape[0] - 1 - y1
-        y2 = self.data.shape[0] - 1 - y2
-        print(y1, y2)
-        print(x1, x2)
-        print(self.data.shape)
-        tmp_im.data = tmp_im.data[y2:y1, x1:x2]
-        self.baseline = [[self.baseline[0][0] - x1,
-                          self.baseline[0][1] - y2],
-                         [self.baseline[1][0] - x1,
-                          self.baseline[1][1] - y2]]
-        return tmp_im
+        hist, xs = np.histogram(self.values.flatten(),
+                                bins=255,
+                                density=normalized)
+        xs = xs[0:-1] + np.mean(xs[0:2])
+        if cum:
+            hist = np.cumsum(hist)
+
+        return Profile(xs, hist, mask=False, unit_x=self.unit_values,
+                       unit_y="counts")
 
     def binarize(self, method='adaptative', threshold=None, inplace=False):
         """
@@ -279,6 +237,7 @@ class Image(object):
         tmp_im : Image object
             Transformation of the initial image where holes have been filled.
         """
+        raise Exception('Obsolete')
         if inplace:
             tmp_im = self
         else:
@@ -316,9 +275,40 @@ class Image(object):
         tmp_im.data = tmp_data
         return tmp_im
 
+    def edge_detection(self, threshold1=None, threshold2=None, inplace=False):
+        """
+        Make Canny edge detection.
 
-    def edge_detection(self):
-        pass
+        Parameters
+        ==========
+        threshold1, threshold2: integers
+            Thresholds for the Canny edge detection method.
+            (By default, inferred from the data histogram)
+        """
+        if inplace:
+            tmp_im = self
+        else:
+            tmp_im = self.copy()
+        # Get thresholds from histograms
+        if threshold2 is None or threshold1 is None:
+            cumhist = self.get_histogram(cum=True).y
+            cumhist -= np.min(cumhist)
+            cumhist /= np.max(cumhist)
+            if threshold1 is None:
+                threshold1 = np.argwhere(cumhist > 0.2)[0][0]
+            if threshold2 is None:
+                threshold2 = np.argwhere(cumhist > 0.8)[0][0]
+        # Perform Canny detection
+        im_edges = cv2.Canny(np.array(tmp_im.values, dtype=np.uint8),
+                             threshold1, threshold2)
+        # Keep only the bigger edge
+        labels, nmb = spim.label(im_edges, np.ones((3, 3)))
+        sizes = [np.sum(labels == label) for label in np.arange(1, nmb + 1)]
+        bigger_label = np.argmax(sizes) + 1
+        im_edges[labels != bigger_label] = 0
+        # Get points coordinates
+        xs, ys = np.where(im_edges)
+        return xs, ys
 
 
 class ImageSequence(object):
@@ -338,14 +328,15 @@ class ContactAngleHysteresisExtractor(object):
 
 
 if __name__ == '__main__':
-    # spim.label
-    spim.binary_closing
-    # spim.binary_fill_holes
-
     # Create image
-    path = "/home/muahah/Postdoc_GSLIPS/180112-Test_DSA_Images/data/Test Sample 2.bmp"
+    path = "/home/muahah/Postdoc_GSLIPS/180112-Test_DSA_Images/data/Test"\
+           " Sample 2.bmp"
+    data = cv2.imread(path, cv2.IMREAD_GRAYSCALE).transpose()
+    data = data[:, ::-1]
+    axe_x = np.arange(0, data.shape[0])
+    axe_y = np.arange(0, data.shape[1])
     im = Image()
-    im.import_from_file(path)
+    im.import_from_arrays(axe_x, axe_y, data, unit_x="px", unit_y="px")
     # set baseline
     pt1 = [604.8, 68.6]
     pt2 = [157.6, 72.3]
@@ -353,21 +344,17 @@ if __name__ == '__main__':
     # Simple display
     im.display()
     plt.title('Raw image')
-    # binarize
-    im1 = im._binarize_simple(threshold=100)
-    im2 = im._binarize_adaptative(size=400)
-    im3 = im._binarize_otsu()
-    imf = im3.fill_holes(3, iterations=10)
-    # plt.figure()
-    # im1.display()
-    # plt.title(f'Simple threshold at {im1.used_threshold}')
-    # plt.figure()
-    # im2.display()
-    # plt.title(f'Adaptative threshold of size 400')
-    # plt.figure()
-    # im3.display()
-    # plt.title(f'Otsu optimized threshold at {im3.used_threshold}')
-    plt.figure()
-    imf.display()
-    plt.title(f'Otsu optimized + filled holes')
+    # make Canny edge detection
+    xs, ys = im.edge_detection()
+    plt.plot(xs, ys, ".r")
+    plt.title('Canny edge detection + area selection')
+    # Fit
+    raise Exception('Todo')
+    spl = spint.UnivariateSpline(xs, ys, k=3)
+    order = 5
+    zx = np.polyfit(range(len(xs)), xs, order)
+    fx = np.poly1d(zx)
+    zy = np.polyfit(range(len(ys)), ys, order)
+    fy = np.poly1d(zy)
+    plt.plot(fx(range(len(xs))), fy(range(len(ys))), "--k")
     plt.show()
