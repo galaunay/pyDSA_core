@@ -76,6 +76,7 @@ class DropEdges(Points):
             Approximation order for the fitting.
         """
         # Prepare drop edge for interpolation
+        # TODO: Find a more efficient fitting
         de1, de2 = self._separate_drop_edges()
         x1 = de1.xy[:, 0]
         y1 = de1.xy[:, 1]
@@ -86,7 +87,7 @@ class DropEdges(Points):
         new_y2 = np.sort(list(set(y2)))
         new_x2 = [np.mean(x2[y == y2]) for y in new_y2]
         # spline interpolation
-        s = s or len(new_y1)/10
+        s = s or len(y1)/10
         try:
             spline1 = spint.UnivariateSpline(new_y1, new_x1, k=k, s=s)
             spline2 = spint.UnivariateSpline(new_y2, new_x2, k=k, s=s)
@@ -101,12 +102,26 @@ class DropEdges(Points):
             de1.display()
             plt.plot(new_x1, new_y1, '--')
             plt.plot(spline1(new_y1), new_y1, 'r')
-            de2.display()
+            de2.displanew_y()
             plt.plot(new_x2, new_y2, '--')
             plt.plot(spline2(new_y2), new_y2, 'r')
             plt.axis('equal')
             plt.show()
         return spline1, spline2
+
+    def display_fit(self):
+        """
+        """
+        plt.figure()
+        self.display()
+        y = np.linspace(np.min(self.xy[:, 1]),
+                        np.max(self.xy[:, 1]),
+                        1000)
+        x1 = self.edges_fits[0](y)
+        x2 = self.edges_fits[1](y)
+        plt.plot(x1, y, "r")
+        plt.plot(x2, y, "r")
+        plt.show()
 
     def get_drop_base(self):
         """

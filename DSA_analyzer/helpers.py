@@ -112,7 +112,7 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         sf = Image()
         sf.import_from_arrays(axe_x, axe_y, im, mask=False,
                               unit_x=unit_x, unit_y=unit_y)
-        ti.add_field(sf, time=i*dt, unit_times=unit_t)
+        ti.add_field(sf, time=i*dt, unit_times=unit_t, copy=False)
         i += 1
         if verbose:
             pg.print_progress()

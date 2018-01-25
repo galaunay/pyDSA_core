@@ -312,7 +312,9 @@ class Image(ScalarField):
             plt.title('Initial image')
         # Get thresholds from histograms
         if threshold2 is None or threshold1 is None:
-            cumhist = self.get_histogram(cum=True).y
+            hist = cv2.calcHist(np.array(self.values, dtype=np.uint8),
+                                [0], None, [255], [0, 255])
+            cumhist = np.cumsum(hist)
             cumhist -= np.min(cumhist)
             cumhist /= np.max(cumhist)
             if threshold1 is None:
