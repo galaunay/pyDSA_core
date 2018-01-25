@@ -14,9 +14,14 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
+import numpy as np
 import matplotlib.pyplot as plt
 from IMTreatment import TemporalScalarFields, TemporalPoints
+from IMTreatment.utils import ProgressCounter
 from .image import Image
+from .temporaldropedges import TemporalDropEdges
+import scipy.optimize as spopt
+
 
 
 """  """
@@ -44,6 +49,16 @@ class TemporalImages(TemporalScalarFields):
         for i in range(len(self.fields)):
             self.fields[i].set_baseline(pt1=pt1, pt2=pt2)
 
+    def choose_baseline(self, ind_image=0):
+        """
+        Choose baseline position interactively.
+
+        Select as many points as you want (click on points to delete them),
+        and close the figure when done.
+        """
+        self.baseline = self.fields[ind_image].choose_baseline()
+        return self.baseline
+
     def display(self, *args, **kwargs):
         super().display(*args, **kwargs)
         if self.baseline is not None:
@@ -68,9 +83,14 @@ class TemporalImages(TemporalScalarFields):
             Thresholds for the Canny edge detection method.
             (By default, inferred from the data histogram)
         """
-        pts = TemporalPoints()
+        pts = TemporalDropEdges()
+        if verbose:
+            pg = ProgressCounter("Detecting drop edges", "Done",
+                                 len(self.fields), 'images', 5)
         for i in range(len(self.fields)):
             pt = self.fields[i].edge_detection(threshold1=threshold1,
                                                threshold2=threshold2)
             pts.add_pts(pt, time=self.times[i], unit_times=self.unit_times)
+            if verbose:
+                pg.print_progress()
         return pts

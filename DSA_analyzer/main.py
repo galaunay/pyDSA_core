@@ -31,62 +31,54 @@ __status__ = "Development"
 
 
 #==========================================================================
-# Video
-#==========================================================================
 # Create image from video
+#==========================================================================
 path = "/home/muahah/Postdoc_GSLIPS/180112-Test_DSA_Images/"\
-        "data/CAH Sample 2 Test.avi"
+       "data/CAH Sample 2 Test.avi"
 ims = import_from_video(path, dx=1, dy=1, unit_x="um", unit_y="um",
-                        # frame_inds=[80, 380])
-                        frame_inds=[80, 90])
-ims.crop(intervy=[74.6, 500], inplace=True)
-# Edge detection
-edges = ims.edge_detection()
-# fitting
-theta1 = []
-theta2 = []
-verbose = False
-for i in range(len(edges.point_sets)):
-    edge = edges.point_sets[i]
-    edge = DropEdges(edge.xy, unit_x=edge.unit_x, unit_y=edge.unit_y)
-    t1, t2 = edge.get_contact_angle(k=5, verbose=verbose)
-    theta1.append(t1)
-    theta2.append(t2)
+                        frame_inds=[80, 375], verbose=True)
+                        # frame_inds=[80, 100], verbose=True)
+ims.crop(intervy=[0, 421], inplace=True)
+
+
+#==============================================================================
+# Display video
+#==============================================================================
+# ims.display()
+# plt.show()
+
+
+#==============================================================================
+# Choosing baseline
+#==============================================================================
+# ims.choose_baseline()
+# ims.display()
+# plt.show()
+pt1 = [604.8, 68.6]
+pt2 = [157.6, 72.3]
+ims.set_baseline(pt1, pt2)
+
+
+#==============================================================================
+# Detect drop edges
+#==============================================================================
+edges = ims.edge_detection(verbose=True)
+# ims.display()
+# edges.display()
+# plt.show()
+
+
+#==============================================================================
+# Fit the drop edges
+#==============================================================================
+edges.fit(verbose=True)
+
+
+#==============================================================================
+# Get the drop base evolution
+#==============================================================================
+bdp = edges.get_drop_base()
 plt.figure()
-plt.plot(edges.times, theta1)
-plt.plot(edges.times, theta2)
+plt.plot(bdp[:, 0])
+plt.plot(bdp[:, 1])
 plt.show()
-
-bug
-
-# #==========================================================================
-# # Image
-# #==========================================================================
-# # Create image
-# path = "/home/muahah/Postdoc_GSLIPS/180112-Test_DSA_Images/data/Test"\
-#        " Sample 2.bmp"
-# im = import_from_image(path, dx=1, dy=1, unit_x="um", unit_y="um")
-# # set baseline
-# pt1 = [604.8, 68.6]
-# pt2 = [157.6, 72.3]
-# im.set_baseline(pt1, pt2)
-# # Simple display
-# im.display()
-# plt.title('Raw image')
-# # make Canny edge detection
-# edge_pts = im.edge_detection(verbose=False, inplace=True)
-# plt.figure()
-# # edge_pts.display()
-# edge_pts.display()
-# plt.title('Canny edge detection + area selection')
-# plt.show()
-# # Fit
-# raise Exception('Todo')
-# spl = spint.UnivariateSpline(xs, ys, k=3)
-# order = 5
-# zx = np.polyfit(range(len(xs)), xs, order)
-# fx = np.poly1d(zx)
-# zy = np.polyfit(range(len(ys)), ys, order)
-# fy = np.poly1d(zy)
-# plt.plot(fx(range(len(xs))), fy(range(len(ys))), "--k")
-# plt.show()

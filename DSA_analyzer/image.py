@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import scipy.ndimage as spim
 import warnings
 from IMTreatment import ScalarField, Points
+from .dropedges import DropEdges
 
 
 """  """
@@ -65,6 +66,51 @@ class Image(ScalarField):
             Points defining the baseline.
         """
         self.baseline = [pt1, pt2]
+
+    def choose_baseline(self):
+        """
+        Choose baseline position interactively.
+
+        Select as many points as you want (click on points to delete them),
+        and close the figure when done.
+        """
+        pos = []
+        eps = .01*(self.axe_x[-1] - self.axe_x[0])
+        # get cursor position on click
+        fig = plt.figure()
+        pts = plt.plot([], marker="o", ls="none", mec='w', mfc='k')[0]
+        baseline = plt.plot([], ls="-", color="k")[0]
+        def onclick(event):
+            xy = [event.xdata, event.ydata]
+            diffs = [(xy[0] - xyi[0])**2 + (xy[1] - xyi[1])**2
+                     for xyi in pos]
+            # check if close to an existing point
+            closes = diffs < eps**2
+            if np.any(closes):
+                for i in np.arange(len(pos) - 1, -1, -1):
+                    if closes[i]:
+                        del pos[i]
+            else:
+                pos.append(xy)
+            # redraw if necessary
+            if len(pos) != 0:
+                pts.set_data(np.array(pos).transpose())
+                if len(pos) > 1:
+                    baseline.set_data(np.array(
+                        self._get_baseline_from_several_points(pos)).transpose())
+                fig.canvas.draw()
+        fig.canvas.mpl_connect('button_press_event', onclick)
+        self.display()
+        plt.show()
+        # use linear interpolation to get baseline
+        self.baseline = self._get_baseline_from_several_points(pos)
+        return self.baseline
+
+    def _get_baseline_from_several_points(self, pts):
+        pos = np.array(pts)
+        a, b = np.polyfit(pos[:, 0], pos[:, 1], 1)
+        return [[self.axe_x[0], a*self.axe_x[0] + b],
+                [self.axe_x[-1], a*self.axe_x[-1] + b]]
 
     def binarize(self, method='adaptative', threshold=None, inplace=False):
         """
@@ -273,15 +319,19 @@ class Image(ScalarField):
                 threshold1 = np.argwhere(cumhist > 0.2)[0][0]
             if threshold2 is None:
                 threshold2 = np.argwhere(cumhist > 0.8)[0][0]
+        # remove useless part of the image
+        tmp_im = self.crop(intervy=[np.min([self.baseline[0][1],
+                                            self.baseline[1][1]]), np.inf],
+                           inplace=False)
         # Perform Canny detection
-        im_edges = cv2.Canny(np.array(self.values, dtype=np.uint8),
+        im_edges = cv2.Canny(np.array(tmp_im.values, dtype=np.uint8),
                              threshold1, threshold2)
         if verbose:
             plt.figure()
             im = Image()
-            im.import_from_arrays(self.axe_x, self.axe_y,
-                                  im_edges, mask=self.mask,
-                                  unit_x=self.unit_x, unit_y=self.unit_y)
+            im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
+                                  im_edges, mask=tmp_im.mask,
+                                  unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
             im.display()
             plt.title('Canny edge detection')
         # Keep only the bigger edge
@@ -289,21 +339,35 @@ class Image(ScalarField):
         sizes = [np.sum(labels == label) for label in np.arange(1, nmb + 1)]
         for i, size in enumerate(sizes):
             if size <= .5*np.max(sizes):
-                im_edges[labels == i] = 0
+                im_edges[labels == i+1] = 0
         if verbose:
             plt.figure()
             im = Image()
-            im.import_from_arrays(self.axe_x, self.axe_y,
-                                  im_edges, mask=self.mask,
-                                  unit_x=self.unit_x, unit_y=self.unit_y)
+            im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
+                                  labels, mask=tmp_im.mask,
+                                  unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
             im.display()
+            print(sizes)
             plt.title('Canny edge detection + blob selection')
         # Get points coordinates
         xs, ys = np.where(im_edges)
+        xs = [tmp_im.axe_x[x] for x in xs]
+        ys = [tmp_im.axe_y[y] for y in ys]
+        # remove points behind the baseline
+        xys = []
+        a, b = np.polyfit([self.baseline[0][0], self.baseline[1][0]],
+                          [self.baseline[0][1], self.baseline[1][1]],
+                          1)
+        for x, y in zip(xs, ys):
+            if y > self.baseline[0][1] and y > self.baseline[1][1]:
+                xys.append([x, y])
+                continue
+            if y > a*x + b:
+                xys.append([x, y])
         if verbose:
             plt.figure()
             self.display()
-            plt.plot(xs, ys, ".k")
+            xys = np.array(xys)
+            plt.plot(xys[:, 0], xys[:, 1], ".k")
             plt.title('Initial image + edge points')
-        return Points(xy=list(zip(xs, ys)), unit_x=self.unit_x,
-                      unit_y=self.unit_y)
+        return DropEdges(xy=xys, unit_x=self.unit_x, unit_y=self.unit_y)

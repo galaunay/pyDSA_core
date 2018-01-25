@@ -37,6 +37,7 @@ class DropEdges(Points):
         """
         super().__init__(*args, **kwargs)
         self.drop_edges = self._separate_drop_edges()
+        self.edges_fits = None
 
     def _separate_drop_edges(self):
         """
@@ -63,7 +64,7 @@ class DropEdges(Points):
                      unit_y=self.unit_y)
         return de1, de2
 
-    def get_fitting(self, k=5, s=None, verbose=False):
+    def fit(self, k=5, s=None, verbose=False):
         """
         Get a fitting for the droplet shape.
 
@@ -74,7 +75,6 @@ class DropEdges(Points):
         order : integer
             Approximation order for the fitting.
         """
-        print('TODO: to clean')
         # Prepare drop edge for interpolation
         de1, de2 = self._separate_drop_edges()
         x1 = de1.xy[:, 0]
@@ -87,37 +87,49 @@ class DropEdges(Points):
         new_x2 = [np.mean(x2[y == y2]) for y in new_y2]
         # spline interpolation
         s = s or len(new_y1)/10
-        spline1 = spint.UnivariateSpline(new_y1, new_x1, k=k, s=s)
-        spline2 = spint.UnivariateSpline(new_y2, new_x2, k=k, s=s)
+        try:
+            spline1 = spint.UnivariateSpline(new_y1, new_x1, k=k, s=s)
+            spline2 = spint.UnivariateSpline(new_y2, new_x2, k=k, s=s)
+        except:
+            spline1 = lambda x: np.nan
+            spline2 = lambda x: np.nan
+        # store
+        self.edges_fits = [spline1, spline2]
+        # Verbose if necessary
         if verbose:
             plt.figure()
             de1.display()
+            plt.plot(new_x1, new_y1, '--')
             plt.plot(spline1(new_y1), new_y1, 'r')
             de2.display()
+            plt.plot(new_x2, new_y2, '--')
             plt.plot(spline2(new_y2), new_y2, 'r')
             plt.axis('equal')
             plt.show()
         return spline1, spline2
 
+    def get_drop_base(self):
+        """
+        Return the drop base.
+
+        Returns
+        =======
+        x1, x2: numbers
+            Coordinates of the drop base.
+        """
+        if self.edges_fits is None:
+            raise Exception("You should computing fitting first with 'fit()'")
+        x1 = self.edges_fits[0](self.xy[0, 1])
+        x2 = self.edges_fits[1](self.xy[0, 1])
+        return np.sort([x1, x2])
+
+    def get_drop_base_radius(self):
+        """
+        Return the drop base radius.
+        """
+        db = self.get_drop_base()
+        return db[1] - db[0]
+
     def get_contact_angle(self, k=5, s=None, verbose=False):
-        print('TODO: to clean')
-        # get spline
-        de1, de2 = self._separate_drop_edges()
-        y1 = de1.xy[:, 1]
-        y2 = de2.xy[:, 1]
-        spline1, spline2 = self.get_fitting(k=k, s=s, verbose=verbose)
-        y1 = np.linspace(np.min(y1), np.max(y1), len(y1)*10)
-        x1 = spline1(y1)
-        y2 = np.linspace(np.min(y2), np.max(y2), len(y2)*10)
-        x2 = spline2(y2)
-        # Get gradients
-        print('TODO: better way to estimate gradients...')
-        grad1 = np.gradient(x1, y1[1] - y1[0])
-        grad2 = np.gradient(x2, y2[1] - y2[0])
-        if verbose:
-            plt.figure()
-            plt.plot(y1, grad1)
-            plt.plot(y2, grad2)
-            plt.title('gradients')
-            plt.show()
-        return grad1[0], grad2[0]
+        raise Exception('Not yet implemented')
+        # Should use laplace-young fitting

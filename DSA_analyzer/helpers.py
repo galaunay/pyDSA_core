@@ -18,6 +18,8 @@ import cv2
 import numpy as np
 from .image import Image
 from .temporalimages import TemporalImages
+from IMTreatment.utils import ProgressCounter
+import warnings
 
 """  """
 
@@ -59,7 +61,7 @@ def import_from_image(path, dx=1, dy=1, unit_x="", unit_y=""):
 
 
 def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
-                      frame_inds=None):
+                      frame_inds=None, verbose=False):
     """
     Import a images from a video file.
 
@@ -87,7 +89,12 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
     vid.open(path)
     ti = TemporalImages()
     i = 0
-    print("TODO: read video directly in grayscale")
+    if frame_inds is None:
+        frame_inds = [0, int(vid.get(cv2.CAP_PROP_FRAME_COUNT))]
+    # logs
+    if verbose:
+        nmb_frames = frame_inds[1] - frame_inds[0]
+        pg = ProgressCounter("Decoding video", "Done", nmb_frames, 'frames', 5)
     while True:
         if i < frame_inds[0]:
             i += 1
@@ -95,8 +102,10 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
             continue
         success, im = vid.read()
         if not success:
+            warnings.warn(f"Can't decode frame number {i}")
             break
-        im = np.mean(im, axis=2)
+        im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
+        # im = np.mean(im, axis=2)
         im = im.transpose()[:, ::-1]
         axe_x = np.arange(0, im.shape[0]*dx, dx)
         axe_y = np.arange(0, im.shape[1]*dy, dy)
@@ -105,6 +114,8 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
                               unit_x=unit_x, unit_y=unit_y)
         ti.add_field(sf, time=i*dt, unit_times=unit_t)
         i += 1
+        if verbose:
+            pg.print_progress()
         if i >= frame_inds[1]:
             break
     return ti
