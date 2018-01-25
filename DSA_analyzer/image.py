@@ -336,11 +336,12 @@ class Image(ScalarField):
                                   unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
             im.display()
             plt.title('Canny edge detection')
-        # Keep only the bigger edge
+        # Keep only the bigger edges
         labels, nmb = spim.label(im_edges, np.ones((3, 3)))
         sizes = [np.sum(labels == label) for label in np.arange(1, nmb + 1)]
+        crit_size = np.sort(sizes)[-2]
         for i, size in enumerate(sizes):
-            if size <= .5*np.max(sizes):
+            if size < crit_size:
                 im_edges[labels == i+1] = 0
         if verbose:
             plt.figure()

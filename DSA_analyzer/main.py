@@ -36,8 +36,7 @@ __status__ = "Development"
 path = "/home/muahah/Postdoc_GSLIPS/180112-Test_DSA_Images/"\
        "data/CAH Sample 2 Test.avi"
 ims = import_from_video(path, dx=1, dy=1, unit_x="um", unit_y="um",
-                        # frame_inds=[80, 375], verbose=True)
-                        frame_inds=[80, 100], verbose=True)
+                        frame_inds=[80, 375], verbose=True)
 ims.crop(intervy=[0, 421], inplace=True)
 
 
@@ -75,11 +74,11 @@ edges.fit(verbose=True)
 edges.point_sets[1].display_fit()
 
 
-# #==============================================================================
-# # Get the drop base evolution
-# #==============================================================================
-# bdp = edges.get_drop_base()
-# # plt.figure()
-# # plt.plot(bdp[:, 0])
-# # plt.plot(bdp[:, 1])
-# # plt.show()
+#==============================================================================
+# Get the drop base evolution
+#==============================================================================
+bdp = edges.get_drop_base()
+plt.figure()
+plt.plot(bdp[:, 0])
+plt.plot(bdp[:, 1])
+plt.show()
