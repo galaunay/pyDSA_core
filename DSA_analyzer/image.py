@@ -374,3 +374,47 @@ class Image(ScalarField):
             plt.plot(xys[:, 0], xys[:, 1], ".k")
             plt.title('Initial image + edge points')
         return DropEdges(xy=xys, unit_x=self.unit_x, unit_y=self.unit_y)
+
+    def circle_detection(self, dp=1., minDist=10, verbose=False):
+        """
+        Detect the circle present in the image.
+
+        Parameters
+        ==========
+        dp: number
+            Inverse ratio of the accumulator resolution.
+            (Put a bigger number to get more circles !)
+        minDist: number
+            Minimum distance between two circle centers.
+
+        Notes
+        =====
+        Use the opencv HoughCircle function.
+        """
+        values = np.array(self.values, dtype=np.uint8)
+        circles = cv2.HoughCircles(values,
+                                   cv2.HOUGH_GRADIENT,
+                                   dp=dp,
+                                   minDist=minDist)[0]
+        # Adapt to current axes
+        print(circles)
+        circles = np.array(circles)
+        tmp = circles[:, 0].copy()
+        circles[:, 0] = circles[:, 1]*self.dx
+        circles[:, 1] = tmp*self.dy
+        circles[:, 2] *= (self.dy + self.dx)/2
+        print(self.dx, self.dy)
+        print(circles)
+        # display if asked
+        if verbose:
+            from matplotlib.collections import PatchCollection
+            from matplotlib.patches import Wedge
+            plt.figure()
+            self.display()
+            patches = []
+            for (x, y, r) in circles:
+                patches.append(Wedge((x, y), r, 0, 360, width=self.axe_x[-1]*.001))
+                plt.plot(x, y, "ok")
+            p = PatchCollection(patches)
+            plt.gca().add_collection(p)
+            plt.show()
