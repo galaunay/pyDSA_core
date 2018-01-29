@@ -45,9 +45,9 @@ class TemporalImages(TemporalScalarFields):
         """
         Set the drop baseline.
         """
-        self.baseline = [pt1, pt2]
         for i in range(len(self.fields)):
             self.fields[i].set_baseline(pt1=pt1, pt2=pt2)
+        self.baseline = self.fields[0].baseline
 
     def choose_baseline(self, ind_image=0):
         """
@@ -57,21 +57,14 @@ class TemporalImages(TemporalScalarFields):
         and close the figure when done.
         """
         self.baseline = self.fields[ind_image].choose_baseline()
+        for i in range(len(self.fields)):
+            self.fields[i].baseline = self.baseline
         return self.baseline
 
     def display(self, *args, **kwargs):
         super().display(*args, **kwargs)
         if self.baseline is not None:
-            pt1, pt2 = self.baseline
-            plt.plot([pt1[0], pt2[0]],
-                     [pt1[1], pt2[1]],
-                     color='g',
-                     ls='none',
-                     marker='o')
-            plt.plot([pt1[0], pt2[0]],
-                     [pt1[1], pt2[1]],
-                     color='g',
-                     ls='-')
+            self.baseline.display()
 
     def edge_detection(self, threshold1=None, threshold2=None, verbose=False):
         """

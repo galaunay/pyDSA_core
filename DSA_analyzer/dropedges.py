@@ -17,6 +17,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as spint
+import scipy.optimize as spopt
+import scipy.misc as spmisc
 from IMTreatment import Points
 
 
@@ -32,12 +34,13 @@ __status__ = "Development"
 
 
 class DropEdges(Points):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, baseline, *args, **kwargs):
         """
         """
         super().__init__(*args, **kwargs)
         self.drop_edges = self._separate_drop_edges()
         self.edges_fits = None
+        self.baseline = baseline
 
     def _separate_drop_edges(self):
         """
@@ -109,19 +112,35 @@ class DropEdges(Points):
             plt.show()
         return spline1, spline2
 
+    def fit_LY(self):
+        raise Exception('Not yet implemented')
+
     def display_fit(self):
         """
         """
-        plt.figure()
         self.display()
-        y = np.linspace(np.min(self.xy[:, 1]),
-                        np.max(self.xy[:, 1]),
-                        1000)
-        x1 = self.edges_fits[0](y)
-        x2 = self.edges_fits[1](y)
-        plt.plot(x1, y, "r")
-        plt.plot(x2, y, "r")
-        plt.show()
+        xy_inter = self._get_inters_base_fit()
+        y1 = np.linspace(xy_inter[0][1],
+                         np.max(self.xy[:, 1]),
+                         1000)
+        y2 = np.linspace(xy_inter[1][1],
+                         np.max(self.xy[:, 1]),
+                         1000)
+        x1 = self.edges_fits[0](y1)
+        x2 = self.edges_fits[1](y2)
+        plt.plot(x1, y1, "r")
+        plt.plot(x2, y2, "r")
+        self.baseline.display()
+
+    def _get_inters_base_fit(self):
+        bfun = self.baseline.get_baseline_fun(along_y=True)
+        xys = []
+        for i in range(2):
+            sfun = self.edges_fits[i]
+            y_inter = spopt.fsolve(lambda y: bfun(y) - sfun(y), 0)[0]
+            x_inter = bfun(y_inter)
+            xys.append([x_inter, y_inter])
+        return xys
 
     def get_drop_base(self):
         """
@@ -145,6 +164,30 @@ class DropEdges(Points):
         db = self.get_drop_base()
         return db[1] - db[0]
 
-    def get_contact_angle(self, k=5, s=None, verbose=False):
-        raise Exception('Not yet implemented')
+    def get_contact_angle(self, verbose=False):
+        if self.edges_fits is None:
+            raise Exception("You should computing fitting first with 'fit()'")
+        # Find interesection between fitting and baseline
+        bfun = self.baseline.get_baseline_fun(along_y=True)
+        thetas = []
+        for i in range(2):
+            sfun = self.edges_fits[i]
+            y_inter = spopt.fsolve(lambda y: bfun(y) - sfun(y), 0)[0]
+            x_inter = bfun(y_inter)
+            # Get gradient
+            dy = self.drop_edges[i].xy[:, 1]
+            dy = (dy[-1] - dy[0])/100
+            deriv = spmisc.derivative(sfun, y_inter, dx=dy)
+            thetas.append(np.arctan(1/deriv)*180/np.pi)
+            # display if asked
+            if verbose:
+                plt.plot(x_inter, y_inter, 'bo')
+                dy = 100
+                plt.plot([x_inter, x_inter + dy*deriv],
+                         [y_inter, y_inter + dy], 'b')
+        self.thetas = thetas
+        return [abs(thetas[0]), abs(thetas[1])]
+
+
+
         # Should use laplace-young fitting

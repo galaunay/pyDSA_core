@@ -35,9 +35,13 @@ __status__ = "Development"
 #==========================================================================
 path = "/home/muahah/Postdoc_GSLIPS/180112-Test_DSA_Images/"\
        "data/CAH Sample 2 Test.avi"
-ims = import_from_video(path, dx=1, dy=1, unit_x="um", unit_y="um",
-                        frame_inds=[80, 375], verbose=True)
-ims.crop(intervy=[0, 421], inplace=True)
+dx = .5
+dy = .5
+dt = .1
+ims = import_from_video(path, dx=dx, dy=dy, unit_x="um", unit_y="um",
+                        dt=dt, frame_inds=[80, 375], verbose=True)
+                        # dt=dt, frame_inds=[80, 100], verbose=True)
+display_ind = 194
 
 
 #==============================================================================
@@ -53,8 +57,8 @@ ims.crop(intervy=[0, 421], inplace=True)
 # ims.choose_baseline()
 # ims.display()
 # plt.show()
-pt1 = [604.8, 68.6]
-pt2 = [157.6, 72.3]
+pt1 = [604.8*dx, 68.6*dy]
+pt2 = [157.6*dx, 72.3*dy]
 ims.set_baseline(pt1, pt2)
 
 
@@ -71,14 +75,36 @@ edges = ims.edge_detection(verbose=True)
 # Fit the drop edges
 #==============================================================================
 edges.fit(verbose=True)
-edges.point_sets[1].display_fit()
+plt.figure()
+edges.point_sets[display_ind].display_fit()
+ims.fields[display_ind].display()
 
+#==============================================================================
+# Get contact angles
+#==============================================================================
+thetas = edges.get_contact_angle(smooth=10)
+plt.figure()
+edges.point_sets[display_ind].get_contact_angle(verbose=True)
+ims.fields[display_ind].display()
 
 #==============================================================================
 # Get the drop base evolution
 #==============================================================================
 bdp = edges.get_drop_base()
+ts = np.arange(0, len(ims)*dt, dt)
 plt.figure()
-plt.plot(bdp[:, 0])
-plt.plot(bdp[:, 1])
+plt.plot(ts, bdp[:, 0], label="Contact (left)")
+plt.plot(ts, bdp[:, 1], label="Contact (right)")
+plt.plot(ts, abs(bdp[:, 1] - bdp[:, 0]), label="Radius")
+plt.ylabel('[um]')
+plt.legend(loc=2)
+ax1 = plt.gca()
+ax2 = plt.twinx()
+plt.sca(ax2)
+plt.plot(ts, thetas[:, 0], label="Angle (left)", ls='--')
+plt.plot(ts, thetas[:, 1], label="Angle (right)", ls='--')
+plt.axvline(display_ind*dt, ls="--", color="r")
+plt.xlabel('Time [s]')
+plt.ylabel('[Deg]')
+plt.legend(loc=1)
 plt.show()

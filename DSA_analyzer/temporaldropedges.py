@@ -16,7 +16,7 @@
 
 import numpy as np
 from IMTreatment.utils import ProgressCounter
-from IMTreatment import TemporalPoints
+from IMTreatment import TemporalPoints, Profile
 from .dropedges import DropEdges
 
 
@@ -74,3 +74,22 @@ class TemporalDropEdges(TemporalPoints):
         for edge in self.point_sets:
             radii.append(edge.get_drop_base_radius())
         return radii
+
+    def get_contact_angle(self, smooth=None):
+        """
+        Return the drop contact angles."
+        """
+        thetas = []
+        for edge in self.point_sets:
+            thetas.append(edge.get_contact_angle())
+        if smooth:
+            thetas = np.array(thetas)
+            tmp_prof1 = Profile(np.arange(len(thetas[:, 0])),
+                                thetas[:, 0])
+            tmp_prof1.smooth(size=smooth, inplace=True)
+            tmp_prof2 = Profile(np.arange(len(thetas[:, 1])),
+                                thetas[:, 1])
+            tmp_prof2.smooth(size=smooth, inplace=True)
+            thetas = np.array([[tmp_prof1.y[i], tmp_prof2.y[i]]
+                               for i in range(len(thetas))])
+        return np.array(thetas)

@@ -1,0 +1,73 @@
+# -*- coding: utf-8 -*-
+#!/bin/env python3
+
+# Copyright (C) 2003-2007 Gaby Launay
+
+# Author: Gaby Launay  <gaby.launay@tutanota.com>
+# URL: https://framagit.org/gabylaunay/DSA_analyzer
+# Version: 0.1
+
+# This file is part of DSA_analyzer
+
+# DSA_analyzer is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+"""  """
+
+__author__ = "Gaby Launay"
+__copyright__ = "Gaby Launay 2017"
+__credits__ = ""
+__license__ = ""
+__version__ = ""
+__email__ = "gaby.launay@tutanota.com"
+__status__ = "Development"
+
+
+class Baseline(object):
+    def __init__(self, pts=None, xmin=None, xmax=None):
+        """
+
+        """
+        if pts is not None:
+            self.from_points(pts=pts, xmin=xmin, xmax=xmax)
+
+    def from_points(self, pts, xmin=None, xmax=None):
+        if len(pts) == 2 and xmin is None and xmax is None:
+            self.pt1 = pts[0]
+            self.pt2 = pts[1]
+        else:
+            self.pt1, self.pt2 = self.get_baseline_from_points(pts,
+                                                               xmin=xmin,
+                                                               xmax=xmax)
+        # get coefs
+        self.xy = [[self.pt1[0], self.pt2[0]], [self.pt1[1], self.pt2[1]]]
+        self.coefs = np.polyfit(self.xy[0], self.xy[1], 1)
+
+    def get_baseline_from_points(self, pts, xmin=None, xmax=None):
+        pos = np.array(pts)
+        a, b = np.polyfit(pos[:, 0], pos[:, 1], 1)
+        if xmin is None:
+            xmin = np.min(pos[:, 0])
+        if xmax is None:
+            xmax = np.max(pos[:, 0])
+        res = [[xmin, a*xmin + b], [xmax, a*xmax + b]]
+        return res
+
+    def get_baseline_fun(self, along_y=False):
+        a, b = self.coefs
+        if along_y:
+            def fun(y):
+                return (y - b)/a
+        else:
+            def fun(x):
+                return a*x + b
+        return fun
+
+    def display(self):
+        plt.plot(self.xy[0], self.xy[1], "g-")

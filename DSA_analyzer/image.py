@@ -21,6 +21,7 @@ import scipy.ndimage as spim
 import warnings
 from IMTreatment import ScalarField, Points
 from .dropedges import DropEdges
+from .baseline import Baseline
 
 
 """  """
@@ -45,16 +46,9 @@ class Image(ScalarField):
     def display(self, *args, **kwargs):
         super().display(*args, **kwargs)
         if self.baseline is not None:
-            pt1, pt2 = self.baseline
-            plt.plot([pt1[0], pt2[0]],
-                     [pt1[1], pt2[1]],
-                     color='g',
-                     ls='none',
-                     marker='o')
-            plt.plot([pt1[0], pt2[0]],
-                     [pt1[1], pt2[1]],
-                     color='g',
-                     ls='-')
+            bx, by = self.baseline.xy
+            plt.plot(bx, by, color='g', ls='none', marker='o')
+            plt.plot(bx, by, color='g', ls='-')
 
     def set_baseline(self, pt1, pt2):
         """
@@ -65,7 +59,9 @@ class Image(ScalarField):
         pt1, pt2 : 2x1 arrays of numbers
             Points defining the baseline.
         """
-        self.baseline = [pt1, pt2]
+        self.baseline = Baseline([pt1, pt2],
+                                 xmax=self.axe_x[-1],
+                                 xmin=self.axe_x[0])
 
     def choose_baseline(self):
         """
@@ -80,6 +76,7 @@ class Image(ScalarField):
         fig = plt.figure()
         pts = plt.plot([], marker="o", ls="none", mec='w', mfc='k')[0]
         baseline = plt.plot([], ls="-", color="k")[0]
+        bs = Baseline()
         def onclick(event):
             xy = [event.xdata, event.ydata]
             diffs = [(xy[0] - xyi[0])**2 + (xy[1] - xyi[1])**2
@@ -96,21 +93,19 @@ class Image(ScalarField):
             if len(pos) != 0:
                 pts.set_data(np.array(pos).transpose())
                 if len(pos) > 1:
-                    baseline.set_data(np.array(
-                        self._get_baseline_from_several_points(pos)).transpose())
+                    bs.from_points(pos)
+                    baseline.set_data(bs.xy)
                 fig.canvas.draw()
         fig.canvas.mpl_connect('button_press_event', onclick)
         self.display()
+        plt.title("Put some points on the baseline."
+                  "\nYou can remove points by clicking on it."
+                  "\nClose the window when you are happy with the baseline")
         plt.show()
         # use linear interpolation to get baseline
-        self.baseline = self._get_baseline_from_several_points(pos)
+        self.baseline = Baseline(pos, xmin=self.axe_x[0],
+                                 xmax=self.axe_x[-1])
         return self.baseline
-
-    def _get_baseline_from_several_points(self, pts):
-        pos = np.array(pts)
-        a, b = np.polyfit(pos[:, 0], pos[:, 1], 1)
-        return [[self.axe_x[0], a*self.axe_x[0] + b],
-                [self.axe_x[-1], a*self.axe_x[-1] + b]]
 
     def binarize(self, method='adaptative', threshold=None, inplace=False):
         """
@@ -269,12 +264,6 @@ class Image(ScalarField):
         # remove black border
         border = size + iterations
         tmp_im.data = tmp_im.data[border:-border, border:-border]
-        raise Exception('Need proper axis implementation to handle baseline '
-                        'modifs')
-        self.baseline = [[self.baseline[0][0] + border*self.dx,
-                          self.baseline[0][1] + border*self.dx],
-                         [self.baseline[1][0] + border*self.dx,
-                          self.baseline[1][1] + border*self.dx]]
         # second, only keep biggest white area
         labels, nmb = spim.label(tmp_im.data)
         sizes = [np.sum(labels == label) for label in np.arange(1, nmb + 1)]
@@ -306,6 +295,8 @@ class Image(ScalarField):
             Thresholds for the Canny edge detection method.
             (By default, inferred from the data histogram)
         """
+        if self.dx != self.dy:
+            warnings.warn('dx is different than dy, results can be weird...')
         if verbose:
             plt.figure()
             self.display()
@@ -322,8 +313,8 @@ class Image(ScalarField):
             if threshold2 is None:
                 threshold2 = np.argwhere(cumhist > 0.8)[0][0]
         # remove useless part of the image
-        tmp_im = self.crop(intervy=[np.min([self.baseline[0][1],
-                                            self.baseline[1][1]]), np.inf],
+        tmp_im = self.crop(intervy=[np.min([self.baseline.pt2[1],
+                                            self.baseline.pt1[1]]), np.inf],
                            inplace=False)
         # Perform Canny detection
         im_edges = cv2.Canny(np.array(tmp_im.values, dtype=np.uint8),
@@ -358,11 +349,11 @@ class Image(ScalarField):
         ys = [tmp_im.axe_y[y] for y in ys]
         # remove points behind the baseline
         xys = []
-        a, b = np.polyfit([self.baseline[0][0], self.baseline[1][0]],
-                          [self.baseline[0][1], self.baseline[1][1]],
+        a, b = np.polyfit(self.baseline.xy[0],
+                          self.baseline.xy[1],
                           1)
         for x, y in zip(xs, ys):
-            if y > self.baseline[0][1] and y > self.baseline[1][1]:
+            if y > self.baseline.pt1[1] and y > self.baseline.pt2[1]:
                 xys.append([x, y])
                 continue
             if y > a*x + b:
@@ -373,7 +364,8 @@ class Image(ScalarField):
             xys = np.array(xys)
             plt.plot(xys[:, 0], xys[:, 1], ".k")
             plt.title('Initial image + edge points')
-        return DropEdges(xy=xys, unit_x=self.unit_x, unit_y=self.unit_y)
+        return DropEdges(xy=xys, unit_x=self.unit_x, unit_y=self.unit_y,
+                         baseline=self.baseline)
 
     def circle_detection(self, dp=1., minDist=10, verbose=False):
         """
