@@ -329,11 +329,12 @@ class Image(ScalarField):
             plt.title('Canny edge detection')
         # Keep only the bigger edges
         labels, nmb = spim.label(im_edges, np.ones((3, 3)))
-        sizes = [np.sum(labels == label) for label in np.arange(1, nmb + 1)]
-        crit_size = np.sort(sizes)[-2]
-        for i, size in enumerate(sizes):
-            if size < crit_size:
-                im_edges[labels == i+1] = 0
+        if np.max(labels) > 1:
+            sizes = [np.sum(labels == label) for label in np.arange(1, nmb + 1)]
+            crit_size = np.sort(sizes)[-2]
+            for i, size in enumerate(sizes):
+                if size < crit_size:
+                    im_edges[labels == i+1] = 0
         if verbose:
             plt.figure()
             im = Image()
@@ -341,7 +342,6 @@ class Image(ScalarField):
                                   labels, mask=tmp_im.mask,
                                   unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
             im.display()
-            print(sizes)
             plt.title('Canny edge detection + blob selection')
         # Get points coordinates
         xs, ys = np.where(im_edges)
