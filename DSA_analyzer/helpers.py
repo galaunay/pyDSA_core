@@ -61,7 +61,7 @@ def import_from_image(path, dx=1, dy=1, unit_x="", unit_y=""):
 
 
 def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
-                      frame_inds=None, verbose=False):
+                      frame_inds=None, incr=1, verbose=False):
     """
     Import a images from a video file.
 
@@ -77,6 +77,9 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         Unities of dx, dy and dt.
     frame_inds: 2x1 array of integers
         Range of frame to import (default to all).
+    incr: integer
+        Number of frame to import.
+        (ex: with a value of 2, only 1/2 frames will be imported).
 
     Returns
     =======
@@ -96,13 +99,14 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         nmb_frames = frame_inds[1] - frame_inds[0]
         pg = ProgressCounter("Decoding video", "Done", nmb_frames, 'frames', 5)
     while True:
-        if i < frame_inds[0]:
+        if i < frame_inds[0] or i % incr != 0:
             i += 1
             vid.grab()
             continue
         success, im = vid.read()
-        if not success:
-            warnings.warn(f"Can't decode frame number {i}")
+        if not success :
+            if frame_inds[1] != np.inf:
+                warnings.warn(f"Can't decode frame number {i}")
             break
         im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
         # im = np.mean(im, axis=2)
@@ -118,4 +122,6 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
             pg.print_progress()
         if i >= frame_inds[1]:
             break
+    if verbose and frame_inds[1] == np.inf:
+        pg._print_end()
     return ti
