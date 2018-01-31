@@ -35,18 +35,25 @@ __status__ = "Development"
 #==========================================================================
 path = "/home/muahah/Postdoc_GSLIPS/180112-Test_DSA_Images/"\
        "data/CAH Sample 2 Test.avi"
+path = "/home/muahah/Postdoc_GSLIPS/180112-Test_DSA_Images/"\
+       "data/ridges_case.avi"
 dx = .5
 dy = .5
 dt = .1
 ims = import_from_video(path, dx=dx, dy=dy, unit_x="um", unit_y="um",
-                        dt=dt, frame_inds=[80, 375], verbose=True)
-                        # dt=dt, frame_inds=[80, 100], verbose=True)
-display_ind = 194
-
+                        # dt=dt, frame_inds=[832, np.inf], incr=10,
+                        dt=dt, frame_inds=[832, np.inf], incr=10,
+                        verbose=True)
+display_ind = 10
 
 #==============================================================================
-# Display video
+# Crop images
 #==============================================================================
+ims.crop(intervy=[0, 150], inplace=True)
+
+# #==============================================================================
+# # Display video
+# #==============================================================================
 # ims.display()
 # plt.show()
 
@@ -54,12 +61,13 @@ display_ind = 194
 #==============================================================================
 # Choosing baseline
 #==============================================================================
-# ims.choose_baseline()
+# ims.choose_baseline(ind_image=150)
+# print(ims.baseline.pt1, ims.baseline.pt2)
+pt1 = [0.0, 24.449893541093864]
+pt2 = [389.5, 22.5907049969411]
+ims.set_baseline(pt1, pt2)
 # ims.display()
 # plt.show()
-pt1 = [604.8*dx, 68.6*dy]
-pt2 = [157.6*dx, 72.3*dy]
-ims.set_baseline(pt1, pt2)
 
 
 #==============================================================================
@@ -74,10 +82,23 @@ edges = ims.edge_detection(verbose=True)
 #==============================================================================
 # Fit the drop edges
 #==============================================================================
-edges.fit(verbose=True)
+edges.fit(verbose=True, s=20)
+# plt.figure()
+# edges.point_sets[display_ind].display_fit()
+# ims.fields[display_ind].display()
+# plt.show()
+
+#==============================================================================
+# Detect triple points
+#==============================================================================
+edges.detect_triple_points()
 plt.figure()
-edges.point_sets[display_ind].display_fit()
-ims.fields[display_ind].display()
+ims[display_ind].display()
+edges[display_ind].display()
+plt.show()
+MAKE TEMPORALEDGES ABLE TO SHOW THE EDGES WITH FITTING AND TRIPLE POINTS POSITION
+bug
+
 
 #==============================================================================
 # Get contact angles
