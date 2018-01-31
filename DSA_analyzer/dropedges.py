@@ -186,9 +186,8 @@ class DropEdges(Points):
             plt.plot([x2[0], x2[0] + length*np.sin(theta2)],
                      [y2[0], y2[0] + length*np.cos(theta2)],
                      color=colors[3])
-                     ln='none')
             plt.plot(x2[0], y2[0], color=colors[3], marker='o',
-                     ln='none')
+                     ls='none')
         # Display triple points
         if self.triple_pts is not None:
             for i in [0, 1]:
