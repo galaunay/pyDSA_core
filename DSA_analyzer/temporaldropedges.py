@@ -57,6 +57,23 @@ class TemporalDropEdges(TemporalPoints):
             if verbose:
                 pg.print_progress()
 
+    def detect_triple_points(self, verbose=False):
+        """
+        Compute the triple points (water, oil and air interfaces) positions.
+
+        Returns
+        =======
+        tripl_pts: 2x2 array of numbers
+           Position of the triple points for each edge ([pt1, pt2])
+        """
+        if verbose:
+            pg = ProgressCounter("Detecting triple point positions", "Done",
+                                 len(self.point_sets), 'triple points', 5)
+        for edge in self.point_sets:
+            edge.detect_triple_points()
+            if verbose:
+                pg.print_progress()
+
     def get_drop_base(self):
         """
         Return the drops base.

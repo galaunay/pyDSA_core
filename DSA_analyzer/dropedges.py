@@ -40,6 +40,7 @@ class DropEdges(Points):
         super().__init__(*args, **kwargs)
         self.drop_edges = self._separate_drop_edges()
         self.edges_fits = None
+        self.triple_pts = None
         self.baseline = baseline
 
     def _separate_drop_edges(self):
@@ -66,6 +67,43 @@ class DropEdges(Points):
         de2 = Points(list(zip(xs2, ys2)), unit_x=self.unit_x,
                      unit_y=self.unit_y)
         return de1, de2
+
+    def detect_triple_points(self, verbose=False):
+        """
+        Compute the triple points (water, oil and air interfaces) position.
+
+        Returns
+        =======
+        tripl_pts: 2x2 array of numbers
+           Position of the triple points for each edge ([pt1, pt2])
+        """
+        if self.edges_fits is None:
+            raise Exception("You should computing fitting first with 'fit()'")
+        tripl_pts = []
+        if verbose:
+            plt.figure()
+        for i in [0, 1]:
+            fit = self.edges_fits[i]
+            y = self.drop_edges[i].xy[:, 1]
+            dy = (y[-1] - y[0])/100
+            def zerofun(y):
+                return spmisc.derivative(fit, y, dx=dy, n=2, order=3)
+            def dzerofun(y):
+                return spmisc.derivative(fit, y, dx=dy, n=3, order=5)
+            try:
+                y0 = spopt.newton(zerofun, (y[0] + y[-1])/2, dzerofun)
+            except RuntimeError:
+                raise Exception('Cannot find the triple point here.'
+                                '\nYou should try a different fitting.')
+            tripl_pts.append([fit(y0), y0])
+            if verbose:
+                plt.plot(y, zerofun(y))
+        if verbose:
+            plt.xlabel('y')
+            plt.xlabel('d^2y/dx^2')
+            plt.show()
+        self.triple_pts = tripl_pts
+        return tripl_pts
 
     def fit(self, k=5, s=None, verbose=False):
         """
@@ -115,22 +153,31 @@ class DropEdges(Points):
     def fit_LY(self):
         raise Exception('Not yet implemented')
 
-    def display_fit(self):
+    def display(self, *args, **kwargs):
         """
         """
-        self.display()
-        xy_inter = self._get_inters_base_fit()
-        y1 = np.linspace(xy_inter[0][1],
-                         np.max(self.xy[:, 1]),
-                         1000)
-        y2 = np.linspace(xy_inter[1][1],
-                         np.max(self.xy[:, 1]),
-                         1000)
-        x1 = self.edges_fits[0](y1)
-        x2 = self.edges_fits[1](y2)
-        plt.plot(x1, y1, "r")
-        plt.plot(x2, y2, "r")
+        super().display(*args, **kwargs)
+        # Display baseline
         self.baseline.display()
+        # Display fits
+        if self.fit is not None:
+            xy_inter = self._get_inters_base_fit()
+            y1 = np.linspace(xy_inter[0][1],
+                             np.max(self.xy[:, 1]),
+                             1000)
+            y2 = np.linspace(xy_inter[1][1],
+                             np.max(self.xy[:, 1]),
+                             1000)
+            x1 = self.edges_fits[0](y1)
+            x2 = self.edges_fits[1](y2)
+            plt.plot(x1, y1, "r")
+            plt.plot(x2, y2, "r")
+        # Display triple points
+        if self.triple_pts is not None:
+            for i in [0, 1]:
+                plt.plot(self.triple_pts[i][0],
+                         self.triple_pts[i][1],
+                         "ro")
 
     def _get_inters_base_fit(self):
         bfun = self.baseline.get_baseline_fun(along_y=True)
