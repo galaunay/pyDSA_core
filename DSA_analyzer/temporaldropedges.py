@@ -38,6 +38,13 @@ class TemporalDropEdges(TemporalPoints):
         """
         super().__init__(*args, **kwargs)
 
+    def __iter__(self):
+        for i in range(len(self.point_sets)):
+            yield self.point_sets[i]
+
+    def __getitem__(self, i):
+        return self.point_sets[i]
+
     def fit(self, k=5, s=None, verbose=False):
         """
         Get a fitting for the droplets shape.
