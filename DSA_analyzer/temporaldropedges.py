@@ -36,6 +36,7 @@ class TemporalDropEdges(TemporalPoints):
         """
 
         """
+        self.baseline = None
         super().__init__(*args, **kwargs)
 
     def __iter__(self):
@@ -117,3 +118,15 @@ class TemporalDropEdges(TemporalPoints):
             thetas = np.array([[tmp_prof1.y[i], tmp_prof2.y[i]]
                                for i in range(len(thetas))])
         return np.array(thetas)
+
+    def display(self, *args, **kwargs):
+        # Display points
+        super().display(*args, **kwargs)
+        # Display baseline
+        self.baseline.display()
+        # Display fitting
+        if self[0].fit is not None:
+            pass
+        # Display triple points
+        if self[0].triple_pts is not None:
+            pass

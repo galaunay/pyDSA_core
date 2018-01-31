@@ -69,5 +69,5 @@ class Baseline(object):
                 return a*x + b
         return fun
 
-    def display(self):
-        plt.plot(self.xy[0], self.xy[1], "g-")
+    def display(self, *args, **kwargs):
+        plt.plot(self.xy[0], self.xy[1], *args, **kwargs)

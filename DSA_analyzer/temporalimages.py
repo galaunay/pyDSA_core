@@ -77,6 +77,7 @@ class TemporalImages(TemporalScalarFields):
             (By default, inferred from the data histogram)
         """
         pts = TemporalDropEdges()
+        pts.baseline = self.baseline
         if verbose:
             pg = ProgressCounter("Detecting drop edges", "Done",
                                  len(self.fields), 'images', 5)

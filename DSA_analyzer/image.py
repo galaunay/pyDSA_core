@@ -97,7 +97,7 @@ class Image(ScalarField):
                     baseline.set_data(bs.xy)
                 fig.canvas.draw()
         fig.canvas.mpl_connect('button_press_event', onclick)
-        self.display()
+        self.display(cmap=plt.cm.binary_r)
         plt.title("Put some points on the baseline."
                   "\nYou can remove points by clicking on it."
                   "\nClose the window when you are happy with the baseline")

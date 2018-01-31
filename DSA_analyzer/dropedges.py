@@ -20,6 +20,7 @@ import scipy.interpolate as spint
 import scipy.optimize as spopt
 import scipy.misc as spmisc
 from IMTreatment import Points
+import IMTreatment.plotlib as pplt
 
 
 """  """
@@ -42,6 +43,7 @@ class DropEdges(Points):
         self.edges_fits = None
         self.triple_pts = None
         self.baseline = baseline
+        self.thetas = None
 
     def _separate_drop_edges(self):
         """
@@ -157,8 +159,9 @@ class DropEdges(Points):
         """
         """
         super().display(*args, **kwargs)
+        colors = pplt.get_color_cycles()
         # Display baseline
-        self.baseline.display()
+        self.baseline.display(color=colors[0])
         # Display fits
         if self.fit is not None:
             xy_inter = self._get_inters_base_fit()
@@ -170,21 +173,38 @@ class DropEdges(Points):
                              1000)
             x1 = self.edges_fits[0](y1)
             x2 = self.edges_fits[1](y2)
-            plt.plot(x1, y1, "r")
-            plt.plot(x2, y2, "r")
+            plt.plot(x1, y1, color=colors[1])
+            plt.plot(x2, y2, color=colors[1])
+        # Display contact angle
+        if self.thetas is not None:
+            length = (y1[-1] - y1[0])/3
+            theta1 = self.thetas[0]/180*np.pi
+            theta2 = self.thetas[1]/180*np.pi
+            plt.plot([x1[0], x1[0] + length*np.sin(theta1)],
+                     [y1[0], y1[0] + length*np.cos(theta1)],
+                     color=colors[3])
+            plt.plot([x2[0], x2[0] + length*np.sin(theta2)],
+                     [y2[0], y2[0] + length*np.cos(theta2)],
+                     color=colors[3])
+                     ln='none')
+            plt.plot(x2[0], y2[0], color=colors[3], marker='o',
+                     ln='none')
         # Display triple points
         if self.triple_pts is not None:
             for i in [0, 1]:
                 plt.plot(self.triple_pts[i][0],
                          self.triple_pts[i][1],
-                         "ro")
+                         marker="o",
+                         color=colors[4])
 
     def _get_inters_base_fit(self):
         bfun = self.baseline.get_baseline_fun(along_y=True)
         xys = []
         for i in range(2):
             sfun = self.edges_fits[i]
-            y_inter = spopt.fsolve(lambda y: bfun(y) - sfun(y), 0)[0]
+            y_inter = spopt.fsolve(lambda y: bfun(y) - sfun(y),
+                                   (self.baseline.pt1[1] +
+                                    self.baseline.pt2[1])/2)[0]
             x_inter = bfun(y_inter)
             xys.append([x_inter, y_inter])
         return xys
