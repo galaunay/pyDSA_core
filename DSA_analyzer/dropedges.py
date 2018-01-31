@@ -231,29 +231,38 @@ class DropEdges(Points):
         db = self.get_drop_base()
         return db[1] - db[0]
 
-    def get_contact_angle(self, verbose=False):
+    def compute_contact_angle(self, verbose=False):
+        """
+        Compute the contact angles.
+
+        Returns
+        =======
+        thetas : 2x1 array of numbers
+           Contact angles in °
+        """
         if self.edges_fits is None:
             raise Exception("You should computing fitting first with 'fit()'")
         # Find interesection between fitting and baseline
-        bfun = self.baseline.get_baseline_fun(along_y=True)
+        xy_inter = self._get_inters_base_fit()
         thetas = []
         for i in range(2):
+            x_inter, y_inter = xy_inter[i]
             sfun = self.edges_fits[i]
-            y_inter = spopt.fsolve(lambda y: bfun(y) - sfun(y), 0)[0]
-            x_inter = bfun(y_inter)
             # Get gradient
             dy = self.drop_edges[i].xy[:, 1]
             dy = (dy[-1] - dy[0])/100
             deriv = spmisc.derivative(sfun, y_inter, dx=dy)
-            thetas.append(np.arctan(1/deriv)*180/np.pi)
+            thetas.append(np.arctan(deriv)*180/np.pi)
             # display if asked
             if verbose:
+                self.display()
                 plt.plot(x_inter, y_inter, 'bo')
-                dy = 100
+                dy = dy*10
                 plt.plot([x_inter, x_inter + dy*deriv],
                          [y_inter, y_inter + dy], 'b')
+                plt.axis('equal')
         self.thetas = thetas
-        return [abs(thetas[0]), abs(thetas[1])]
+        return [thetas[0], thetas[1]]
 
 
 
