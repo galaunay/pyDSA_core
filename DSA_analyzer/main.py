@@ -89,6 +89,14 @@ edges.fit(verbose=True, s=20)
 # plt.show()
 
 #==============================================================================
+# LY fitting
+#==============================================================================
+edge = edges[0]
+res = edge.fit_LY()
+print(res)
+bug
+
+#==============================================================================
 # Detect triple points
 #==============================================================================
 edges.detect_triple_points()
@@ -96,7 +104,7 @@ plt.figure()
 ims[display_ind].display()
 edges[display_ind].display()
 plt.show()
-MAKE TEMPORALEDGES ABLE TO SHOW THE EDGES WITH FITTING AND TRIPLE POINTS POSITION
+# TODO: MAKE TEMPORALEDGES ABLE TO SHOW THE EDGES WITH FITTING AND TRIPLE POINTS POSITION
 bug
 
 

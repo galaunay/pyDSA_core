@@ -104,7 +104,7 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
             vid.grab()
             continue
         success, im = vid.read()
-        if not success :
+        if not success:
             if frame_inds[1] != np.inf:
                 warnings.warn(f"Can't decode frame number {i}")
             break

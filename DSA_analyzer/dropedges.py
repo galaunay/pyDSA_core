@@ -153,7 +153,30 @@ class DropEdges(Points):
         return spline1, spline2
 
     def fit_LY(self):
-        raise Exception('Not yet implemented')
+        # get data
+        xy_inter = self._get_inters_base_fit()
+        z1 = np.linspace(xy_inter[0][1],
+                         np.max(self.xy[:, 1]),
+                         1000)
+        z2 = np.linspace(xy_inter[1][1],
+                         np.max(self.xy[:, 1]),
+                         1000)
+        r1 = self.edges_fits[0](z1) - self.get_drop_position()
+        r2 = self.edges_fits[1](z2) - self.get_drop_position()
+        # Get gradients
+        r1 = np.asarray(r1)
+        r1p = np.gradient(r1, z1[1] - z1[0])
+        r1pp = np.gradient(r1p, z1[1] - z1[0])
+        # fit !
+        def minfun(args):
+            A, B = args
+            res = (r1pp/(1 + r1p**2)**(3/2) -
+                   1/(r1*(1 + r1p**2)**(1/2)) -
+                   (-A*z1) -
+                   B)
+            return np.sum(res**2)
+        res = spopt.minimize(minfun, [1, 1])
+        return res
 
     def display(self, *args, **kwargs):
         """
@@ -222,6 +245,17 @@ class DropEdges(Points):
         x1 = self.edges_fits[0](self.xy[0, 1])
         x2 = self.edges_fits[1](self.xy[0, 1])
         return np.sort([x1, x2])
+
+    def get_drop_position(self):
+        """
+        Return the drop position along x (drop center)
+
+        Returns
+        =======
+        x : number
+            Position of the drop
+        """
+        return np.mean(self.get_drop_base())
 
     def get_drop_base_radius(self):
         """
