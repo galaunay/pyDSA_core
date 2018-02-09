@@ -42,7 +42,7 @@ dy = .5
 dt = .1
 ims = import_from_video(path, dx=dx, dy=dy, unit_x="um", unit_y="um",
                         # dt=dt, frame_inds=[832, np.inf], incr=10,
-                        dt=dt, frame_inds=[832, 840], incr=10,
+                        dt=dt, frame_inds=[832, 945], incr=10,
                         verbose=True)
 display_ind = 10
 
@@ -84,30 +84,32 @@ edges = ims.edge_detection(verbose=True)
 #==============================================================================
 edges.fit(verbose=True, s=20)
 # plt.figure()
-# edges.point_sets[display_ind].display_fit()
 # ims.fields[display_ind].display()
+# edges.point_sets[display_ind].display()
+# plt.show()
+
+#==============================================================================
+# Detect triple points
+#==============================================================================
+edges.detect_triple_points()
+# plt.figure()
+# ims[display_ind].display()
+# edges[display_ind].display()
 # plt.show()
 
 #==============================================================================
 # LY fitting
 #==============================================================================
 edge = edges[0]
-res1, res2 = edge.fit_LY(verbose=True, interp_res=100)
-print(res1.x)
-print(res2.x)
-bug
+z1, new_r1 = edge.fit_LY(verbose=False, interp_res=100)
 
-#==============================================================================
-# Detect triple points
-#==============================================================================
-edges.detect_triple_points()
 plt.figure()
-ims[display_ind].display()
-edges[display_ind].display()
+ims[0].display()
+plt.plot(edge.edges_fits[0](z1), z1, label="spline")
+plt.plot(new_r1, z1, label="LY")
+plt.legend()
 plt.show()
-# TODO: MAKE TEMPORALEDGES ABLE TO SHOW THE EDGES WITH FITTING AND TRIPLE POINTS POSITION
 bug
-
 
 #==============================================================================
 # Get contact angles

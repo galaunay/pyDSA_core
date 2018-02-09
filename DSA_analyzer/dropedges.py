@@ -154,11 +154,12 @@ class DropEdges(Points):
 
     def fit_LY(self, interp_res=100, verbose=False):
         # get data
-        xy_inter = self._get_inters_base_fit()
-        z1 = np.linspace(xy_inter[0][1],
+        z1_min = self.triple_pts[0][1]
+        z1 = np.linspace(z1_min,
                          np.max(self.xy[:, 1]),
                          interp_res)
-        z2 = np.linspace(xy_inter[1][1],
+        z2_min = self.triple_pts[1][1]
+        z2 = np.linspace(z2_min,
                          np.max(self.xy[:, 1]),
                          interp_res)
         dz = z1[1] - z1[0]
@@ -170,57 +171,77 @@ class DropEdges(Points):
             plt.figure()
             plt.plot(r1, z1, label="edge1")
             plt.plot(r2, z2, label="edge2")
+            plt.xlabel('r')
+            plt.ylabel('z')
             plt.legend()
             plt.show()
         # Get gradients
         r1 = np.asarray(r1)
         r1p = np.gradient(r1, dz)
         r1pp = np.gradient(r1p, dz)
+        z1p = np.gradient(z1, r1)
+        z1pp = np.gradient(z1p, r1)
         if verbose:
             plt.figure()
-            plt.plot(r1/np.mean(r1), z1, label="r1")
-            plt.plot(r1p/np.mean(r1p), z1, label="r1p")
-            plt.plot(r1pp/np.mean(r1pp), z1, label="r1pp")
+            plt.plot(r1, z1/np.mean(z1), label="z1")
+            plt.plot(r1, z1p/np.mean(z1p), label="z1p")
+            plt.plot(r1, z1pp/np.mean(z1pp), label="z1pp")
+            plt.xlabel('r')
+            plt.ylabel('z')
             plt.legend()
             plt.show()
         # Get curvature
-        R1 = r1pp/(1 + r1p**2)**(3/2)
-        R2 = 1/(r1*(1 + r1p**2)**(1/2))
+        # R1_inv = r1pp/(1 + r1p**2)**(3/2)
+        # R2_inv = 1/(r1*(1 + r1p**2)**(1/2))
+        R1_inv = (z1p/(r1*(1 + z1p**2)**.5))
+        R2_inv = (z1pp/(1 + z1p**2)**(3/2))
         if verbose:
+            R1 = 1/(z1p/(r1*(1 + z1p**2)**.5))
+            R2 = 1/(z1pp/(1 + z1p**2)**(3/2))
             plt.figure()
             plt.plot(r1, z1)
+            plt.xlabel('r')
+            plt.ylabel('z')
             plt.figure()
             plt.plot(R1, z1, label="R1")
             plt.plot(R2, z1, label="R2")
+            plt.xlabel('r')
+            plt.ylabel('z')
             plt.legend()
             plt.show()
-        # fit for right side (A and B)
+        # fit for right side
         def minfun(args):
             A, B = args
-            res = R1 - R2 - (A*z1 + B)
+            res = R1_inv + R2_inv - (A + B*z1)
             return np.sum(res**2)
         print('=== Fitting sigma and pressure')
         res1 = spopt.minimize(minfun, [1, 1])
+        if not res1.success:
+            raise Exception('Fitting sigma failed...')
         A, B = res1.x
         if verbose:
             plt.figure()
-            ls = r1pp/(1 + r1p**2)**(3/2) - 1/(r1*(1 + r1p**2)**(1/2))
+            ls = R1_inv + R2_inv
             plt.plot(ls, z1, label="left equation side")
-            rs = A*z1 + B
+            rs = A + B*z1
             plt.plot(rs, z1, label="left equation side")
+            plt.xlabel('r')
+            plt.ylabel('z')
             plt.legend()
             plt.show()
         # Fit for left side (Curvature radius)
         def minfun(args, dz, z):
-            r = args
-            rp = np.gradient(r, dz)
-            rpp = np.gradient(r, dz)
-            res = (r1pp/(1 + r1p**2)**(3/2) -
-                   1/(r1*(1 + r1p**2)**(1/2)) -
-                   (A*z1 + B))
+            r1 = args
+            z1p = np.gradient(z1, r1)
+            z1pp = np.gradient(z1p, r1)
+            R1_inv = (z1p/(r1*(1 + z1p**2)**.5))
+            R2_inv = (z1pp/(1 + z1p**2)**(3/2))
+            res = (R1_inv + R2_inv) - (A + B*z1)
             return np.sum(res**2)
         print('=== Fitting edges')
         res2 = spopt.minimize(minfun, r1, (dz, z1))
+        if not res2.success:
+            raise Exception('Fitting drop edge failed...')
         new_r1 = res2.x
         if verbose:
             plt.figure()
@@ -228,7 +249,7 @@ class DropEdges(Points):
             plt.plot(new_r1, z1, label="LY fitting")
             plt.legend()
             plt.show()
-        return res1, res2
+        return z1, - new_r1 + self.get_drop_position()
 
     def display(self, *args, **kwargs):
         """
