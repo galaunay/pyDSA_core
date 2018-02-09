@@ -42,7 +42,7 @@ dy = .5
 dt = .1
 ims = import_from_video(path, dx=dx, dy=dy, unit_x="um", unit_y="um",
                         # dt=dt, frame_inds=[832, np.inf], incr=10,
-                        dt=dt, frame_inds=[832, np.inf], incr=10,
+                        dt=dt, frame_inds=[832, 840], incr=10,
                         verbose=True)
 display_ind = 10
 
@@ -92,8 +92,9 @@ edges.fit(verbose=True, s=20)
 # LY fitting
 #==============================================================================
 edge = edges[0]
-res = edge.fit_LY()
-print(res)
+res1, res2 = edge.fit_LY(verbose=True, interp_res=100)
+print(res1.x)
+print(res2.x)
 bug
 
 #==============================================================================

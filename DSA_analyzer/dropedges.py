@@ -152,31 +152,83 @@ class DropEdges(Points):
             plt.show()
         return spline1, spline2
 
-    def fit_LY(self):
+    def fit_LY(self, interp_res=100, verbose=False):
         # get data
         xy_inter = self._get_inters_base_fit()
         z1 = np.linspace(xy_inter[0][1],
                          np.max(self.xy[:, 1]),
-                         1000)
+                         interp_res)
         z2 = np.linspace(xy_inter[1][1],
                          np.max(self.xy[:, 1]),
-                         1000)
-        r1 = self.edges_fits[0](z1) - self.get_drop_position()
-        r2 = self.edges_fits[1](z2) - self.get_drop_position()
+                         interp_res)
+        dz = z1[1] - z1[0]
+        r1 = abs(self.edges_fits[0](z1) - self.get_drop_position())
+        r2 = abs(self.edges_fits[1](z2) - self.get_drop_position())
+        if verbose:
+            plt.figure()
+            self.display()
+            plt.figure()
+            plt.plot(r1, z1, label="edge1")
+            plt.plot(r2, z2, label="edge2")
+            plt.legend()
+            plt.show()
         # Get gradients
         r1 = np.asarray(r1)
-        r1p = np.gradient(r1, z1[1] - z1[0])
-        r1pp = np.gradient(r1p, z1[1] - z1[0])
-        # fit !
+        r1p = np.gradient(r1, dz)
+        r1pp = np.gradient(r1p, dz)
+        if verbose:
+            plt.figure()
+            plt.plot(r1/np.mean(r1), z1, label="r1")
+            plt.plot(r1p/np.mean(r1p), z1, label="r1p")
+            plt.plot(r1pp/np.mean(r1pp), z1, label="r1pp")
+            plt.legend()
+            plt.show()
+        # Get curvature
+        R1 = r1pp/(1 + r1p**2)**(3/2)
+        R2 = 1/(r1*(1 + r1p**2)**(1/2))
+        if verbose:
+            plt.figure()
+            plt.plot(r1, z1)
+            plt.figure()
+            plt.plot(R1, z1, label="R1")
+            plt.plot(R2, z1, label="R2")
+            plt.legend()
+            plt.show()
+        # fit for right side (A and B)
         def minfun(args):
             A, B = args
+            res = R1 - R2 - (A*z1 + B)
+            return np.sum(res**2)
+        print('=== Fitting sigma and pressure')
+        res1 = spopt.minimize(minfun, [1, 1])
+        A, B = res1.x
+        if verbose:
+            plt.figure()
+            ls = r1pp/(1 + r1p**2)**(3/2) - 1/(r1*(1 + r1p**2)**(1/2))
+            plt.plot(ls, z1, label="left equation side")
+            rs = A*z1 + B
+            plt.plot(rs, z1, label="left equation side")
+            plt.legend()
+            plt.show()
+        # Fit for left side (Curvature radius)
+        def minfun(args, dz, z):
+            r = args
+            rp = np.gradient(r, dz)
+            rpp = np.gradient(r, dz)
             res = (r1pp/(1 + r1p**2)**(3/2) -
                    1/(r1*(1 + r1p**2)**(1/2)) -
-                   (-A*z1) -
-                   B)
+                   (A*z1 + B))
             return np.sum(res**2)
-        res = spopt.minimize(minfun, [1, 1])
-        return res
+        print('=== Fitting edges')
+        res2 = spopt.minimize(minfun, r1, (dz, z1))
+        new_r1 = res2.x
+        if verbose:
+            plt.figure()
+            plt.plot(r1, z1, label="Spline fitting")
+            plt.plot(new_r1, z1, label="LY fitting")
+            plt.legend()
+            plt.show()
+        return res1, res2
 
     def display(self, *args, **kwargs):
         """
