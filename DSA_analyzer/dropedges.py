@@ -42,8 +42,11 @@ class DropEdges(Points):
         self.drop_edges = self._separate_drop_edges()
         self.edges_fits = None
         self.triple_pts = None
+        self.triple_pts = None
         self.baseline = baseline
         self.thetas = None
+        self.thetas_triple = None
+        self.colors = pplt.get_color_cycles()
 
     def _separate_drop_edges(self):
         """
@@ -152,7 +155,7 @@ class DropEdges(Points):
             plt.show()
         return spline1, spline2
 
-    def fit_LY(self, interp_res=100, verbose=False):
+    def fit_LY(self, interp_res=100, method=None, verbose=False):
         # get data
         z1_min = self.triple_pts[0][1]
         z1 = np.linspace(z1_min,
@@ -214,10 +217,9 @@ class DropEdges(Points):
             A, B = args
             res = R1_inv + R2_inv - (A + B*z1)
             return np.sum(res**2)
-        print('=== Fitting sigma and pressure')
-        res1 = spopt.minimize(minfun, [1, 1])
+        res1 = spopt.minimize(minfun, [1, 1], method=method)
         if not res1.success:
-            raise Exception('Fitting sigma failed...')
+            raise Exception('Fitting sigma failed:\n{}'.format(res1.message))
         A, B = res1.x
         if verbose:
             plt.figure()
@@ -238,10 +240,10 @@ class DropEdges(Points):
             R2_inv = (z1pp/(1 + z1p**2)**(3/2))
             res = (R1_inv + R2_inv) - (A + B*z1)
             return np.sum(res**2)
-        print('=== Fitting edges')
-        res2 = spopt.minimize(minfun, r1, (dz, z1))
+        res2 = spopt.minimize(minfun, r1, (dz, z1), method=method)
         if not res2.success:
-            raise Exception('Fitting drop edge failed...')
+            raise Exception('Fitting drop edge failed:\n{}'
+                            .format(res2.message))
         new_r1 = res2.x
         if verbose:
             plt.figure()
@@ -255,9 +257,8 @@ class DropEdges(Points):
         """
         """
         super().display(*args, **kwargs)
-        colors = pplt.get_color_cycles()
         # Display baseline
-        self.baseline.display(color=colors[0])
+        self.baseline.display(color=self.colors[0])
         # Display fits
         if self.fit is not None:
             xy_inter = self._get_inters_base_fit()
@@ -269,28 +270,51 @@ class DropEdges(Points):
                              1000)
             x1 = self.edges_fits[0](y1)
             x2 = self.edges_fits[1](y2)
-            plt.plot(x1, y1, color=colors[1])
-            plt.plot(x2, y2, color=colors[1])
-        # Display contact angle
-        if self.thetas is not None:
-            length = (y1[-1] - y1[0])/3
-            theta1 = self.thetas[0]/180*np.pi
-            theta2 = self.thetas[1]/180*np.pi
-            plt.plot([x1[0], x1[0] + length*np.sin(theta1)],
-                     [y1[0], y1[0] + length*np.cos(theta1)],
-                     color=colors[3])
-            plt.plot([x2[0], x2[0] + length*np.sin(theta2)],
-                     [y2[0], y2[0] + length*np.cos(theta2)],
-                     color=colors[3])
-            plt.plot(x2[0], y2[0], color=colors[3], marker='o',
-                     ls='none')
+            plt.plot(x1, y1, color=self.colors[1])
+            plt.plot(x2, y2, color=self.colors[1])
+        # Display contact angles
+        lines = self._get_angle_display_lines()
+        for line in lines:
+            plt.plot(line[0], line[1],
+                     color=self.colors[0])
         # Display triple points
         if self.triple_pts is not None:
             for i in [0, 1]:
                 plt.plot(self.triple_pts[i][0],
                          self.triple_pts[i][1],
                          marker="o",
-                         color=colors[4])
+                         color=self.colors[4])
+
+    def _get_angle_display_lines(self):
+        lines = []
+        # contact angle with solid
+        length = (np.max(self.xy[:, 1]) - np.min(self.xy[:, 1]))/3
+        theta1 = self.thetas[0]/180*np.pi
+        theta2 = self.thetas[1]/180*np.pi
+        xy_inter = self._get_inters_base_fit()
+        y1 = xy_inter[0][1]
+        y2 = xy_inter[1][1]
+        x1 = xy_inter[0][0]
+        x2 = xy_inter[1][0]
+        lines.append([[x1, x1 + length*np.sin(theta1)],
+                      [y1, y1 + length*np.cos(theta1)]])
+        lines.append([[x2, x2 + length*np.sin(theta2)],
+                      [y2, y2 + length*np.cos(theta2)]])
+        if self.triple_pts is not None:
+            # contact angle with triple points
+            length = (np.max(self.xy[:, 1]) - np.min(self.xy[:, 1]))/3
+            theta1 = self.thetas_triple[0]/180*np.pi
+            theta2 = self.thetas_triple[1]/180*np.pi
+            xy_inter = self.triple_pts
+            y1 = xy_inter[0][1]
+            y2 = xy_inter[1][1]
+            x1 = xy_inter[0][0]
+            x2 = xy_inter[1][0]
+            lines.append([[x1, x1 + length*np.sin(theta1)],
+                          [y1, y1 + length*np.cos(theta1)]])
+            lines.append([[x2, x2 + length*np.sin(theta2)],
+                          [y2, y2 + length*np.cos(theta2)]])
+        return lines
 
     def _get_inters_base_fit(self):
         bfun = self.baseline.get_baseline_fun(along_y=True)
@@ -347,28 +371,29 @@ class DropEdges(Points):
            Contact angles in °
         """
         if self.edges_fits is None:
-            raise Exception("You should computing fitting first with 'fit()'")
-        # Find interesection between fitting and baseline
+            raise Exception("You should compute fitting first with 'fit()'")
+        # Compute base contact angle
         xy_inter = self._get_inters_base_fit()
+        self.thetas = self._compute_fitting_angle_at_pts(xy_inter)
+        # Compute triple point contact angle
+        if self.triple_pts is not None:
+            xy_tri = self.triple_pts
+            self.thetas_triple = self._compute_fitting_angle_at_pts(xy_tri)
+        # display if asked
+        if verbose:
+            self.display()
+
+    def _compute_fitting_angle_at_pts(self, pts):
         thetas = []
         for i in range(2):
-            x_inter, y_inter = xy_inter[i]
+            x_inter, y_inter = pts[i]
             sfun = self.edges_fits[i]
             # Get gradient
             dy = self.drop_edges[i].xy[:, 1]
             dy = (dy[-1] - dy[0])/100
             deriv = spmisc.derivative(sfun, y_inter, dx=dy)
             thetas.append(np.arctan(deriv)*180/np.pi)
-            # display if asked
-            if verbose:
-                self.display()
-                plt.plot(x_inter, y_inter, 'bo')
-                dy = dy*10
-                plt.plot([x_inter, x_inter + dy*deriv],
-                         [y_inter, y_inter + dy], 'b')
-                plt.axis('equal')
-        self.thetas = thetas
-        return [thetas[0], thetas[1]]
+        return thetas
 
 
 

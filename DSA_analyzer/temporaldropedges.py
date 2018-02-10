@@ -16,7 +16,7 @@
 
 import numpy as np
 from IMTreatment.utils import ProgressCounter
-from IMTreatment import TemporalPoints, Profile
+from IMTreatment import TemporalPoints, Profile, plotlib as pplt
 from .dropedges import DropEdges
 
 
@@ -100,13 +100,17 @@ class TemporalDropEdges(TemporalPoints):
             radii.append(edge.get_drop_base_radius())
         return radii
 
-    def get_contact_angle(self, smooth=None):
+    def compute_contact_angle(self, smooth=None):
         """
-        Return the drop contact angles."
+        Compute the drop contact angles."
         """
         thetas = []
+        thetas_triple = []
         for edge in self.point_sets:
-            thetas.append(edge.get_contact_angle())
+            edge.compute_contact_angle()
+            thetas.append(edge.thetas)
+            if edge.thetas_triple is not None:
+                thetas_triple.append(edge.thetas_triple)
         if smooth:
             thetas = np.array(thetas)
             tmp_prof1 = Profile(np.arange(len(thetas[:, 0])),
@@ -117,16 +121,71 @@ class TemporalDropEdges(TemporalPoints):
             tmp_prof2.smooth(size=smooth, inplace=True)
             thetas = np.array([[tmp_prof1.y[i], tmp_prof2.y[i]]
                                for i in range(len(thetas))])
-        return np.array(thetas)
+            if len(thetas_triple) > 2:
+                thetas_triple = np.array(thetas_triple)
+                tmp_prof1 = Profile(np.arange(len(thetas_triple[:, 0])),
+                                    thetas_triple[:, 0])
+                tmp_prof1.smooth(size=smooth, inplace=True)
+                tmp_prof2 = Profile(np.arange(len(thetas_triple[:, 1])),
+                                    thetas_triple[:, 1])
+                tmp_prof2.smooth(size=smooth, inplace=True)
+                thetas_triple = np.array([[tmp_prof1.y[i], tmp_prof2.y[i]]
+                                        for i in range(len(thetas_triple))])
+        return np.array(thetas), np.array(thetas_triple)
 
     def display(self, *args, **kwargs):
         # Display points
-        super().display(*args, **kwargs)
+        if self[0].fit is None:
+            kwargs['cpkw'] = {}
+            kwargs['cpkw']['aspect'] = 'equal'
+            super().display(*args, **kwargs)
         # Display baseline
-        self.baseline.display()
+        self.baseline.display(color=self[0].colors[0])
         # Display fitting
         if self[0].fit is not None:
-            pass
+            x1s = []
+            y1s = []
+            x2s = []
+            y2s = []
+            for edge in self.point_sets:
+                xy_inter = edge._get_inters_base_fit()
+                y1 = np.linspace(xy_inter[0][1],
+                                 np.max(edge.xy[:, 1]),
+                                 1000)
+                y2 = np.linspace(xy_inter[1][1],
+                                 np.max(edge.xy[:, 1]),
+                                 1000)
+                x1 = edge.edges_fits[0](y1)
+                x2 = edge.edges_fits[1](y2)
+                x1s.append(x1)
+                x2s.append(x2)
+                y1s.append(y1)
+                y2s.append(y2)
+            db1 = pplt.Displayer(x1s, y1s, color=self[0].colors[1])
+            db2 = pplt.Displayer(x2s, y2s, color=self[0].colors[1])
+            pplt.ButtonManager(db1)
+            pplt.ButtonManager(db2)
         # Display triple points
         if self[0].triple_pts is not None:
-            pass
+            xs = [[edge.triple_pts[i][0]
+                  for i in [0, 1]]
+                  for edge in self.point_sets]
+            ys = [[edge.triple_pts[i][1]
+                  for i in [0, 1]]
+                  for edge in self.point_sets]
+            db = pplt.Displayer(xs, ys, ls='none', marker='o',
+                                kind='plot',
+                                color=self[0].colors[2])
+            pplt.ButtonManager(db)
+        # Display contact angles
+        lines = [edge._get_angle_display_lines()
+                 for edge in self.point_sets]
+        lines = [[line[0] for line in lines],
+                 [line[1] for line in lines],
+                 [line[2] for line in lines],
+                 [line[3] for line in lines]]
+        for line in lines:
+            line = np.array(line)
+            db = pplt.Displayer(line[:, 0], line[:, 1],
+                                kind='plot', color=self[0].colors[0])
+            pplt.ButtonManager(db)

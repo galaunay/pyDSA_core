@@ -41,8 +41,8 @@ dx = .5
 dy = .5
 dt = .1
 ims = import_from_video(path, dx=dx, dy=dy, unit_x="um", unit_y="um",
-                        # dt=dt, frame_inds=[832, np.inf], incr=10,
-                        dt=dt, frame_inds=[832, 945], incr=10,
+                        dt=dt, frame_inds=[832, np.inf], incr=2,
+                        # dt=dt, frame_inds=[832, 945], incr=10,
                         verbose=True)
 display_ind = 10
 
@@ -82,7 +82,7 @@ edges = ims.edge_detection(verbose=True)
 #==============================================================================
 # Fit the drop edges
 #==============================================================================
-edges.fit(verbose=True, s=20)
+edges.fit(verbose=True, s=40)
 # plt.figure()
 # ims.fields[display_ind].display()
 # edges.point_sets[display_ind].display()
@@ -98,45 +98,56 @@ edges.detect_triple_points()
 # plt.show()
 
 #==============================================================================
-# LY fitting
+# Display the whole thing
 #==============================================================================
-edge = edges[0]
-z1, new_r1 = edge.fit_LY(verbose=False, interp_res=100)
+# ims.display()
+# edges.display()
+# plt.show()
 
-plt.figure()
-ims[0].display()
-plt.plot(edge.edges_fits[0](z1), z1, label="spline")
-plt.plot(new_r1, z1, label="LY")
-plt.legend()
-plt.show()
-bug
+# #==============================================================================
+# # LY fitting
+# #==============================================================================
+# edge = edges[0]
+# z1, new_r1 = edge.fit_LY(verbose=False, interp_res=100)
+# plt.figure()
+# ims[0].display()
+# plt.plot(edge.edges_fits[0](z1), z1, label="spline")
+# plt.plot(new_r1, z1, label="LY")
+# plt.legend()
+# plt.show()
+# bug
 
 #==============================================================================
 # Get contact angles
 #==============================================================================
-thetas = edges.get_contact_angle(smooth=10)
-plt.figure()
-edges.point_sets[display_ind].get_contact_angle(verbose=True)
-ims.fields[display_ind].display()
+thetas, thetas_triple = edges.compute_contact_angle(smooth=10)
+thetas = np.array(thetas)
+thetas_triple = np.array(thetas_triple)
+edges.display()
+ims.display()
+plt.show()
 
 #==============================================================================
 # Get the drop base evolution
 #==============================================================================
 bdp = edges.get_drop_base()
-ts = np.arange(0, len(ims)*dt, dt)
-plt.figure()
+ts = np.arange(0, len(ims)*dt, dt)[0: len(bdp)]
+fig, axs = plt.subplots(1, 2)
+plt.sca(axs[0])
 plt.plot(ts, bdp[:, 0], label="Contact (left)")
 plt.plot(ts, bdp[:, 1], label="Contact (right)")
 plt.plot(ts, abs(bdp[:, 1] - bdp[:, 0]), label="Radius")
 plt.ylabel('[um]')
 plt.legend(loc=2)
-ax1 = plt.gca()
-ax2 = plt.twinx()
-plt.sca(ax2)
-plt.plot(ts, thetas[:, 0], label="Angle (left)", ls='--')
-plt.plot(ts, thetas[:, 1], label="Angle (right)", ls='--')
-plt.axvline(display_ind*dt, ls="--", color="r")
+plt.sca(axs[1])
+plt.plot(ts, thetas[:, 0], label="Angle (left)", ls='-')
+plt.plot(ts, thetas[:, 1], label="Angle (right)", ls='-')
+plt.plot(ts, thetas_triple[:, 0], label="Angle at triple (left)", ls='-')
+plt.plot(ts, thetas_triple[:, 1], label="Angle at triple (right)", ls='-')
 plt.xlabel('Time [s]')
 plt.ylabel('[Deg]')
 plt.legend(loc=1)
 plt.show()
+
+import numpy as np
+np.a
