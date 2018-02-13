@@ -329,12 +329,42 @@ class Image(ScalarField):
             plt.title('Canny edge detection')
         # Keep only the bigger edges
         labels, nmb = spim.label(im_edges, np.ones((3, 3)))
+        nmb_edge = nmb
+        X, Y = np.meshgrid(tmp_im.axe_x, tmp_im.axe_y, indexing="ij")
+        dy = self.axe_y[1] - self.axe_y[0]
         if np.max(labels) > 1:
+            # Remove small patches
             sizes = [np.sum(labels == label) for label in np.arange(1, nmb + 1)]
-            crit_size = np.sort(sizes)[-2]
+            crit_size = np.sort(sizes)[-1]*.5
             for i, size in enumerate(sizes):
                 if size < crit_size:
                     im_edges[labels == i+1] = 0
+                    labels[labels == i+1] = 0
+                    nmb_edge -= 1
+            # Remove if not touching the baseline
+            for i in range(nmb):
+                ys = Y[labels == i+1]
+                if len(ys) == 0:
+                    continue
+                # import pdb
+                # pdb.set_trace()
+                min_y = np.min(ys)
+                if min_y > 10*dy + np.max([self.baseline.pt1[1],
+                                           self.baseline.pt2[1]]):
+                    im_edges[labels == i+1] = 0
+                    labels[labels == i+1] = 0
+                    nmb_edge -= 1
+            # keep only the two exterior edges
+            if nmb_edge > 2:
+                mean_xs = [np.mean(X[labels == label])
+                        for label in np.arange(1, nmb + 1)]
+                mean_xs = np.asarray(mean_xs)
+                mean_xs[np.isnan(mean_xs)] = np.mean(mean_xs[~np.isnan(mean_xs)])
+                mean_xs_indsort = np.argsort(mean_xs)
+                for i in mean_xs_indsort[1:-1]:
+                    im_edges[labels == i+1] = 0
+                    labels[labels == i+1] = 0
+                    nmb_edge -= 1
         if verbose:
             plt.figure()
             im = Image()

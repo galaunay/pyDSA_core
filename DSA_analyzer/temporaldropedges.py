@@ -255,9 +255,11 @@ class TemporalDropEdges(TemporalPoints):
         plt.plot(bdp[:, 0], ts, label="Contact (left)")
         plt.plot(bdp[:, 1], ts, label="Contact (right)")
         plt.plot(radii, ts, label="Base radius")
-        plt.plot(radiit, ts, label="Drop radius")
-        plt.plot(triple_pts1[:, 0], ts, label="Triple point (left)")
-        plt.plot(triple_pts2[:, 0], ts, label="Triple point (right)")
+        if (not np.all(np.isnan(triple_pts1)) and
+            not np.all(np.isnan(triple_pts2))):
+            plt.plot(radiit, ts, label="Drop radius")
+            plt.plot(triple_pts1[:, 0], ts, label="Triple point (left)")
+            plt.plot(triple_pts2[:, 0], ts, label="Triple point (right)")
         plt.xlabel('[um]')
         plt.ylabel('Time [s]')
         plt.legend(loc=0)

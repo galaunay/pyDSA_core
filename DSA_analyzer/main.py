@@ -44,6 +44,8 @@ frame_inds = [0, np.inf]
 incr = 5
 pt1 = [0.0, 34.16334950964495]
 pt2 = [389.5, 34.16334950964497]
+cropy = [0, np.inf]
+cropx = [0, np.inf]
 
 # Set 2
 path = "/home/muahah/Postdoc_GSLIPS/180112-Test_DSA_Images/"\
@@ -52,6 +54,19 @@ frame_inds = [832, np.inf]
 incr = 5
 pt1 = [0.0, 24.449893541093864]
 pt2 = [389.5, 22.5907049969411]
+cropy = [0, np.inf]
+cropx = [0, np.inf]
+
+# Set 3
+path = "/home/muahah/Postdoc_GSLIPS/180112-Test_DSA_Images/"\
+       "data/CAH_2.avi"
+frame_inds = [0, np.inf]
+incr = 5
+incr = 5
+pt1 = [0.0, 35.24610550093472]
+pt2 = [389.5, 34.17310274611377]
+cropy = [20, 84]
+cropx = [60, 220]
 
 ims = import_from_video(path, dx=dx, dy=dy, unit_x="um", unit_y="um",
                         dt=dt, frame_inds=frame_inds, incr=incr,
@@ -61,7 +76,7 @@ display_ind = 10
 #==============================================================================
 # Crop images
 #==============================================================================
-ims.crop(intervy=[0, 150], inplace=True)
+ims.crop(intervy=cropy, intervx=cropx, inplace=True)
 
 # #==============================================================================
 # # Display video
@@ -73,39 +88,37 @@ ims.crop(intervy=[0, 150], inplace=True)
 #==============================================================================
 # Choosing baseline
 #==============================================================================
-# ims.choose_baseline(ind_image=50)
+# ims.choose_baseline(ind_image=10)
 # print(ims.baseline.pt1, ims.baseline.pt2)
 ims.set_baseline(pt1, pt2)
 # ims.display()
 # plt.show()
 
-
 #==============================================================================
 # Detect drop edges
 #==============================================================================
 edges = ims.edge_detection(verbose=True)
-# ims.display()
-# edges.display()
-# plt.show()
-
+ims.display()
+edges.display()
+plt.show()
 
 #==============================================================================
 # Fit the drop edges
 #==============================================================================
 edges.fit(verbose=True, s=10)
-# plt.figure()
-# ims.fields[display_ind].display()
-# edges.point_sets[display_ind].display()
-# plt.show()
+plt.figure()
+ims.display()
+edges.display()
+plt.show()
 
 #==============================================================================
 # Detect triple points
 #==============================================================================
 edges.detect_triple_points(verbose=True)
-# plt.figure()
-# ims[display_ind].display()
-# edges[display_ind].display()
-# plt.show()
+plt.figure()
+ims.display()
+edges.display()
+plt.show()
 
 #==============================================================================
 # Get contact angles
