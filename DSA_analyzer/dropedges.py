@@ -15,6 +15,7 @@
 # GNU General Public License for more details.
 
 import numpy as np
+import warnings
 import matplotlib.pyplot as plt
 import scipy.interpolate as spint
 import scipy.optimize as spopt
@@ -35,13 +36,13 @@ __status__ = "Development"
 
 
 class DropEdges(Points):
-    def __init__(self, baseline, *args, **kwargs):
+    def __init__(self, baseline, orig_im, *args, **kwargs):
         """
         """
         super().__init__(*args, **kwargs)
         self.drop_edges = self._separate_drop_edges()
         self.edges_fits = None
-        self.triple_pts = None
+        self.orig_im = orig_im
         self.triple_pts = None
         self.baseline = baseline
         self.thetas = None
@@ -98,8 +99,20 @@ class DropEdges(Points):
             try:
                 y0 = spopt.newton(zerofun, (y[0] + y[-1])/2, dzerofun)
             except RuntimeError:
-                raise Exception('Cannot find the triple point here.'
-                                '\nYou should try a different fitting.')
+                warnings.warn('Cannot find a triple point here.'
+                              '\nYou should try a different fitting.')
+                return [None, None]
+            # check coherence of the detected triple point
+            x0 = fit(y0)
+            tmp_dy = self.orig_im.dy
+            inter_xy = self._get_inters_base_fit()
+            if (x0 < self.orig_im.axe_x[0] or
+                x0 > self.orig_im.axe_x[-1] or
+                y0 < inter_xy[i][1] + 3*tmp_dy or
+                y0 > self.orig_im.axe_y[-1]):
+                warnings.warn('Cannot find a triple point here.'
+                              '\nYou should try a different fitting.')
+                return [None, None]
             tripl_pts.append([fit(y0), y0])
             if verbose:
                 plt.plot(y, zerofun(y))
@@ -260,7 +273,7 @@ class DropEdges(Points):
         # Display baseline
         self.baseline.display(color=self.colors[0])
         # Display fits
-        if self.fit is not None:
+        if self.edges_fits is not None:
             xy_inter = self._get_inters_base_fit()
             y1 = np.linspace(xy_inter[0][1],
                              np.max(self.xy[:, 1]),
@@ -273,10 +286,11 @@ class DropEdges(Points):
             plt.plot(x1, y1, color=self.colors[1])
             plt.plot(x2, y2, color=self.colors[1])
         # Display contact angles
-        lines = self._get_angle_display_lines()
-        for line in lines:
-            plt.plot(line[0], line[1],
-                     color=self.colors[0])
+        if self.thetas is not None:
+            lines = self._get_angle_display_lines()
+            for line in lines:
+                plt.plot(line[0], line[1],
+                         color=self.colors[0])
         # Display triple points
         if self.triple_pts is not None:
             for i in [0, 1]:
@@ -286,6 +300,8 @@ class DropEdges(Points):
                          color=self.colors[4])
 
     def _get_angle_display_lines(self):
+        if self.thetas is None:
+            return [np.nan, np.nan]
         lines = []
         # contact angle with solid
         length = (np.max(self.xy[:, 1]) - np.min(self.xy[:, 1]))/3
@@ -296,10 +312,10 @@ class DropEdges(Points):
         y2 = xy_inter[1][1]
         x1 = xy_inter[0][0]
         x2 = xy_inter[1][0]
-        lines.append([[x1, x1 + length*np.sin(theta1)],
-                      [y1, y1 + length*np.cos(theta1)]])
-        lines.append([[x2, x2 + length*np.sin(theta2)],
-                      [y2, y2 + length*np.cos(theta2)]])
+        lines.append([[x1, x1 + length*np.cos(theta1)],
+                      [y1, y1 + length*np.sin(theta1)]])
+        lines.append([[x2, x2 + length*np.cos(theta2)],
+                      [y2, y2 + length*np.sin(theta2)]])
         if self.triple_pts is not None:
             # contact angle with triple points
             length = (np.max(self.xy[:, 1]) - np.min(self.xy[:, 1]))/3
@@ -310,22 +326,44 @@ class DropEdges(Points):
             y2 = xy_inter[1][1]
             x1 = xy_inter[0][0]
             x2 = xy_inter[1][0]
-            lines.append([[x1, x1 + length*np.sin(theta1)],
-                          [y1, y1 + length*np.cos(theta1)]])
-            lines.append([[x2, x2 + length*np.sin(theta2)],
-                          [y2, y2 + length*np.cos(theta2)]])
+            lines.append([[x1, x1 + length*np.cos(theta1)],
+                          [y1, y1 + length*np.sin(theta1)]])
+            lines.append([[x2, x2 + length*np.cos(theta2)],
+                          [y2, y2 + length*np.sin(theta2)]])
         return lines
 
-    def _get_inters_base_fit(self):
-        bfun = self.baseline.get_baseline_fun(along_y=True)
+    def _get_inters_base_fit(self, verbose=False):
+        flat = False
+        try:
+            bfun = self.baseline.get_baseline_fun(along_y=True)
+        except Exception:
+            flat = True
         xys = []
         for i in range(2):
             sfun = self.edges_fits[i]
-            y_inter = spopt.fsolve(lambda y: bfun(y) - sfun(y),
-                                   (self.baseline.pt1[1] +
-                                    self.baseline.pt2[1])/2)[0]
-            x_inter = bfun(y_inter)
+            if flat:
+                y_inter = self.baseline.pt1[1]
+                x_inter = sfun(y_inter)
+            else:
+                y_inter = spopt.fsolve(lambda y: bfun(y) - sfun(y),
+                                       (self.baseline.pt1[1] +
+                                        self.baseline.pt2[1])/2)[0]
+                x_inter = bfun(y_inter)
             xys.append([x_inter, y_inter])
+        if verbose:
+            y = np.linspace(np.min(self.xy[:, 1]),
+                            np.max(self.xy[:, 1]), 100)
+            x = np.linspace(self.baseline.pt1[0],
+                            self.baseline.pt2[0],
+                            100)
+            bfun = self.baseline.get_baseline_fun()
+            plt.figure()
+            plt.plot([xys[0][0], xys[1][0]], [xys[0][1], xys[1][1]], "ok",
+                     label="intersection")
+            plt.plot(x, bfun(x), label="base")
+            plt.plot(sfun(y), y, label="fit")
+            plt.legend()
+            plt.show()
         return xys
 
     def get_drop_base(self):
@@ -361,6 +399,16 @@ class DropEdges(Points):
         db = self.get_drop_base()
         return db[1] - db[0]
 
+    def get_drop_radius(self):
+        """
+        Return the drop base radius. based on the triple points.
+        """
+        # Use triple points if present
+        if self.triple_pts is not None and not np.any(np.isnan(self.triple_pts)):
+            return abs(self.triple_pts[0][0] - self.triple_pts[1][0])
+        else:
+            return np.nan
+
     def compute_contact_angle(self, verbose=False):
         """
         Compute the contact angles.
@@ -392,7 +440,8 @@ class DropEdges(Points):
             dy = self.drop_edges[i].xy[:, 1]
             dy = (dy[-1] - dy[0])/100
             deriv = spmisc.derivative(sfun, y_inter, dx=dy)
-            thetas.append(np.arctan(deriv)*180/np.pi)
+            theta =  np.pi*1/2 - np.arctan(deriv)
+            thetas.append(theta/np.pi*180)
         return thetas
 
 

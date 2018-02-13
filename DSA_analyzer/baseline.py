@@ -61,6 +61,9 @@ class Baseline(object):
 
     def get_baseline_fun(self, along_y=False):
         a, b = self.coefs
+        # check if flat:
+        if a < b*1e-10 and along_y:
+            raise Exception("baseline is flat")
         if along_y:
             def fun(y):
                 return (y - b)/a

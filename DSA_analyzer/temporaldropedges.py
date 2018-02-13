@@ -15,6 +15,7 @@
 # GNU General Public License for more details.
 
 import numpy as np
+import matplotlib.pyplot as plt
 from IMTreatment.utils import ProgressCounter
 from IMTreatment import TemporalPoints, Profile, plotlib as pplt
 from .dropedges import DropEdges
@@ -100,10 +101,22 @@ class TemporalDropEdges(TemporalPoints):
             radii.append(edge.get_drop_base_radius())
         return radii
 
-    def compute_contact_angle(self, smooth=None):
+    def get_drop_radius(self):
+        """
+        Return the drops base radius based on the triple points position.
+        """
+        radii = []
+        for edge in self.point_sets:
+            radii.append(edge.get_drop_radius())
+        return radii
+
+    def compute_contact_angle(self, smooth=None, verbose=False):
         """
         Compute the drop contact angles."
         """
+        if verbose:
+            pg = ProgressCounter("Getting contact angles", "Done",
+                                 len(self.point_sets), 'images', 5)
         thetas = []
         thetas_triple = []
         for edge in self.point_sets:
@@ -111,6 +124,8 @@ class TemporalDropEdges(TemporalPoints):
             thetas.append(edge.thetas)
             if edge.thetas_triple is not None:
                 thetas_triple.append(edge.thetas_triple)
+            if verbose:
+                pg.print_progress()
         if smooth:
             thetas = np.array(thetas)
             tmp_prof1 = Profile(np.arange(len(thetas[:, 0])),
@@ -135,14 +150,12 @@ class TemporalDropEdges(TemporalPoints):
 
     def display(self, *args, **kwargs):
         # Display points
-        if self[0].fit is None:
+        if self[0].edges_fits is None:
             kwargs['cpkw'] = {}
             kwargs['cpkw']['aspect'] = 'equal'
             super().display(*args, **kwargs)
-        # Display baseline
-        self.baseline.display(color=self[0].colors[0])
         # Display fitting
-        if self[0].fit is not None:
+        if self[0].edges_fits is not None:
             x1s = []
             y1s = []
             x2s = []
@@ -168,24 +181,97 @@ class TemporalDropEdges(TemporalPoints):
         # Display triple points
         if self[0].triple_pts is not None:
             xs = [[edge.triple_pts[i][0]
-                  for i in [0, 1]]
-                  for edge in self.point_sets]
+                   for i in [0, 1]]
+                  for edge in self.point_sets
+                  if edge.triple_pts is not None]
             ys = [[edge.triple_pts[i][1]
-                  for i in [0, 1]]
-                  for edge in self.point_sets]
+                   for i in [0, 1]]
+                  for edge in self.point_sets
+                  if edge.triple_pts is not None]
             db = pplt.Displayer(xs, ys, ls='none', marker='o',
                                 kind='plot',
                                 color=self[0].colors[2])
             pplt.ButtonManager(db)
         # Display contact angles
-        lines = [edge._get_angle_display_lines()
-                 for edge in self.point_sets]
-        lines = [[line[0] for line in lines],
-                 [line[1] for line in lines],
-                 [line[2] for line in lines],
-                 [line[3] for line in lines]]
-        for line in lines:
-            line = np.array(line)
-            db = pplt.Displayer(line[:, 0], line[:, 1],
-                                kind='plot', color=self[0].colors[0])
-            pplt.ButtonManager(db)
+        if np.any([edge.thetas for edge in self.point_sets] is not None):
+            lines = [edge._get_angle_display_lines()
+                     for edge in self.point_sets]
+            lines1 = [[line[0] for line in lines],
+                     [line[1] for line in lines]]
+            lines1 = []
+            lines2 = []
+            lines3 = []
+            lines4 = []
+            for line in lines:
+                lines1.append(line[0])
+                lines2.append(line[1])
+                if len(line) > 2:
+                    lines3.append(line[2])
+                    lines4.append(line[3])
+                else:
+                    lines3.append([[np.nan, np.nan], [np.nan, np.nan]])
+                    lines4.append([[np.nan, np.nan], [np.nan, np.nan]])
+            for line in [lines1, lines2, lines3, lines4]:
+                line = np.array(line)
+                if not np.all(np.isnan(line)):
+                    db = pplt.Displayer(line[:, 0], line[:, 1],
+                                        kind='plot', color=self[0].colors[0])
+                    pplt.ButtonManager(db)
+
+    def display_summary(self):
+        """
+        Display a summary of the drop parameters evolution.
+        """
+        bdp = self.get_drop_base()
+        radii = self.get_drop_base_radius()
+        radiit = self.get_drop_radius()
+        thetas = []
+        thetas_triple = []
+        triple_pts1 = []
+        triple_pts2 = []
+        for edge in self.point_sets:
+            if edge.thetas is not None:
+                thetas.append(edge.thetas)
+            else:
+                thetas.append([np.nan, np.nan])
+            if edge.thetas_triple is not None:
+                thetas_triple.append(edge.thetas_triple)
+            else:
+                thetas_triple.append([np.nan, np.nan])
+            if edge.triple_pts is not None:
+                triple_pts1.append(edge.triple_pts[0])
+                triple_pts2.append(edge.triple_pts[1])
+            else:
+                triple_pts1.append([np.nan, np.nan])
+                triple_pts2.append([np.nan, np.nan])
+        thetas = np.asarray(thetas)
+        thetas_triple = np.asarray(thetas_triple)
+        triple_pts1 = np.asarray(triple_pts1)
+        triple_pts2 = np.asarray(triple_pts2)
+        ts = np.arange(0, len(self.point_sets)*self.dt, self.dt)[0: len(bdp)]
+        fig, axs = plt.subplots(2, 1)
+        # Drop dimensions
+        plt.sca(axs[0])
+        plt.plot(bdp[:, 0], ts, label="Contact (left)")
+        plt.plot(bdp[:, 1], ts, label="Contact (right)")
+        plt.plot(radii, ts, label="Base radius")
+        plt.plot(radiit, ts, label="Drop radius")
+        plt.plot(triple_pts1[:, 0], ts, label="Triple point (left)")
+        plt.plot(triple_pts2[:, 0], ts, label="Triple point (right)")
+        plt.xlabel('[um]')
+        plt.ylabel('Time [s]')
+        plt.legend(loc=0)
+        # Contact angles
+        plt.sca(axs[1])
+        plt.plot(-thetas[:, 0], ts, label="Angle (left)")
+        plt.plot(180 - thetas[:, 1], ts, label="Angle (right)")
+        if not np.all(np.isnan(thetas_triple)):
+            plt.plot(-thetas_triple[:, 0], ts,
+                     label="Angle at triple point (left)",
+                     marker=",", ls="-")
+            plt.plot(180 - thetas_triple[:, 1], ts,
+                     label="Angle at triple point (right)",
+                     marker=",", ls="-")
+        plt.ylabel('Time [s]')
+        plt.xlabel('[Deg]')
+        plt.legend(loc=0)
