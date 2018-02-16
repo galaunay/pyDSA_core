@@ -285,15 +285,26 @@ class Image(ScalarField):
         tmp_im.data = tmp_data
         return tmp_im
 
-    def edge_detection(self, threshold1=None, threshold2=None, verbose=False):
+    def edge_detection(self, threshold1=None, threshold2=None,
+                       base_max_dist=15, size_ratio=.5,
+                       keep_exterior=True, verbose=False,
+                       debug=False):
         """
-        Make Canny edge detection.
+        Perform edge detection.
 
         Parameters
         ==========
         threshold1, threshold2: integers
             Thresholds for the Canny edge detection method.
             (By default, inferred from the data histogram)
+        base_max_dist: integers
+            Maximal distance (in pixel) between the baseline and
+            the beginning of the drop edge (default to 15).
+        size_ratio: number
+            Minimum size of edges, regarding the bigger detected one
+            (default to 0.5).
+        keep_exterior: boolean
+            If True (default), only keep the exterior edges.
         """
         if self.dx != self.dy:
             warnings.warn('dx is different than dy, results can be weird...')
@@ -334,10 +345,13 @@ class Image(ScalarField):
         dy = self.axe_y[1] - self.axe_y[0]
         if np.max(labels) > 1:
             # Remove small patches
-            sizes = [np.sum(labels == label) for label in np.arange(1, nmb + 1)]
-            crit_size = np.sort(sizes)[-1]*.5
+            sizes = [np.sum(labels == label)
+                     for label in np.arange(1, nmb + 1)]
+            crit_size = np.sort(sizes)[-1]*size_ratio
             for i, size in enumerate(sizes):
                 if size < crit_size:
+                    if debug:
+                        print(f"Label {i+1} removed because too small")
                     im_edges[labels == i+1] = 0
                     labels[labels == i+1] = 0
                     nmb_edge -= 1
@@ -346,22 +360,26 @@ class Image(ScalarField):
                 ys = Y[labels == i+1]
                 if len(ys) == 0:
                     continue
-                # import pdb
-                # pdb.set_trace()
                 min_y = np.min(ys)
-                if min_y > 10*dy + np.max([self.baseline.pt1[1],
+                mdist = base_max_dist*dy
+                if min_y > mdist + np.max([self.baseline.pt1[1],
                                            self.baseline.pt2[1]]):
+                    if debug:
+                        print(f"Label {i+1} removed because not touching "
+                              "baseline")
                     im_edges[labels == i+1] = 0
                     labels[labels == i+1] = 0
                     nmb_edge -= 1
             # keep only the two exterior edges
-            if nmb_edge > 2:
+            if nmb_edge > 2 and keep_exterior:
                 mean_xs = [np.mean(X[labels == label])
-                        for label in np.arange(1, nmb + 1)]
+                           for label in np.arange(1, nmb + 1)]
                 mean_xs = np.asarray(mean_xs)
                 mean_xs[np.isnan(mean_xs)] = np.mean(mean_xs[~np.isnan(mean_xs)])
                 mean_xs_indsort = np.argsort(mean_xs)
                 for i in mean_xs_indsort[1:-1]:
+                    if debug:
+                        print(f"Label {i+1} removed because not exterior")
                     im_edges[labels == i+1] = 0
                     labels[labels == i+1] = 0
                     nmb_edge -= 1

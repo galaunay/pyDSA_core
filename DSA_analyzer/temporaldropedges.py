@@ -49,14 +49,18 @@ class TemporalDropEdges(TemporalPoints):
 
     def fit(self, k=5, s=None, verbose=False):
         """
-        Get a fitting for the droplets shape.
+        Compute a spline fitting for the droplets shape.
 
         Parameters
         ----------
-        kind : string, optional
-            The kind of fitting used. Can be 'polynomial' or 'ellipse'.
-        order : integer
-            Approximation order for the fitting.
+        k : int, optional
+            Degree of the smoothing spline.  Must be <= 5.
+            Default is k=5.
+        s : float or None, optional
+            Positive smoothing factor used to choose the number of knots.
+            Smaller number means better fitted curves.
+            If None (default), a default value will be inferred from the data.
+            If 0, spline will interpolate through all data points.
         """
         if verbose:
             pg = ProgressCounter("Fitting droplet interfaces", "Done",
@@ -66,9 +70,14 @@ class TemporalDropEdges(TemporalPoints):
             if verbose:
                 pg.print_progress()
 
-    def detect_triple_points(self, verbose=False):
+    def detect_triple_points(self, smooth=None, verbose=False):
         """
         Compute the triple points (water, oil and air interfaces) positions.
+
+        Parameters
+        ==========
+        smooth: number
+           Smoothing factor for the triple point position.
 
         Returns
         =======
@@ -82,6 +91,8 @@ class TemporalDropEdges(TemporalPoints):
             edge.detect_triple_points()
             if verbose:
                 pg.print_progress()
+        if smooth is not None:
+            self.smooth_triple_points(tos='gaussian', size=smooth)
 
     def get_drop_base(self):
         """
@@ -127,28 +138,107 @@ class TemporalDropEdges(TemporalPoints):
             if verbose:
                 pg.print_progress()
         if smooth:
-            thetas = np.array(thetas)
-            tmp_prof1 = Profile(np.arange(len(thetas[:, 0])),
-                                thetas[:, 0])
-            tmp_prof1.smooth(size=smooth, inplace=True)
-            tmp_prof2 = Profile(np.arange(len(thetas[:, 1])),
-                                thetas[:, 1])
-            tmp_prof2.smooth(size=smooth, inplace=True)
-            thetas = np.array([[tmp_prof1.y[i], tmp_prof2.y[i]]
-                               for i in range(len(thetas))])
-            if len(thetas_triple) > 2:
-                thetas_triple = np.array(thetas_triple)
-                tmp_prof1 = Profile(np.arange(len(thetas_triple[:, 0])),
-                                    thetas_triple[:, 0])
-                tmp_prof1.smooth(size=smooth, inplace=True)
-                tmp_prof2 = Profile(np.arange(len(thetas_triple[:, 1])),
-                                    thetas_triple[:, 1])
-                tmp_prof2.smooth(size=smooth, inplace=True)
-                thetas_triple = np.array([[tmp_prof1.y[i], tmp_prof2.y[i]]
-                                        for i in range(len(thetas_triple))])
-        return np.array(thetas), np.array(thetas_triple)
+            self.smooth_contact_angle(tos='gaussian', size=smooth)
+
+    def smooth_triple_points(self, tos='gaussian', size=None):
+        """
+        Smooth the position of the triple point.
+
+        Parameters
+        ==========
+        tos : string, optional
+            Type of smoothing, can be 'uniform' (default) or 'gaussian'
+            (See ndimage module documentation for more details)
+        size : number, optional
+            Size of the smoothing (is radius for 'uniform' and
+            sigma for 'gaussian').
+            Default is 3 for 'uniform' and 1 for 'gaussian'.
+        """
+        x1 = []
+        y1 = []
+        x2 = []
+        y2 = []
+        t = []
+        mask = []
+        for i, edge in enumerate(self.point_sets):
+            t.append(self.times[i])
+            if edge.triple_pts is not None:
+                x1.append(edge.triple_pts[0][0])
+                x2.append(edge.triple_pts[1][0])
+                y1.append(edge.triple_pts[0][1])
+                y2.append(edge.triple_pts[1][1])
+                mask.append(False)
+            else:
+                x1.append(np.nan)
+                x2.append(np.nan)
+                y1.append(np.nan)
+                y2.append(np.nan)
+                mask.append(True)
+        if not np.all(np.isnan(x1)):
+            x1 = Profile(t, x1).smooth(tos='gaussian', size=size).y
+            x2 = Profile(t, x2).smooth(tos='gaussian', size=size).y
+            y1 = Profile(t, y1).smooth(tos='gaussian', size=size).y
+            y2 = Profile(t, y2).smooth(tos='gaussian', size=size).y
+            for i, edge in enumerate(self.point_sets):
+                if not mask[i]:
+                    edge.triple_pts = [[x1[i], y1[i]], [x2[i], y2[i]]]
+
+    def smooth_contact_angle(self, tos='gaussian', size=None):
+        """
+        Smooth the contact angles.
+
+        Parameters
+        ==========
+        tos : string, optional
+            Type of smoothing, can be 'uniform' (default) or 'gaussian'
+            (See ndimage module documentation for more details)
+        size : number, optional
+            Size of the smoothing (is radius for 'uniform' and
+            sigma for 'gaussian').
+            Default is 3 for 'uniform' and 1 for 'gaussian'.
+        """
+        theta1 = []
+        theta2 = []
+        theta3 = []
+        theta4 = []
+        t = []
+        mask = []
+        mask2 = []
+        for i, edge in enumerate(self.point_sets):
+            t.append(self.times[i])
+            if edge.thetas is not None:
+                theta1.append(edge.thetas[0])
+                theta2.append(edge.thetas[1])
+                mask.append(False)
+            else:
+                theta1.append(np.nan)
+                theta2.append(np.nan)
+                mask.append(True)
+            if edge.thetas_triple is not None:
+                theta3.append(edge.thetas_triple[0])
+                theta4.append(edge.thetas_triple[1])
+                mask2.append(False)
+            else:
+                theta3.append(np.nan)
+                theta4.append(np.nan)
+                mask2.append(True)
+        # smooth
+        if not np.all(mask):
+            theta1 = Profile(t, theta1).smooth(tos='gaussian', size=size).y
+            theta2 = Profile(t, theta2).smooth(tos='gaussian', size=size).y
+            for i, edge in enumerate(self.point_sets):
+                if not mask[i]:
+                    edge.thetas = [theta1[i], theta2[i]]
+        if not np.all(mask2):
+            theta3 = Profile(t, theta3).smooth(tos='gaussian', size=size).y
+            theta4 = Profile(t, theta4).smooth(tos='gaussian', size=size).y
+            for i, edge in enumerate(self.point_sets):
+                if not mask2[i]:
+                    edge.thetas_triple = [theta3[i], theta4[i]]
 
     def display(self, *args, **kwargs):
+        #
+        length = len(self.point_sets)
         # Display points
         if self[0].edges_fits is None:
             kwargs['cpkw'] = {}
@@ -174,20 +264,27 @@ class TemporalDropEdges(TemporalPoints):
                 x2s.append(x2)
                 y1s.append(y1)
                 y2s.append(y2)
+            if len(x1s) != length or len(x2s) != length:
+                raise Exception()
             db1 = pplt.Displayer(x1s, y1s, color=self[0].colors[1])
             db2 = pplt.Displayer(x2s, y2s, color=self[0].colors[1])
             pplt.ButtonManager(db1)
             pplt.ButtonManager(db2)
         # Display triple points
-        if self[0].triple_pts is not None:
-            xs = [[edge.triple_pts[i][0]
-                   for i in [0, 1]]
-                  for edge in self.point_sets
-                  if edge.triple_pts is not None]
-            ys = [[edge.triple_pts[i][1]
-                   for i in [0, 1]]
-                  for edge in self.point_sets
-                  if edge.triple_pts is not None]
+        xs = []
+        ys = []
+        for edge in self.point_sets:
+            if edge.triple_pts is None:
+                xs.append([np.nan, np.nan])
+                ys.append([np.nan, np.nan])
+            else:
+                xs.append([edge.triple_pts[0][0],
+                            edge.triple_pts[1][0]])
+                ys.append([edge.triple_pts[0][1],
+                            edge.triple_pts[1][1]])
+        if len(xs) != length or len(ys) != length:
+            raise Exception()
+        if not np.all(np.isnan(xs)):
             db = pplt.Displayer(xs, ys, ls='none', marker='o',
                                 kind='plot',
                                 color=self[0].colors[2])
@@ -196,8 +293,6 @@ class TemporalDropEdges(TemporalPoints):
         if np.any([edge.thetas for edge in self.point_sets] is not None):
             lines = [edge._get_angle_display_lines()
                      for edge in self.point_sets]
-            lines1 = [[line[0] for line in lines],
-                     [line[1] for line in lines]]
             lines1 = []
             lines2 = []
             lines3 = []
@@ -214,6 +309,8 @@ class TemporalDropEdges(TemporalPoints):
             for line in [lines1, lines2, lines3, lines4]:
                 line = np.array(line)
                 if not np.all(np.isnan(line)):
+                    if len(line[:, 0]) != length or len(line[:, 1]) != length:
+                        raise Exception()
                     db = pplt.Displayer(line[:, 0], line[:, 1],
                                         kind='plot', color=self[0].colors[0])
                     pplt.ButtonManager(db)

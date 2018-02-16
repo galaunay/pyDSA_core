@@ -66,15 +66,25 @@ class TemporalImages(TemporalScalarFields):
         if self.baseline is not None:
             self.baseline.display()
 
-    def edge_detection(self, threshold1=None, threshold2=None, verbose=False):
+    def edge_detection(self, threshold1=None, threshold2=None,
+                       base_max_dist=15, size_ratio=.5,
+                       keep_exterior=True, verbose=False):
         """
-        Make Canny edge detection.
+        Perform edge detection.
 
         Parameters
         ==========
         threshold1, threshold2: integers
             Thresholds for the Canny edge detection method.
             (By default, inferred from the data histogram)
+        base_max_dist: integers
+            Maximal distance (in pixel) between the baseline and
+            the beginning of the drop edge (default to 15).
+        size_ratio: number
+            Minimum size of edges, regarding the bigger detected one
+            (default to 0.5).
+        keep_exterior: boolean
+            If True (default), only keep the exterior edges.
         """
         pts = TemporalDropEdges()
         pts.baseline = self.baseline

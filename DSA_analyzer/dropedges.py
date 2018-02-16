@@ -18,6 +18,7 @@ import numpy as np
 import warnings
 import matplotlib.pyplot as plt
 import scipy.interpolate as spint
+import scipy.linalg as splin
 import scipy.optimize as spopt
 import scipy.misc as spmisc
 from IMTreatment import Points
@@ -98,11 +99,26 @@ class DropEdges(Points):
                 return spmisc.derivative(fit, y, dx=dy, n=3, order=5)
             try:
                 y0 = spopt.newton(zerofun, (y[0] + y[-1])/2, dzerofun)
-            except RuntimeError:
-                warnings.warn('Cannot find a triple point here.'
-                              '\nYou should try a different fitting.')
+            except RuntimeError as m:
+                try:
+                    y0 = spopt.newton(zerofun, (y[0] + y[-1])/4, dzerofun)
+                except RuntimeError as m:
+                    if verbose:
+                        warnings.warn('Cannot find a triple point here.'
+                                    '\nYou should try a different fitting.'
+                                    '\nError message:{}'.format(m))
+                    return [None, None]
+            # check if the triple point is curvature coherent
+            deriv = dzerofun(y0)
+            if i == 0 and deriv < 0:
+                if verbose:
+                    warnings.warn('Cannot find a decent triple point')
                 return [None, None]
-            # check coherence of the detected triple point
+            if i == 1 and deriv > 0:
+                if verbose:
+                    warnings.warn('Cannot find a decent triple point')
+                return [None, None]
+            # check if the triple point is in the adequat region
             x0 = fit(y0)
             tmp_dy = self.orig_im.dy
             inter_xy = self._get_inters_base_fit()
@@ -110,8 +126,9 @@ class DropEdges(Points):
                 x0 > self.orig_im.axe_x[-1] or
                 y0 < inter_xy[i][1] + 3*tmp_dy or
                 y0 > self.orig_im.axe_y[-1]):
-                warnings.warn('Cannot find a triple point here.'
-                              '\nYou should try a different fitting.')
+                if verbose:
+                    warnings.warn('Cannot find a triple point here.'
+                                '\nYou should try a different fitting.')
                 return [None, None]
             tripl_pts.append([fit(y0), y0])
             if verbose:
@@ -125,14 +142,18 @@ class DropEdges(Points):
 
     def fit(self, k=5, s=None, verbose=False):
         """
-        Get a fitting for the droplet shape.
+        Compute a spline fitting for the droplet shape.
 
         Parameters
         ----------
-        kind : string, optional
-            The kind of fitting used. Can be 'polynomial' or 'ellipse'.
-        order : integer
-            Approximation order for the fitting.
+        k : int, optional
+            Degree of the smoothing spline.  Must be <= 5.
+            Default is k=5.
+        s : float or None, optional
+            Positive smoothing factor used to choose the number of knots.
+            Smaller number means better fitted curves.
+            If None (default), a default value will be inferred from the data.
+            If 0, spline will interpolate through all data points.
         """
         # Prepare drop edge for interpolation
         # TODO: Find a more efficient fitting
@@ -167,6 +188,35 @@ class DropEdges(Points):
             plt.axis('equal')
             plt.show()
         return spline1, spline2
+
+    def fit_ellipse(self):
+        """
+        Fit the drop edges with an ellipse.
+        """
+        raise Exception('Not implemented yet')
+        def fit_ellipse(x, y):
+            x = x[:, np.newaxis]
+            y = y[:, np.newaxis]
+            D = np.hstack((x*x, x*y, y*y, x, y, np.ones_like(x)))
+            S = np.dot(D. T, D)
+            C = np.zeros([6, 6])
+            C[0, 2] = C[2, 0] = 2
+            C[1, 1] = -1
+            E, V = splin.eig(np.dot(splin.inv(S), C))
+            n = np.argmax(np.abs(E))
+            a = V[:, n]
+            b, c, d, f, g, a = a[1]/2, a[2], a[3]/2, a[4]/2, a[5], a[0]
+            num = b*b - a*c
+            x0 = (c*d - b*f)/num
+            y0 = (a*f - b*d)/num
+            return np.array([x0, y0])
+        # get data
+        x1 = self.drop_edges[0].xy[:, 0]
+        y1 = self.drop_edges[0].xy[:, 1]
+        plt.figure()
+        plt.plot(x1, y1, 'ok')
+        a = fit_ellipse(x1, y1)
+        plt.plot(a[0], a[1], 'or')
 
     def fit_LY(self, interp_res=100, method=None, verbose=False):
         # get data
