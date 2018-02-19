@@ -93,49 +93,39 @@ class DropEdges(Points):
             fit = self.edges_fits[i]
             y = self.drop_edges[i].xy[:, 1]
             dy = (y[-1] - y[0])/100
+            y = np.linspace(y[0], y[-1], 100)
+            # curvature function (and its derivative)
             def zerofun(y):
-                return spmisc.derivative(fit, y, dx=dy, n=2, order=3)
+                dxdy = spmisc.derivative(fit, y, dx=dy, n=1, order=3)
+                dxdy2 = spmisc.derivative(fit, y, dx=dy, n=2, order=3)
+                return dxdy2/(1 + dxdy**2)**(3/2)
             def dzerofun(y):
-                return spmisc.derivative(fit, y, dx=dy, n=3, order=5)
+                return spmisc.derivative(zerofun, y, dx=dy, n=1, order=5)
+            # Get the root or the curvature
             try:
-                y0 = spopt.newton(zerofun, (y[0] + y[-1])/2, dzerofun)
+                y0 = spopt.brentq(zerofun, y[0], y[-1])
             except RuntimeError as m:
-                try:
-                    y0 = spopt.newton(zerofun, (y[0] + y[-1])/4, dzerofun)
-                except RuntimeError as m:
-                    if verbose:
-                        warnings.warn('Cannot find a triple point here.'
-                                    '\nYou should try a different fitting.'
-                                    '\nError message:{}'.format(m))
-                    return [None, None]
-            # check if the triple point is curvature coherent
-            deriv = dzerofun(y0)
-            if i == 0 and deriv < 0:
-                if verbose:
-                    warnings.warn('Cannot find a decent triple point')
-                return [None, None]
-            if i == 1 and deriv > 0:
-                if verbose:
-                    warnings.warn('Cannot find a decent triple point')
-                return [None, None]
-            # check if the triple point is in the adequat region
-            x0 = fit(y0)
-            tmp_dy = self.orig_im.dy
-            inter_xy = self._get_inters_base_fit()
-            if (x0 < self.orig_im.axe_x[0] or
-                x0 > self.orig_im.axe_x[-1] or
-                y0 < inter_xy[i][1] + 3*tmp_dy or
-                y0 > self.orig_im.axe_y[-1]):
                 if verbose:
                     warnings.warn('Cannot find a triple point here.'
-                                '\nYou should try a different fitting.')
+                                  '\nYou should try a different fitting.'
+                                  '\nError message:{}'.format(m))
                 return [None, None]
+            # check if the triple point is curvature coherent
+            deriv = dzerofun(y0)
+            if (i == 0 and deriv < 0) or (i == 1 and deriv > 0):
+                if verbose:
+                    warnings.warn('Cannot find a decent triple point'
+                                  ' (wrong curvature)')
+                return [None, None]
+            # Ok, good to go
             tripl_pts.append([fit(y0), y0])
             if verbose:
-                plt.plot(y, zerofun(y))
+                plt.plot(y, zerofun(y), 'o-')
+                plt.plot(y0, 0, "ok")
         if verbose:
             plt.xlabel('y')
             plt.xlabel('d^2y/dx^2')
+            plt.grid()
             plt.show()
         self.triple_pts = tripl_pts
         return tripl_pts
