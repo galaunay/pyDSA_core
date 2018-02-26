@@ -287,6 +287,7 @@ class Image(ScalarField):
 
     def edge_detection(self, threshold1=None, threshold2=None,
                        base_max_dist=15, size_ratio=.5,
+                       nmb_edge=2,
                        keep_exterior=True, verbose=False,
                        debug=False):
         """
@@ -306,12 +307,11 @@ class Image(ScalarField):
         keep_exterior: boolean
             If True (default), only keep the exterior edges.
         """
+        # check for baseline
+        if self.baseline is None:
+            raise Exception('You should set the baseline first.')
         if self.dx != self.dy:
             warnings.warn('dx is different than dy, results can be weird...')
-        if verbose:
-            plt.figure()
-            self.display()
-            plt.title('Initial image')
         # Get thresholds from histograms
         if threshold2 is None or threshold1 is None:
             hist = cv2.calcHist(np.array(self.values, dtype=np.uint8),
@@ -327,6 +327,10 @@ class Image(ScalarField):
         tmp_im = self.crop(intervy=[np.min([self.baseline.pt2[1],
                                             self.baseline.pt1[1]]), np.inf],
                            inplace=False)
+        if verbose:
+            plt.figure()
+            tmp_im.display()
+            plt.title('Initial image')
         # Perform Canny detection
         im_edges = cv2.Canny(np.array(tmp_im.values, dtype=np.uint8),
                              threshold1, threshold2)
@@ -406,6 +410,11 @@ class Image(ScalarField):
                 continue
             if y > a*x + b:
                 xys.append([x, y])
+        # Check if there is something remaining
+        if len(xys) < 10:
+            if verbose:
+                plt.show(block=False)
+            raise Exception("Didn't found any drop here...")
         if verbose:
             plt.figure()
             self.display()
