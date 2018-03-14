@@ -357,8 +357,8 @@ class TemporalDropEdges(TemporalPoints):
             plt.plot(radiit, ts, label="Drop radius")
             plt.plot(triple_pts1[:, 0], ts, label="Triple point (left)")
             plt.plot(triple_pts2[:, 0], ts, label="Triple point (right)")
-        plt.xlabel('[um]')
-        plt.ylabel('Time [s]')
+        plt.xlabel('')
+        plt.ylabel('Time')
         plt.legend(loc=0)
         # Contact angles
         plt.sca(axs[1])
@@ -371,6 +371,6 @@ class TemporalDropEdges(TemporalPoints):
             plt.plot(180 - thetas_triple[:, 1], ts,
                      label="Angle at triple point (right)",
                      marker=",", ls="-")
-        plt.ylabel('Time [s]')
+        plt.ylabel('Time')
         plt.xlabel('[Deg]')
         plt.legend(loc=0)
