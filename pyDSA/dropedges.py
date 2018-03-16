@@ -104,7 +104,7 @@ class DropEdges(Points):
             # Get the root or the curvature
             try:
                 y0 = spopt.brentq(zerofun, y[0], y[-1])
-            except RuntimeError as m:
+            except (RuntimeError, ValueError) as m:
                 if verbose:
                     warnings.warn('Cannot find a triple point here.'
                                   '\nYou should try a different fitting.'
@@ -157,7 +157,7 @@ class DropEdges(Points):
         new_y2 = np.sort(list(set(y2)))
         new_x2 = [np.mean(x2[y == y2]) for y in new_y2]
         # spline interpolation
-        s = s or len(y1)/10
+        s = s or 0.01
         try:
             spline1 = spint.UnivariateSpline(new_y1, new_x1, k=k, s=s)
             spline2 = spint.UnivariateSpline(new_y2, new_x2, k=k, s=s)
@@ -330,6 +330,9 @@ class DropEdges(Points):
             lines = self._get_angle_display_lines()
             for line in lines:
                 plt.plot(line[0], line[1],
+                         color=self.colors[0])
+                plt.plot(line[0][0],
+                         line[0][1],
                          color=self.colors[0])
         # Display triple points
         if self.triple_pts is not None:

@@ -94,6 +94,42 @@ class TemporalDropEdges(TemporalPoints):
         if smooth is not None:
             self.smooth_triple_points(tos='gaussian', size=smooth)
 
+    def get_contact_angles(self):
+        """
+        Return the drop contact angles.
+        """
+        thetas = []
+        thetas_triple = []
+        for edge in self.point_sets:
+            if edge.thetas is not None:
+                thetas.append(edge.thetas)
+            else:
+                thetas.append([np.nan, np.nan])
+            if edge.thetas_triple is not None:
+                thetas_triple.append(edge.thetas_triple)
+            else:
+                thetas_triple.append([np.nan, np.nan])
+        thetas = np.asarray(thetas)
+        thetas_triple = np.asarray(thetas_triple)
+        return thetas, thetas_triple
+
+    def get_triple_points(self):
+        """
+        Return the drop triple points.
+        """
+        triple_pts1 = []
+        triple_pts2 = []
+        for edge in self.point_sets:
+            if edge.triple_pts is not None:
+                triple_pts1.append(edge.triple_pts[0])
+                triple_pts2.append(edge.triple_pts[1])
+            else:
+                triple_pts1.append([np.nan, np.nan])
+                triple_pts2.append([np.nan, np.nan])
+        triple_pts1 = np.asarray(triple_pts1)
+        triple_pts2 = np.asarray(triple_pts2)
+        return triple_pts1, triple_pts2
+
     def get_drop_base(self):
         """
         Return the drops base.
@@ -315,38 +351,17 @@ class TemporalDropEdges(TemporalPoints):
                                         kind='plot', color=self[0].colors[0])
                     pplt.ButtonManager(db)
 
-    def display_summary(self):
+    def display_summary(self, figsize=None):
         """
         Display a summary of the drop parameters evolution.
         """
         bdp = self.get_drop_base()
         radii = self.get_drop_base_radius()
         radiit = self.get_drop_radius()
-        thetas = []
-        thetas_triple = []
-        triple_pts1 = []
-        triple_pts2 = []
-        for edge in self.point_sets:
-            if edge.thetas is not None:
-                thetas.append(edge.thetas)
-            else:
-                thetas.append([np.nan, np.nan])
-            if edge.thetas_triple is not None:
-                thetas_triple.append(edge.thetas_triple)
-            else:
-                thetas_triple.append([np.nan, np.nan])
-            if edge.triple_pts is not None:
-                triple_pts1.append(edge.triple_pts[0])
-                triple_pts2.append(edge.triple_pts[1])
-            else:
-                triple_pts1.append([np.nan, np.nan])
-                triple_pts2.append([np.nan, np.nan])
-        thetas = np.asarray(thetas)
-        thetas_triple = np.asarray(thetas_triple)
-        triple_pts1 = np.asarray(triple_pts1)
-        triple_pts2 = np.asarray(triple_pts2)
+        thetas, thetas_triple = self.get_contact_angles()
+        triple_pts1, triple_pts2 = self.get_triple_points()
         ts = np.arange(0, len(self.point_sets)*self.dt, self.dt)[0: len(bdp)]
-        fig, axs = plt.subplots(2, 1)
+        fig, axs = plt.subplots(2, 1, figsize=figsize)
         # Drop dimensions
         plt.sca(axs[0])
         plt.plot(bdp[:, 0], ts, label="Contact (left)")
@@ -357,8 +372,8 @@ class TemporalDropEdges(TemporalPoints):
             plt.plot(radiit, ts, label="Drop radius")
             plt.plot(triple_pts1[:, 0], ts, label="Triple point (left)")
             plt.plot(triple_pts2[:, 0], ts, label="Triple point (right)")
-        plt.xlabel('')
-        plt.ylabel('Time')
+        plt.xlabel('x {}'.format(self.unit_x.strUnit()))
+        plt.ylabel('Time {}'.format(self.unit_times.strUnit()))
         plt.legend(loc=0)
         # Contact angles
         plt.sca(axs[1])
@@ -371,6 +386,6 @@ class TemporalDropEdges(TemporalPoints):
             plt.plot(180 - thetas_triple[:, 1], ts,
                      label="Angle at triple point (right)",
                      marker=",", ls="-")
-        plt.ylabel('Time')
+        plt.ylabel('Time {}'.format(self.unit_times.strUnit()))
         plt.xlabel('[Deg]')
         plt.legend(loc=0)

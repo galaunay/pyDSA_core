@@ -124,4 +124,7 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
             break
     if verbose and frame_inds[1] == np.inf:
         pg._print_end()
+    if len(ti.fields) == 0:
+        raise Exception("Something goes wrong during video import, "
+                        "the video does not contain any image...")
     return ti
