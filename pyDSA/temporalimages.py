@@ -18,9 +18,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from IMTreatment import TemporalScalarFields, TemporalPoints
 from IMTreatment.utils import ProgressCounter
+import IMTreatment.plotlib as pplt
 from .image import Image
+from .baseline import Baseline
 from .temporaldropedges import TemporalDropEdges
-import scipy.optimize as spopt
 
 
 

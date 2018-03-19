@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import scipy.ndimage as spim
 import warnings
 from IMTreatment import ScalarField, Points
+import IMTreatment.plotlib as pplt
 from .dropedges import DropEdges
 from .baseline import Baseline
 
@@ -42,6 +43,7 @@ class Image(ScalarField):
         """
         super().__init__()
         self.baseline = None
+        self.colors = pplt.get_color_cycles()
 
     def display(self, *args, **kwargs):
         super().display(*args, **kwargs)
@@ -312,17 +314,18 @@ class Image(ScalarField):
             raise Exception('You should set the baseline first.')
         if self.dx != self.dy:
             warnings.warn('dx is different than dy, results can be weird...')
-        # Get thresholds from histograms
+        # Get thresholds from histograms (Otsu method)
         if threshold2 is None or threshold1 is None:
-            hist = cv2.calcHist(np.array(self.values, dtype=np.uint8),
-                                [0], None, [255], [0, 255])
-            cumhist = np.cumsum(hist)
-            cumhist -= np.min(cumhist)
-            cumhist /= np.max(cumhist)
-            if threshold1 is None:
-                threshold1 = np.argwhere(cumhist > 0.2)[0][0]
-            if threshold2 is None:
-                threshold2 = np.argwhere(cumhist > 0.8)[0][0]
+            # # Otsu method
+            # threshold2, _ = cv2.threshold(np.array(self.values,
+            #                                        dtype=np.uint8),
+            #                               0, 255,
+            #                               cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+            # threshold1 = threshold2/2
+            # DSA adapted method
+            hist = self.get_histogram(cum=True)
+            threshold1 = hist.get_value_position(hist.max/2)
+            threshold2 = np.max(hist.x)
         # remove useless part of the image
         tmp_im = self.crop(intervy=[np.min([self.baseline.pt2[1],
                                             self.baseline.pt1[1]]), np.inf],
