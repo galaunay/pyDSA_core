@@ -276,10 +276,9 @@ class TemporalDropEdges(TemporalPoints):
         #
         length = len(self.point_sets)
         # Display points
-        if self[0].edges_fits is None:
-            kwargs['cpkw'] = {}
-            kwargs['cpkw']['aspect'] = 'equal'
-            super().display(*args, **kwargs)
+        kwargs['cpkw'] = {}
+        kwargs['cpkw']['aspect'] = 'equal'
+        super().display(*args, **kwargs)
         # Display fitting
         if self[0].edges_fits is not None:
             x1s = []

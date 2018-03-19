@@ -111,8 +111,8 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
         # im = np.mean(im, axis=2)
         im = im.transpose()[:, ::-1]
-        axe_x = np.arange(0, im.shape[0]*dx, dx)
-        axe_y = np.arange(0, im.shape[1]*dy, dy)
+        axe_x = np.arange(0, im.shape[0]*dx - 0.1*dx, dx)
+        axe_y = np.arange(0, im.shape[1]*dy - 0.1*dy, dy)
         sf = Image()
         sf.import_from_arrays(axe_x, axe_y, im, mask=False,
                               unit_x=unit_x, unit_y=unit_y)

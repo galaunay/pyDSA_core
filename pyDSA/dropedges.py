@@ -37,13 +37,12 @@ __status__ = "Development"
 
 
 class DropEdges(Points):
-    def __init__(self, baseline, orig_im, *args, **kwargs):
+    def __init__(self, baseline, *args, **kwargs):
         """
         """
         super().__init__(*args, **kwargs)
         self.drop_edges = self._separate_drop_edges()
         self.edges_fits = None
-        self.orig_im = orig_im
         self.triple_pts = None
         self.baseline = baseline
         self.thetas = None
@@ -157,7 +156,8 @@ class DropEdges(Points):
         new_y2 = np.sort(list(set(y2)))
         new_x2 = [np.mean(x2[y == y2]) for y in new_y2]
         # spline interpolation
-        s = s or 0.01
+        s = s or 20/200*(np.max([y1.max(), y2.max()]) -
+                          np.min([y1.min(), y2.min()]))
         try:
             spline1 = spint.UnivariateSpline(new_y1, new_x1, k=k, s=s)
             spline2 = spint.UnivariateSpline(new_y2, new_x2, k=k, s=s)
@@ -168,13 +168,15 @@ class DropEdges(Points):
         self.edges_fits = [spline1, spline2]
         # Verbose if necessary
         if verbose:
+            tmp_y1 = np.linspace(new_y1.min(), new_y1.max(), 1000)
+            tmp_y2 = np.linspace(new_y2.min(), new_y2.max(), 1000)
             plt.figure()
             de1.display()
-            plt.plot(new_x1, new_y1, '--')
-            plt.plot(spline1(new_y1), new_y1, 'r')
-            de2.displanew_y()
-            plt.plot(new_x2, new_y2, '--')
-            plt.plot(spline2(new_y2), new_y2, 'r')
+            plt.plot(new_x1, new_y1, 'xb')
+            plt.plot(spline1(tmp_y1), tmp_y1, 'r')
+            de2.display()
+            plt.plot(new_x2, new_y2, 'xb')
+            plt.plot(spline2(tmp_y2), tmp_y2, 'r')
             plt.axis('equal')
             plt.show()
         return spline1, spline2

@@ -422,7 +422,7 @@ class Image(ScalarField):
             plt.plot(xys[:, 0], xys[:, 1], ".k")
             plt.title('Initial image + edge points')
         return DropEdges(xy=xys, unit_x=self.unit_x, unit_y=self.unit_y,
-                         baseline=self.baseline, orig_im=self)
+                         baseline=self.baseline)
 
     def circle_detection(self, dp=1., minDist=10, verbose=False):
         """
