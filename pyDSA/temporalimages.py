@@ -49,6 +49,22 @@ class TemporalImages(TemporalScalarFields):
             self.fields[i].set_baseline(pt1=pt1, pt2=pt2)
         self.baseline = self.fields[0].baseline
 
+    def set_evolving_baseline(self, baseline1, baseline2):
+        """
+        Set a linearly evolving baseline.
+        """
+        base1_pt1 = np.asarray(baseline1[0])
+        base1_pt2 = np.asarray(baseline1[1])
+        base2_pt1 = np.asarray(baseline2[0])
+        base2_pt2 = np.asarray(baseline2[1])
+        imax = len(self.fields) - 1
+        for i in range(len(self.fields)):
+            ratio = i/imax
+            pt1 = base1_pt1*(1 - ratio) + base2_pt1*ratio
+            pt2 = base1_pt2*(1 - ratio) + base2_pt2*ratio
+            self.fields[i].set_baseline(pt1, pt2)
+        self.baseline = "evolving"
+
     def choose_baseline(self, ind_image=0):
         """
         Choose baseline position interactively.
@@ -63,8 +79,20 @@ class TemporalImages(TemporalScalarFields):
 
     def display(self, *args, **kwargs):
         super().display(*args, **kwargs)
-        if self.baseline is not None:
+        if isinstance(self.baseline, Baseline):
             self.baseline.display()
+        elif self.baseline == "evolving":
+            # Display evolving baseline
+            xs = []
+            ys = []
+            for field in self.fields:
+                bl = field.baseline
+                xs.append([bl.pt1[0], bl.pt2[0]])
+                ys.append([bl.pt1[1], bl.pt2[1]])
+            db = pplt.Displayer(xs, ys, color=self[0].colors[0])
+            pplt.ButtonManager(db)
+        else:
+            pass
 
     def edge_detection(self, threshold1=None, threshold2=None,
                        base_max_dist=15, size_ratio=.5,
