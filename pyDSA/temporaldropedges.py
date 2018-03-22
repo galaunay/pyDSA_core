@@ -275,10 +275,28 @@ class TemporalDropEdges(TemporalPoints):
     def display(self, *args, **kwargs):
         #
         length = len(self.point_sets)
-        # Display points
         kwargs['cpkw'] = {}
         kwargs['cpkw']['aspect'] = 'equal'
+        kwargs['cpkw']['color'] = 'k'
+        kwargs['cpkw']['marker'] = 'x'
         super().display(*args, **kwargs)
+        # Display points
+        if self[0].drop_edges is not None:
+            x1s = []
+            y1s = []
+            x2s = []
+            y2s = []
+            for edge in self.point_sets:
+                x1s.append(edge.drop_edges[0].y)
+                x2s.append(edge.drop_edges[1].y)
+                y1s.append(edge.drop_edges[0].x)
+                y2s.append(edge.drop_edges[1].x)
+            if len(x1s) != length or len(x2s) != length:
+                raise Exception()
+            db1 = pplt.Displayer(x1s, y1s, color='k', marker="o")
+            db2 = pplt.Displayer(x2s, y2s, color='k', marker="o")
+            pplt.ButtonManager(db1)
+            pplt.ButtonManager(db2)
         # Display fitting
         if self[0].edges_fits is not None:
             x1s = []
@@ -368,7 +386,7 @@ class TemporalDropEdges(TemporalPoints):
         plt.plot(radii, ts, label="Base radius")
         if (not np.all(np.isnan(triple_pts1)) and
             not np.all(np.isnan(triple_pts2))):
-            plt.plot(radiit, ts, label="Drop radius")
+            plt.plot(radiit, ts, label="Drop base length")
             plt.plot(triple_pts1[:, 0], ts, label="Triple point (left)")
             plt.plot(triple_pts2[:, 0], ts, label="Triple point (right)")
         plt.xlabel('x {}'.format(self.unit_x.strUnit()))

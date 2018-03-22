@@ -72,5 +72,17 @@ class Baseline(object):
                 return a*x + b
         return fun
 
-    def display(self, *args, **kwargs):
-        plt.plot(self.xy[0], self.xy[1], *args, **kwargs)
+    def display(self, x0=None, xf=None, *args, **kwargs):
+        if x0 is None:
+            x0 = self.xy[0][0]
+            y0 = self.xy[1][0]
+        else:
+            fun = self.get_baseline_fun()
+            y0 = fun(x0)
+        if xf is None:
+            xf = self.xy[0][1]
+            yf = self.xy[1][1]
+        else:
+            fun = self.get_baseline_fun()
+            yf = fun(xf)
+        plt.plot([x0, xf], [y0, yf], *args, **kwargs)

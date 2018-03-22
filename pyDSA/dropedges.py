@@ -21,7 +21,7 @@ import scipy.interpolate as spint
 import scipy.linalg as splin
 import scipy.optimize as spopt
 import scipy.misc as spmisc
-from IMTreatment import Points
+from IMTreatment import Points, Profile
 import IMTreatment.plotlib as pplt
 
 
@@ -68,10 +68,20 @@ class DropEdges(Points):
         ys1 = ys[0:ind_cut]
         xs2 = xs[ind_cut::]
         ys2 = ys[ind_cut::]
-        de1 = Points(list(zip(xs1, ys1)), unit_x=self.unit_x,
-                     unit_y=self.unit_y)
-        de2 = Points(list(zip(xs2, ys2)), unit_x=self.unit_x,
-                     unit_y=self.unit_y)
+        # ensure only one y per x
+        new_y1 = np.sort(list(set(ys1)))
+        new_x1 = [np.mean(xs1[y == ys1]) for y in new_y1]
+        new_y2 = np.sort(list(set(ys2)))
+        new_x2 = [np.mean(xs2[y == ys2]) for y in new_y2]
+        # smooth to avoid stepping
+        de1 = Profile(new_y1, new_x1,
+                      unit_x=self.unit_y,
+                      unit_y=self.unit_x)
+        de2 = Profile(new_y2, new_x2,
+                      unit_x=self.unit_y,
+                      unit_y=self.unit_x)
+        de1.smooth(tos='gaussian', size=1, inplace=True)
+        de2.smooth(tos='gaussian', size=1, inplace=True)
         return de1, de2
 
     def detect_triple_points(self, verbose=False):
@@ -90,7 +100,7 @@ class DropEdges(Points):
             plt.figure()
         for i in [0, 1]:
             fit = self.edges_fits[i]
-            y = self.drop_edges[i].xy[:, 1]
+            y = self.drop_edges[i].x
             dy = (y[-1] - y[0])/100
             y = np.linspace(y[0], y[-1], 100)
             # curvature function (and its derivative)
@@ -146,21 +156,17 @@ class DropEdges(Points):
         """
         # Prepare drop edge for interpolation
         # TODO: Find a more efficient fitting
-        de1, de2 = self._separate_drop_edges()
-        x1 = de1.xy[:, 0]
-        y1 = de1.xy[:, 1]
-        new_y1 = np.sort(list(set(y1)))
-        new_x1 = [np.mean(x1[y == y1]) for y in new_y1]
-        x2 = de2.xy[:, 0]
-        y2 = de2.xy[:, 1]
-        new_y2 = np.sort(list(set(y2)))
-        new_x2 = [np.mean(x2[y == y2]) for y in new_y2]
+        de1, de2 = self.drop_edges
+        x1 = de1.y
+        y1 = de1.x
+        x2 = de2.y
+        y2 = de2.x
         # spline interpolation
-        s = s or 20/200*(np.max([y1.max(), y2.max()]) -
-                          np.min([y1.min(), y2.min()]))
+        s = s or 0.001*(np.max([y1.max(), y2.max()]) -
+                        np.min([y1.min(), y2.min()]))
         try:
-            spline1 = spint.UnivariateSpline(new_y1, new_x1, k=k, s=s)
-            spline2 = spint.UnivariateSpline(new_y2, new_x2, k=k, s=s)
+            spline1 = spint.UnivariateSpline(y1, x1, k=k, s=s)
+            spline2 = spint.UnivariateSpline(y2, x2, k=k, s=s)
         except:
             spline1 = lambda x: np.nan
             spline2 = lambda x: np.nan
@@ -168,14 +174,14 @@ class DropEdges(Points):
         self.edges_fits = [spline1, spline2]
         # Verbose if necessary
         if verbose:
-            tmp_y1 = np.linspace(new_y1.min(), new_y1.max(), 1000)
-            tmp_y2 = np.linspace(new_y2.min(), new_y2.max(), 1000)
+            tmp_y1 = np.linspace(y1.min(), y1.max(), 1000)
+            tmp_y2 = np.linspace(y2.min(), y2.max(), 1000)
             plt.figure()
-            de1.display()
-            plt.plot(new_x1, new_y1, 'xb')
+            plt.plot(de1.y, de1.x, "o")
+            plt.plot(x1, y1, 'xb')
             plt.plot(spline1(tmp_y1), tmp_y1, 'r')
-            de2.display()
-            plt.plot(new_x2, new_y2, 'xb')
+            plt.plot(de2.y, de2.x, "o")
+            plt.plot(x2, y2, 'xb')
             plt.plot(spline2(tmp_y2), tmp_y2, 'r')
             plt.axis('equal')
             plt.show()
@@ -203,8 +209,8 @@ class DropEdges(Points):
             y0 = (a*f - b*d)/num
             return np.array([x0, y0])
         # get data
-        x1 = self.drop_edges[0].xy[:, 0]
-        y1 = self.drop_edges[0].xy[:, 1]
+        x1 = self.drop_edges[0].y
+        y1 = self.drop_edges[0].x
         plt.figure()
         plt.plot(x1, y1, 'ok')
         a = fit_ellipse(x1, y1)
@@ -311,9 +317,16 @@ class DropEdges(Points):
     def display(self, *args, **kwargs):
         """
         """
-        super().display(*args, **kwargs)
+
+        # super().display(*args, **kwargs)
+        for edg in self.drop_edges:
+            plt.plot(edg.y, edg.x, color='k', marker='o')
         # Display baseline
-        self.baseline.display(color=self.colors[0])
+        x0 = np.min(self.xy[:, 0])
+        xf = np.max(self.xy[:, 0])
+        x0 -= np.abs(xf - x0)*.1
+        xf += np.abs(xf - x0)*.1
+        self.baseline.display(x0, xf, color=self.colors[0])
         # Display fits
         if self.edges_fits is not None:
             xy_inter = self._get_inters_base_fit()
@@ -482,7 +495,7 @@ class DropEdges(Points):
             x_inter, y_inter = pts[i]
             sfun = self.edges_fits[i]
             # Get gradient
-            dy = self.drop_edges[i].xy[:, 1]
+            dy = self.drop_edges[i].x
             dy = (dy[-1] - dy[0])/100
             deriv = spmisc.derivative(sfun, y_inter, dx=dy)
             theta =  np.pi*1/2 - np.arctan(deriv)

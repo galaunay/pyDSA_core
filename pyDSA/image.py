@@ -79,7 +79,12 @@ class Image(ScalarField):
         pts = plt.plot([], marker="o", ls="none", mec='w', mfc='k')[0]
         baseline = plt.plot([], ls="-", color="k")[0]
         bs = Baseline()
+
         def onclick(event):
+            # toolbar want the focus !
+            if fig.canvas.manager.toolbar._active is not None:
+                return None
+            # get the position
             xy = [event.xdata, event.ydata]
             diffs = [(xy[0] - xyi[0])**2 + (xy[1] - xyi[1])**2
                      for xyi in pos]
@@ -335,8 +340,8 @@ class Image(ScalarField):
             tmp_im.display()
             plt.title('Initial image')
         # Perform Canny detection
-        im_edges = cv2.Canny(np.array(tmp_im.values, dtype=np.uint8),
-                             threshold1, threshold2)
+        im = np.array(tmp_im.values, dtype=np.uint8)
+        im_edges = cv2.Canny(im, threshold1, threshold2)
         if verbose:
             plt.figure()
             im = Image()
@@ -362,6 +367,14 @@ class Image(ScalarField):
                     im_edges[labels == i+1] = 0
                     labels[labels == i+1] = 0
                     nmb_edge -= 1
+            if verbose:
+                plt.figure()
+                im = Image()
+                im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
+                                      im_edges, mask=tmp_im.mask,
+                                      unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
+                im.display()
+                plt.title('Removed small edges')
             # Remove if not touching the baseline
             for i in range(nmb):
                 ys = Y[labels == i+1]
@@ -377,6 +390,14 @@ class Image(ScalarField):
                     im_edges[labels == i+1] = 0
                     labels[labels == i+1] = 0
                     nmb_edge -= 1
+            if verbose:
+                plt.figure()
+                im = Image()
+                im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
+                                      im_edges, mask=tmp_im.mask,
+                                      unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
+                im.display()
+                plt.title('Removed edge not touching the baseline')
             # keep only the two exterior edges
             if nmb_edge > 2 and keep_exterior:
                 mean_xs = [np.mean(X[labels == label])
@@ -390,15 +411,16 @@ class Image(ScalarField):
                     im_edges[labels == i+1] = 0
                     labels[labels == i+1] = 0
                     nmb_edge -= 1
-        if verbose:
-            plt.figure()
-            im = Image()
-            im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
-                                  labels, mask=tmp_im.mask,
-                                  unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
-            im.display()
-            plt.title('Canny edge detection + blob selection')
-        # Get points coordinates
+            if verbose:
+                plt.figure()
+                im = Image()
+                im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
+                                      im_edges, mask=tmp_im.mask,
+                                      unit_x=tmp_im.unit_x,
+                                      unit_y=tmp_im.unit_y)
+                im.display()
+                plt.title('Removed the interior edged')
+        # Get points coordinates and weights (grad)
         xs, ys = np.where(im_edges)
         xs = [tmp_im.axe_x[x] for x in xs]
         ys = [tmp_im.axe_y[y] for y in ys]
@@ -424,8 +446,9 @@ class Image(ScalarField):
             xys = np.array(xys)
             plt.plot(xys[:, 0], xys[:, 1], ".k")
             plt.title('Initial image + edge points')
-        return DropEdges(xy=xys, unit_x=self.unit_x, unit_y=self.unit_y,
+        edge = DropEdges(xy=xys, unit_x=self.unit_x, unit_y=self.unit_y,
                          baseline=self.baseline)
+        return edge
 
     def circle_detection(self, dp=1., minDist=10, verbose=False):
         """
