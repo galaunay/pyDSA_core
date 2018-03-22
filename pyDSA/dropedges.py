@@ -481,6 +481,21 @@ class DropEdges(Points):
         else:
             return np.nan
 
+    def get_ridge_height(self):
+        """
+        Return the ridge height.
+        """
+        if self.triple_pts is None:
+            return np.nan, np.nan
+        heights = []
+        for pt in self.triple_pts:
+            x = pt[0]
+            y = pt[1]
+            y0 = self.baseline.get_baseline_fun()(x)
+            y -= y0
+            heights.append(y)
+        return heights
+
     def compute_contact_angle(self, verbose=False):
         """
         Compute the contact angles.

@@ -130,6 +130,18 @@ class TemporalDropEdges(TemporalPoints):
         triple_pts2 = np.asarray(triple_pts2)
         return triple_pts1, triple_pts2
 
+    def get_ridge_heights(self):
+        """
+        Return the ridge heights.
+        """
+        height1 = []
+        height2 = []
+        for edge in self.point_sets:
+            h1, h2 = edge.get_ridge_height()
+            height1.append(h1)
+            height2.append(h2)
+        return height1, height2
+
     def get_drop_base(self):
         """
         Return the drops base.
