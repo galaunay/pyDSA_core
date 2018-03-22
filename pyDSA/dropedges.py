@@ -96,8 +96,6 @@ class DropEdges(Points):
         if self.edges_fits is None:
             raise Exception("You should computing fitting first with 'fit()'")
         tripl_pts = []
-        if verbose:
-            plt.figure()
         for i in [0, 1]:
             fit = self.edges_fits[i]
             y = self.drop_edges[i].x
@@ -110,9 +108,24 @@ class DropEdges(Points):
                 return dxdy2/(1 + dxdy**2)**(3/2)
             def dzerofun(y):
                 return spmisc.derivative(zerofun, y, dx=dy, n=1, order=5)
+            if verbose:
+                plt.figure()
+                plt.plot(y, zerofun(y), 'o-')
+                plt.xlabel('y')
+                plt.xlabel('d^2y/dx^2')
+                plt.grid()
             # Get the root or the curvature
             try:
-                y0 = spopt.brentq(zerofun, y[0], y[-1])
+                # get last point with opposite sign
+                y0 = y[0]
+                yf = y[-1]
+                while True:
+                    if zerofun(y0)*zerofun(yf) > 0:
+                        yf -= (yf - y0)*1/5
+                    else:
+                        break
+                # get exact position
+                y0 = spopt.brentq(zerofun, y0, yf)
             except (RuntimeError, ValueError) as m:
                 if verbose:
                     warnings.warn('Cannot find a triple point here.'
@@ -129,12 +142,13 @@ class DropEdges(Points):
             # Ok, good to go
             tripl_pts.append([fit(y0), y0])
             if verbose:
+                plt.figure()
                 plt.plot(y, zerofun(y), 'o-')
                 plt.plot(y0, 0, "ok")
+                plt.xlabel('y')
+                plt.xlabel('d^2y/dx^2')
+                plt.grid()
         if verbose:
-            plt.xlabel('y')
-            plt.xlabel('d^2y/dx^2')
-            plt.grid()
             plt.show()
         self.triple_pts = tripl_pts
         return tripl_pts
