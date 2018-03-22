@@ -350,6 +350,25 @@ class Image(ScalarField):
                                   unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
             im.display()
             plt.title('Canny edge detection')
+        # remove points behind the baseline
+        fun = self.baseline.get_baseline_fun()
+        max_y = np.min([self.baseline.pt2[1], self.baseline.pt1[1]])
+        for j in range(im_edges.shape[1]):
+            y = tmp_im.axe_y[j]
+            if y > max_y:
+                continue
+            for i in range(im_edges.shape[0]):
+                x = tmp_im.axe_x[i]
+                if fun(x) > y:
+                    im_edges = 0
+        if verbose:
+            plt.figure()
+            im = Image()
+            im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
+                                  im_edges, mask=tmp_im.mask,
+                                  unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
+            im.display()
+            plt.title('Removed points under baseline')
         # Keep only the bigger edges
         labels, nmb = spim.label(im_edges, np.ones((3, 3)))
         nmb_edge = nmb
@@ -424,17 +443,7 @@ class Image(ScalarField):
         xs, ys = np.where(im_edges)
         xs = [tmp_im.axe_x[x] for x in xs]
         ys = [tmp_im.axe_y[y] for y in ys]
-        # remove points behind the baseline
-        xys = []
-        a, b = np.polyfit(self.baseline.xy[0],
-                          self.baseline.xy[1],
-                          1)
-        for x, y in zip(xs, ys):
-            if y > self.baseline.pt1[1] and y > self.baseline.pt2[1]:
-                xys.append([x, y])
-                continue
-            if y > a*x + b:
-                xys.append([x, y])
+        xys = list(zip(xs, ys))
         # Check if there is something remaining
         if len(xys) < 10:
             if verbose:
