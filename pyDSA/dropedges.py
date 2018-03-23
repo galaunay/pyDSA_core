@@ -450,9 +450,8 @@ class DropEdges(Points):
         """
         if self.edges_fits is None:
             raise Exception("You should computing fitting first with 'fit()'")
-        x1 = self.edges_fits[0](self.xy[0, 1])
-        x2 = self.edges_fits[1](self.xy[0, 1])
-        return np.sort([x1, x2])
+        pt1, pt2 = self._get_inters_base_fit()
+        return np.sort([pt1[0], pt2[0]])
 
     def get_drop_position(self):
         """
