@@ -329,7 +329,7 @@ class Image(ScalarField):
             # threshold1 = threshold2/2
             # DSA adapted method
             hist = self.get_histogram(cum=True)
-            threshold1 = hist.get_value_position(hist.max/2)
+            threshold1 = hist.get_value_position(hist.max/2)[0]
             threshold2 = np.max(hist.x)
         # remove useless part of the image
         tmp_im = self.crop(intervy=[np.min([self.baseline.pt2[1],
@@ -341,7 +341,8 @@ class Image(ScalarField):
             plt.title('Initial image')
         # Perform Canny detection
         im = np.array(tmp_im.values, dtype=np.uint8)
-        im_edges = cv2.Canny(im, threshold1, threshold2)
+        im_edges = cv2.Canny(image=im, threshold1=threshold1,
+                             threshold2=threshold2)
         if verbose:
             plt.figure()
             im = Image()
@@ -349,7 +350,8 @@ class Image(ScalarField):
                                   im_edges, mask=tmp_im.mask,
                                   unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
             im.display()
-            plt.title('Canny edge detection')
+            plt.title('Canny edge detection \nwith th1={} and th2={}'
+                      .format(threshold1, threshold2))
         # remove points behind the baseline
         fun = self.baseline.get_baseline_fun()
         max_y = np.min([self.baseline.pt2[1], self.baseline.pt1[1]])
