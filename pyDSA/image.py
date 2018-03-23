@@ -371,6 +371,17 @@ class Image(ScalarField):
                                   unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
             im.display()
             plt.title('Removed points under baseline')
+        # dilatation / erosion to ensure line continuity
+        im_edges = spim.binary_dilation(im_edges, iterations=1)
+        im_edges = spim.binary_erosion(im_edges, iterations=1)
+        if verbose:
+            plt.figure()
+            im = Image()
+            im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
+                                  im_edges, mask=tmp_im.mask,
+                                  unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
+            im.display()
+            plt.title('Dilatation / erosion step')
         # Keep only the bigger edges
         labels, nmb = spim.label(im_edges, np.ones((3, 3)))
         nmb_edge = nmb
