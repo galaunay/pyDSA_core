@@ -37,7 +37,7 @@ __status__ = "Development"
 
 
 class DropEdges(Points):
-    def __init__(self, baseline, *args, **kwargs):
+    def __init__(self, baseline, dx, dy, *args, **kwargs):
         """
         """
         super().__init__(*args, **kwargs)
@@ -45,6 +45,8 @@ class DropEdges(Points):
         self.edges_fits = None
         self.triple_pts = None
         self.baseline = baseline
+        self.dx = dx
+        self.dy = dy
         self.thetas = None
         self.thetas_triple = None
         self.colors = pplt.get_color_cycles()
@@ -176,8 +178,7 @@ class DropEdges(Points):
         x2 = de2.y
         y2 = de2.x
         # spline interpolation
-        s = s or 0.001*(np.max([y1.max(), y2.max()]) -
-                        np.min([y1.min(), y2.min()]))
+        s = s or 0.1*np.max([self.dx, self.dy])
         try:
             spline1 = spint.UnivariateSpline(y1, x1, k=k, s=s)
             spline2 = spint.UnivariateSpline(y2, x2, k=k, s=s)
