@@ -324,18 +324,18 @@ class TemporalDropEdges(TemporalPoints):
             y2s = []
             for edge in self.point_sets:
                 if edge.drop_edges[0] is None:
-                    x1s.append([np.nan])
-                    x2s.append([np.nan])
-                    y1s.append([np.nan])
-                    y2s.append([np.nan])
+                    x1s.append([np.nan]*1000)
+                    x2s.append([np.nan]*1000)
+                    y1s.append([np.nan]*1000)
+                    y2s.append([np.nan]*1000)
                 else:
                     xy_inter = edge._get_inters_base_fit()
                     y1 = np.linspace(xy_inter[0][1],
-                                    np.max(edge.xy[:, 1]),
-                                    1000)
+                                     np.max(edge.xy[:, 1]),
+                                     1000)
                     y2 = np.linspace(xy_inter[1][1],
-                                    np.max(edge.xy[:, 1]),
-                                    1000)
+                                     np.max(edge.xy[:, 1]),
+                                     1000)
                     x1 = edge.edges_fits[0](y1)
                     x2 = edge.edges_fits[1](y2)
                     x1s.append(x1)

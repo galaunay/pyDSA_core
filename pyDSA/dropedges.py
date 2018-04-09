@@ -507,7 +507,7 @@ class DropEdges(Points):
             Coordinates of the drop base.
         """
         if self.edges_fits is None:
-            raise Exception("You should computing fitting first with 'fit()'")
+            return [np.nan, np.nan]
         pt1, pt2 = self._get_inters_base_fit()
         return np.sort([pt1[0], pt2[0]])
 
