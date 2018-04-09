@@ -36,6 +36,12 @@ __email__ = "gaby.launay@tutanota.com"
 __status__ = "Development"
 
 
+def dummy_function(x):
+    try:
+        return [np.nan]*len(x)
+    except TypeError:
+        return np.nan
+
 class DropEdges(Points):
     def __init__(self, baseline, dx, dy, *args, **kwargs):
         """
@@ -226,8 +232,8 @@ class DropEdges(Points):
             spline1 = spint.UnivariateSpline(y1, x1, k=k, s=s)
             spline2 = spint.UnivariateSpline(y2, x2, k=k, s=s)
         except:
-            spline1 = lambda x: np.nan
-            spline2 = lambda x: np.nan
+            spline1 = dummy_function
+            spline2 = dummy_function
         # store
         self.edges_fits = [spline1, spline2]
         # Verbose if necessary
