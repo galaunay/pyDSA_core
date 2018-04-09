@@ -109,6 +109,8 @@ class Image(ScalarField):
                   "\nYou can remove points by clicking on it."
                   "\nClose the window when you are happy with the baseline")
         plt.show()
+        if len(pos) < 2:
+            return None
         # use linear interpolation to get baseline
         self.baseline = Baseline(pos, xmin=self.axe_x[0],
                                  xmax=self.axe_x[-1])
