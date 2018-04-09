@@ -22,6 +22,7 @@ import IMTreatment.plotlib as pplt
 from .image import Image
 from .baseline import Baseline
 from .temporaldropedges import TemporalDropEdges
+from .dropedges import DropEdges
 
 
 
@@ -121,8 +122,12 @@ class TemporalImages(TemporalScalarFields):
             pg = ProgressCounter("Detecting drop edges", "Done",
                                  len(self.fields), 'images', 5)
         for i in range(len(self.fields)):
-            pt = self.fields[i].edge_detection(threshold1=threshold1,
-                                               threshold2=threshold2)
+            try:
+                pt = self.fields[i].edge_detection(threshold1=threshold1,
+                                                   threshold2=threshold2)
+            except Exception:
+                pt = DropEdges(xy=[], unit_x=self.unit_x, unit_y=self.unit_y,
+                               baseline=self.baseline, dx=self.dx, dy=self.dy)
             pts.add_pts(pt, time=self.times[i], unit_times=self.unit_times)
             if verbose:
                 pg.print_progress()

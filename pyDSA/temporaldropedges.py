@@ -88,7 +88,10 @@ class TemporalDropEdges(TemporalPoints):
             pg = ProgressCounter("Detecting triple point positions", "Done",
                                  len(self.point_sets), 'triple points', 5)
         for edge in self.point_sets:
-            edge.detect_triple_points()
+            try:
+                edge.detect_triple_points()
+            except Exception:
+                pass
             if verbose:
                 pg.print_progress()
         if smooth is not None:
@@ -176,16 +179,14 @@ class TemporalDropEdges(TemporalPoints):
         if verbose:
             pg = ProgressCounter("Getting contact angles", "Done",
                                  len(self.point_sets), 'images', 5)
-        thetas = []
-        thetas_triple = []
         for edge in self.point_sets:
-            edge.compute_contact_angle()
-            thetas.append(edge.thetas)
-            if edge.thetas_triple is not None:
-                thetas_triple.append(edge.thetas_triple)
+            try:
+                edge.compute_contact_angle()
+            except Exception:
+                pass
             if verbose:
                 pg.print_progress()
-        if smooth:
+        if smooth is not None:
             self.smooth_contact_angle(tos='gaussian', size=smooth)
 
     def smooth_triple_points(self, tos='gaussian', size=None):
@@ -299,10 +300,16 @@ class TemporalDropEdges(TemporalPoints):
             x2s = []
             y2s = []
             for edge in self.point_sets:
-                x1s.append(edge.drop_edges[0].y)
-                x2s.append(edge.drop_edges[1].y)
-                y1s.append(edge.drop_edges[0].x)
-                y2s.append(edge.drop_edges[1].x)
+                if edge.drop_edges[0] is None:
+                    x1s.append([])
+                    x2s.append([])
+                    y1s.append([])
+                    y2s.append([])
+                else:
+                    x1s.append(edge.drop_edges[0].y)
+                    x2s.append(edge.drop_edges[1].y)
+                    y1s.append(edge.drop_edges[0].x)
+                    y2s.append(edge.drop_edges[1].x)
             if len(x1s) != length or len(x2s) != length:
                 raise Exception()
             db1 = pplt.Displayer(x1s, y1s, color='k', marker="o")
@@ -316,19 +323,25 @@ class TemporalDropEdges(TemporalPoints):
             x2s = []
             y2s = []
             for edge in self.point_sets:
-                xy_inter = edge._get_inters_base_fit()
-                y1 = np.linspace(xy_inter[0][1],
-                                 np.max(edge.xy[:, 1]),
-                                 1000)
-                y2 = np.linspace(xy_inter[1][1],
-                                 np.max(edge.xy[:, 1]),
-                                 1000)
-                x1 = edge.edges_fits[0](y1)
-                x2 = edge.edges_fits[1](y2)
-                x1s.append(x1)
-                x2s.append(x2)
-                y1s.append(y1)
-                y2s.append(y2)
+                if edge.drop_edges[0] is None:
+                    x1s.append([np.nan])
+                    x2s.append([np.nan])
+                    y1s.append([np.nan])
+                    y2s.append([np.nan])
+                else:
+                    xy_inter = edge._get_inters_base_fit()
+                    y1 = np.linspace(xy_inter[0][1],
+                                    np.max(edge.xy[:, 1]),
+                                    1000)
+                    y2 = np.linspace(xy_inter[1][1],
+                                    np.max(edge.xy[:, 1]),
+                                    1000)
+                    x1 = edge.edges_fits[0](y1)
+                    x2 = edge.edges_fits[1](y2)
+                    x1s.append(x1)
+                    x2s.append(x2)
+                    y1s.append(y1)
+                    y2s.append(y2)
             if len(x1s) != length or len(x2s) != length:
                 raise Exception()
             db1 = pplt.Displayer(x1s, y1s, color=self[0].colors[1])

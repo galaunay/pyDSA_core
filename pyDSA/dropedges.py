@@ -55,6 +55,9 @@ class DropEdges(Points):
         """
         Separate the two sides of the drop.
         """
+        # check if edges are present...
+        if len(self.xy) == 0:
+            return None, None
         ind_sort = np.argsort(self.xy[:, 0])
         xs = self.xy[:, 0][ind_sort]
         ys = self.xy[:, 1][ind_sort]
@@ -170,6 +173,9 @@ class DropEdges(Points):
             If None (default), a default value will be inferred from the data.
             If 0, spline will interpolate through all data points.
         """
+        # Chec if edges are present
+        if self.drop_edges[0] is None and self.drop_edges[1] is None:
+            return None, None
         # Prepare drop edge for interpolation
         # TODO: Find a more efficient fitting
         de1, de2 = self.drop_edges
@@ -179,6 +185,8 @@ class DropEdges(Points):
         y2 = de2.x
         # spline interpolation
         s = s or 0.1*np.max([self.dx, self.dy])
+        if verbose:
+            print("Used 's={}'".format(s))
         try:
             spline1 = spint.UnivariateSpline(y1, x1, k=k, s=s)
             spline2 = spint.UnivariateSpline(y2, x2, k=k, s=s)
@@ -373,22 +381,26 @@ class DropEdges(Points):
                          color=self.colors[4])
 
     def _get_angle_display_lines(self):
-        if self.thetas is None:
-            return [np.nan, np.nan]
         lines = []
         # contact angle with solid
-        length = (np.max(self.xy[:, 1]) - np.min(self.xy[:, 1]))/3
-        theta1 = self.thetas[0]/180*np.pi
-        theta2 = self.thetas[1]/180*np.pi
-        xy_inter = self._get_inters_base_fit()
-        y1 = xy_inter[0][1]
-        y2 = xy_inter[1][1]
-        x1 = xy_inter[0][0]
-        x2 = xy_inter[1][0]
-        lines.append([[x1, x1 + length*np.cos(theta1)],
-                      [y1, y1 + length*np.sin(theta1)]])
-        lines.append([[x2, x2 + length*np.cos(theta2)],
-                      [y2, y2 + length*np.sin(theta2)]])
+        if self.thetas is not None:
+            length = (np.max(self.xy[:, 1]) - np.min(self.xy[:, 1]))/3
+            theta1 = self.thetas[0]/180*np.pi
+            theta2 = self.thetas[1]/180*np.pi
+            xy_inter = self._get_inters_base_fit()
+            y1 = xy_inter[0][1]
+            y2 = xy_inter[1][1]
+            x1 = xy_inter[0][0]
+            x2 = xy_inter[1][0]
+            lines.append([[x1, x1 + length*np.cos(theta1)],
+                          [y1, y1 + length*np.sin(theta1)]])
+            lines.append([[x2, x2 + length*np.cos(theta2)],
+                          [y2, y2 + length*np.sin(theta2)]])
+        else:
+            lines.append([[np.nan, np.nan],
+                          [np.nan, np.nan]])
+            lines.append([[np.nan, np.nan],
+                          [np.nan, np.nan]])
         if self.triple_pts is not None:
             # contact angle with triple points
             length = (np.max(self.xy[:, 1]) - np.min(self.xy[:, 1]))/3
@@ -403,6 +415,11 @@ class DropEdges(Points):
                           [y1, y1 + length*np.sin(theta1)]])
             lines.append([[x2, x2 + length*np.cos(theta2)],
                           [y2, y2 + length*np.sin(theta2)]])
+        else:
+            lines.append([[np.nan, np.nan],
+                          [np.nan, np.nan]])
+            lines.append([[np.nan, np.nan],
+                          [np.nan, np.nan]])
         return lines
 
     def _get_inters_base_fit(self, verbose=False):
