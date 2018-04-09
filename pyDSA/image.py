@@ -356,7 +356,7 @@ class Image(ScalarField):
                       .format(threshold1, threshold2))
         # remove points behind the baseline
         fun = self.baseline.get_baseline_fun()
-        max_y = np.min([self.baseline.pt2[1], self.baseline.pt1[1]])
+        max_y = np.max([self.baseline.pt2[1], self.baseline.pt1[1]])
         for j in range(im_edges.shape[1]):
             y = tmp_im.axe_y[j]
             if y > max_y:
@@ -364,7 +364,7 @@ class Image(ScalarField):
             for i in range(im_edges.shape[0]):
                 x = tmp_im.axe_x[i]
                 if fun(x) > y:
-                    im_edges = 0
+                    im_edges[i, j] = 0
         if verbose:
             plt.figure()
             im = Image()
