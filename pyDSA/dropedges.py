@@ -166,7 +166,8 @@ class DropEdges(Points):
                 y0 = y[0]
                 yf = y[-1]
                 while True:
-                    if zerofun(y0)*zerofun(yf) > 0:
+                    if zerofun(y0)*zerofun(yf) > 0 and \
+                       abs(y0 - yf)/((y0 + yf)/2) > 0.01:
                         yf -= (yf - y0)*1/5
                     else:
                         break
