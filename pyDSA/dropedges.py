@@ -89,9 +89,16 @@ class DropEdges(Points):
         de2.smooth(tos='gaussian', size=1, inplace=True)
         return de1, de2
 
-    def detect_triple_points(self, verbose=False):
+    def detect_triple_points(self, verbose=False, use_x_minima=False):
         """
         Compute the triple points (water, oil and air interfaces) position.
+
+        Parameters
+        ==========
+        use_x_minima: boolean
+            If True, try to define the triple point as the minimal x values and
+            fall back to the curvature method if necessary.
+            (default to False).
 
         Returns
         =======
@@ -100,13 +107,40 @@ class DropEdges(Points):
         """
         if self.edges_fits is None:
             raise Exception("You should computing fitting first with 'fit()'")
-        tripl_pts = []
+        tripl_pts = [None, None]
         for i in [0, 1]:
+            #==========================================================================
+            # Try first the x minima method
+            #==========================================================================
             fit = self.edges_fits[i]
             y = self.drop_edges[i].x
-            dy = (y[-1] - y[0])/100
             y = np.linspace(y[0], y[-1], 100)
-            # curvature function (and its derivative)
+            dy = (y[-1] - y[0])/100
+            if use_x_minima:
+                def zerofun(y):
+                    return spmisc.derivative(fit, y, dx=dy, n=1, order=3)
+                y0 = y[0]
+                ind = np.where(zerofun(y0)*zerofun(y) < 0)[0]
+                if len(ind) != 0:
+                    ind = ind[0]
+                    if verbose:
+                        plt.figure()
+                        plt.plot(y, zerofun(y), 'o-')
+                        plt.xlabel('y')
+                        plt.xlabel('dy/dx')
+                        plt.axvline(y[ind - 1], ls='--', color='k')
+                        plt.axvline(y[ind], ls='--', color='k')
+                        plt.title('x-minima method')
+                        plt.grid()
+                    y0 = spopt.brentq(zerofun, y[ind-1], y[ind])
+                    tripl_pts[i] = [fit(y0), y0]
+                    continue
+                else:
+                    if verbose:
+                        print("x-minima method failed")
+            #==========================================================================
+            # Then, try the curvature method
+            #==========================================================================
             def zerofun(y):
                 dxdy = spmisc.derivative(fit, y, dx=dy, n=1, order=3)
                 dxdy2 = spmisc.derivative(fit, y, dx=dy, n=2, order=3)
@@ -118,6 +152,7 @@ class DropEdges(Points):
                 plt.plot(y, zerofun(y), 'o-')
                 plt.xlabel('y')
                 plt.xlabel('d^2y/dx^2')
+                plt.title('curvature method')
                 plt.grid()
             # Get the root or the curvature
             try:
@@ -145,7 +180,7 @@ class DropEdges(Points):
                                   ' (wrong curvature)')
                 return [None, None]
             # Ok, good to go
-            tripl_pts.append([fit(y0), y0])
+            tripl_pts[i] = [fit(y0), y0]
             if verbose:
                 plt.figure()
                 plt.plot(y, zerofun(y), 'o-')
