@@ -382,7 +382,6 @@ class DropEdges(Points):
     def display(self, *args, **kwargs):
         """
         """
-
         # super().display(*args, **kwargs)
         for edg in self.drop_edges:
             plt.plot(edg.y, edg.x, color='k', marker='o')
@@ -443,7 +442,7 @@ class DropEdges(Points):
                           [np.nan, np.nan]])
             lines.append([[np.nan, np.nan],
                           [np.nan, np.nan]])
-        if self.triple_pts is not None:
+        if self.thetas_triple is not None:
             # contact angle with triple points
             length = (np.max(self.xy[:, 1]) - np.min(self.xy[:, 1]))/3
             theta1 = self.thetas_triple[0]/180*np.pi
