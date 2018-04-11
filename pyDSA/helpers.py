@@ -61,7 +61,7 @@ def import_from_image(path, dx=1, dy=1, unit_x="", unit_y=""):
 
 
 def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
-                      frame_inds=None, incr=1, verbose=False):
+                      frame_inds=None, incr=1, dtype=np.uint8, verbose=False):
     """
     Import a images from a video file.
 
@@ -80,6 +80,10 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
     incr: integer
         Number of frame to import.
         (ex: with a value of 2, only 1/2 frames will be imported).
+    dtype: type
+        Numerical type used for the stored data.
+        Should be a type supported by numpy arrays.
+        Default to 8 bit unsigned integers (np.uint8) to optimize memory usage.
 
     Returns
     =======
@@ -115,7 +119,8 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         axe_y = np.arange(0, im.shape[1]*dy - 0.1*dy, dy)
         sf = Image()
         sf.import_from_arrays(axe_x, axe_y, im, mask=False,
-                              unit_x=unit_x, unit_y=unit_y)
+                              unit_x=unit_x, unit_y=unit_y,
+                              dtype=dtype)
         ti.add_field(sf, time=i*dt, unit_times=unit_t, copy=False)
         i += 1
         if verbose:
