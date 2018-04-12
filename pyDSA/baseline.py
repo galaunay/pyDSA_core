@@ -63,7 +63,6 @@ class Baseline(object):
         a, b = self.coefs
         # check if flat:
         if abs(a) < abs(b)*1e-10 and along_y:
-            print(f"a={a}, b={b}")
             raise Exception("baseline is flat")
         if along_y:
             def fun(y):
