@@ -44,12 +44,13 @@ def dummy_function(x):
 
 
 class DropEdges(Points):
-    def __init__(self, xy, im):
+    def __init__(self, xy, im, type):
         """
         """
         super().__init__(xy=xy,
                          unit_x=im.unit_x,
                          unit_y=im.unit_y)
+        self._type = type
         self.drop_edges = self._separate_drop_edges()
         self.edges_fits = None
         self.triple_pts = None
@@ -232,21 +233,35 @@ class DropEdges(Points):
         y2 = de2.x
         spline1 = None
         spline2 = None
-        # Don't fit if the edge doesn't touch the baseline
-        y_min_ind = np.argmin(y1)
-        y_min = y1[y_min_ind]
-        x_min = x1[y_min_ind]
-        dy_edge1 = abs(self.baseline.get_baseline_fun()(x_min) - y_min)
-        if dy_edge1 > 10*self.im_dy:
+        # Don't fit if no edge
+        if len(y1) == 0:
             spline1 = dummy_function
-        y_min_ind = np.argmin(y2)
-        y_min = y2[y_min_ind]
-        x_min = x2[y_min_ind]
-        dy_edge2 = abs(self.baseline.get_baseline_fun()(x_min) - y_min)
-        if dy_edge2 > 10*self.im_dy:
+        if len(y2) == 0:
             spline2 = dummy_function
+        # Don't fit if the edge doesn't touch the baseline
+        if spline1 is None:
+            y_min_ind = np.argmin(y1)
+            y_min = y1[y_min_ind]
+            x_min = x1[y_min_ind]
+            dy_edge1 = abs(self.baseline.get_baseline_fun()(x_min) - y_min)
+            if dy_edge1 > 10*self.im_dy:
+                spline1 = dummy_function
+        if spline2 is None:
+            y_min_ind = np.argmin(y2)
+            y_min = y2[y_min_ind]
+            x_min = x2[y_min_ind]
+            dy_edge2 = abs(self.baseline.get_baseline_fun()(x_min) - y_min)
+            if dy_edge2 > 10*self.im_dy:
+                spline2 = dummy_function
         # spline interpolation
-        s = s or 0.1*np.max([self.im_dx, self.im_dy])
+        if s is not None:
+            pass
+        elif self._type == "canny":
+            s = 0.1*np.max([self.im_dx, self.im_dy])
+        elif self._type == "contour":
+            s = 0.09*np.max([self.im_dx, self.im_dy])
+        else:
+            raise Exception("Unknown edge type")
         if verbose:
             print("Used 's={}'".format(s))
         if spline1 is None:
