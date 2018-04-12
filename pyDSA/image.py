@@ -18,6 +18,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.ndimage as spim
+import skimage.measure as skim
 import warnings
 from IMTreatment import ScalarField, Points
 import IMTreatment.plotlib as pplt
@@ -294,13 +295,13 @@ class Image(ScalarField):
         tmp_im.data = tmp_data
         return tmp_im
 
-    def edge_detection(self, threshold1=None, threshold2=None,
-                       base_max_dist=15, size_ratio=.5,
-                       nmb_edges=2,
-                       keep_exterior=True, verbose=False,
-                       debug=False):
+    def edge_detection_canny(self, threshold1=None, threshold2=None,
+                             base_max_dist=15, size_ratio=.5,
+                             nmb_edges=2, ignored_pixels=2,
+                             keep_exterior=True,
+                             verbose=False, debug=False):
         """
-        Perform edge detection.
+        Perform edge detection using canny edge detection.
 
         Parameters
         ==========
@@ -315,6 +316,11 @@ class Image(ScalarField):
             (default to 0.5).
         nmb_edges: integer
             Number of maximum expected edges (default to 2).
+        ignored_pixels: integer
+            Number of pixels ignored around the baseline
+            (default to 2).
+            Putting a small value to this allow to avoid
+            small surface defects to be taken into account.
         keep_exterior: boolean
             If True (default), only keep the exterior edges.
         """
@@ -356,16 +362,18 @@ class Image(ScalarField):
             im.display()
             plt.title('Canny edge detection \nwith th1={} and th2={}'
                       .format(threshold1, threshold2))
-        # remove points behind the baseline
+        # remove points behind the baseline (and too close to)
         fun = self.baseline.get_baseline_fun()
-        max_y = np.max([self.baseline.pt2[1], self.baseline.pt1[1]])
+        ign_dy = ignored_pixels*self.dy
+        max_y = np.max([self.baseline.pt2[1] + ign_dy,
+                        self.baseline.pt1[1] + ign_dy])
         for j in range(im_edges.shape[1]):
             y = tmp_im.axe_y[j]
             if y > max_y:
                 continue
             for i in range(im_edges.shape[0]):
                 x = tmp_im.axe_x[i]
-                if fun(x) > y:
+                if y < fun(x) + ign_dy:
                     im_edges[i, j] = 0
         if verbose:
             plt.figure()
@@ -418,6 +426,7 @@ class Image(ScalarField):
                     im_edges[labels == i+1] = 0
                     labels[labels == i+1] = 0
                     nmb_edge -= 1
+
             if verbose:
                 plt.figure()
                 im = Image()
@@ -471,7 +480,7 @@ class Image(ScalarField):
                                       unit_y=tmp_im.unit_y)
                 im.display()
                 plt.title('Removed the interior edged')
-        # Get points coordinates and weights (grad)
+        # Get points coordinates
         xs, ys = np.where(im_edges)
         xs = [tmp_im.axe_x[x] for x in xs]
         ys = [tmp_im.axe_y[y] for y in ys]
@@ -487,8 +496,77 @@ class Image(ScalarField):
             xys = np.array(xys)
             plt.plot(xys[:, 0], xys[:, 1], ".k")
             plt.title('Initial image + edge points')
-        edge = DropEdges(xy=xys, im=self)
+        edge = DropEdges(xy=xys, im=self, type="canny")
         return edge
+
+    def edge_detection_contour(self, nmb_edges=2, ignored_pixels=2,
+                               level=0.5, size_ratio=.5,
+                               verbose=False):
+        """
+        Perform edge detection using contour.
+
+        Parameters
+        ==========
+        nmb_edges: integer
+            Number of maximum expected edges (default to 2).
+        size_ratio: number
+            Minimum size of edges, regarding the bigger detected one
+            (default to 0.5).
+        level: number
+            Normalized level of the drop contour.
+            Should be between 0 (black) and 1 (white).
+            Default to 0.5.
+        ignored_pixels: integer
+            Number of pixels ignored around the baseline
+            (default to 2).
+            Putting a small value to this allow to avoid
+            small surface defects to be taken into account.
+        """
+        if self.baseline is None:
+            raise Exception('You should set the baseline first.')
+        if self.dx != self.dy:
+            warnings.warn('dx is different than dy, results can be weird...')
+        # Get level
+        level = self.min + level*(self.max - self.min)
+        # Get contour
+        contour = skim.find_contours(self.values, level)
+        # put in the right units
+        for cont in contour:
+            cont[:, 0] *= self.dx
+            cont[:, 0] += self.axe_x[0]
+            cont[:, 1] *= self.dy
+            cont[:, 1] += self.axe_y[0]
+        # Remove contours below the baseline (or too close to)
+        fun = self.baseline.get_baseline_fun()
+        ign_dy = ignored_pixels*self.dy
+        max_y = np.max([self.baseline.pt2[1] + ign_dy,
+                        self.baseline.pt1[1] + ign_dy])
+        new_contour = []
+        for cont in contour:
+            new_cont = []
+            for xy in cont:
+                if xy[1] > max_y + ign_dy:
+                    new_cont.append(xy)
+                elif xy[1] > fun(xy[0]) + ign_dy:
+                    new_cont.append(xy)
+            if len(new_cont) != 0:
+                new_contour.append(new_cont)
+        contour = new_contour
+        # Keep only the bigger edges
+        contour = sorted(contour, key=lambda x: -len(x))
+        contour = contour[0:nmb_edges]
+        threshold = len(contour[0])*size_ratio
+        contour = [cont for cont in contour if len(cont) > threshold]
+        # concatenate
+        xys = np.concatenate(contour)
+        # Check if there is something remaining
+        if len(xys) < 10:
+            raise Exception("Didn't found any drop here...")
+        # return
+        edge = DropEdges(xy=xys, im=self, type="contour")
+        return edge
+
+    edge_detection = edge_detection_canny
 
     def circle_detection(self, dp=1., minDist=10, verbose=False):
         """

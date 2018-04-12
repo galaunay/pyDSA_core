@@ -96,10 +96,11 @@ class TemporalImages(TemporalScalarFields):
         else:
             pass
 
-    def edge_detection(self, threshold1=None, threshold2=None,
-                       base_max_dist=15, size_ratio=.5,
-                       nmb_edges=2, keep_exterior=True,
-                       verbose=False):
+    def edge_detection_canny(self, threshold1=None, threshold2=None,
+                             base_max_dist=15, size_ratio=.5,
+                             ignored_pixels=2, nmb_edges=2,
+                             keep_exterior=True,
+                             verbose=False):
         """
         Perform edge detection.
 
@@ -126,13 +127,55 @@ class TemporalImages(TemporalScalarFields):
                                  len(self.fields), 'images', 5)
         for i in range(len(self.fields)):
             try:
-                pt = self.fields[i].edge_detection(threshold1=threshold1,
-                                                   threshold2=threshold2,
-                                                   nmb_edges=nmb_edges)
+                pt = self.fields[i].edge_detection_canny(threshold1=threshold1,
+                                                         threshold2=threshold2,
+                                                         nmb_edges=nmb_edges)
             except Exception:
-                pt = DropEdges(xy=[], unit_x=self.unit_x, unit_y=self.unit_y,
-                               baseline=self.baseline, dx=self.dx, dy=self.dy)
+                pt = DropEdges(xy=[], im=self)
             pts.add_pts(pt, time=self.times[i], unit_times=self.unit_times)
             if verbose:
                 pg.print_progress()
         return pts
+
+    def edge_detection_contour(self, size_ratio=.5, nmb_edges=2,
+                               level=0.5, ignored_pixels=2,
+                               verbose=False):
+        """
+        Perform edge detection.
+
+        Parameters
+        ==========
+        nmb_edges: integer
+            Number of maximum expected edges (default to 2).
+        level: number
+            Normalized level of the drop contour.
+            Should be between 0 (black) and 1 (white).
+            Default to 0.5.
+        size_ratio: number
+            Minimum size of edges, regarding the bigger detected one
+            (default to 0.5).
+        ignored_pixels: integer
+            Number of pixels ignored around the baseline
+            (default to 2).
+            Putting a small value to this allow to avoid
+            small surface defects to be taken into account.
+        """
+        pts = TemporalDropEdges()
+        pts.baseline = self.baseline
+        if verbose:
+            pg = ProgressCounter("Detecting drop edges", "Done",
+                                 len(self.fields), 'images', 5)
+        for i in range(len(self.fields)):
+            try:
+                pt = self.fields[i].edge_detection_contour(nmb_edges=nmb_edges,
+                                                           level=level,
+                                                           ignored_pixels=ignored_pixels,
+                                                           size_ratio=size_ratio)
+            except Exception:
+                pt = DropEdges(xy=[], im=self)
+            pts.add_pts(pt, time=self.times[i], unit_times=self.unit_times)
+            if verbose:
+                pg.print_progress()
+        return pts
+
+    edge_detection = edge_detection_canny
