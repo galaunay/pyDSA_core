@@ -296,7 +296,7 @@ class Image(ScalarField):
 
     def edge_detection(self, threshold1=None, threshold2=None,
                        base_max_dist=15, size_ratio=.5,
-                       nmb_edge=2,
+                       nmb_edges=2,
                        keep_exterior=True, verbose=False,
                        debug=False):
         """
@@ -313,6 +313,8 @@ class Image(ScalarField):
         size_ratio: number
             Minimum size of edges, regarding the bigger detected one
             (default to 0.5).
+        nmb_edges: integer
+            Number of maximum expected edges (default to 2).
         keep_exterior: boolean
             If True (default), only keep the exterior edges.
         """
@@ -389,15 +391,30 @@ class Image(ScalarField):
         nmb_edge = nmb
         X, Y = np.meshgrid(tmp_im.axe_x, tmp_im.axe_y, indexing="ij")
         dy = self.axe_y[1] - self.axe_y[0]
-        if np.max(labels) > 1:
+        # Let only the maximum allowed number of edges
+        if np.max(labels) > nmb_edges:
+            sizes = [np.sum(labels == label)
+                     for label in np.arange(1, nmb + 1)]
+            indsort = np.argsort(sizes)
+            for ind in indsort[:-nmb_edges]:
+                im_edges[ind + 1 == labels] = 0
+            nmb_edge = nmb_edges
+            if verbose:
+                plt.figure()
+                im = Image()
+                im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
+                                      im_edges, mask=tmp_im.mask,
+                                      unit_x=tmp_im.unit_x,
+                                      unit_y=tmp_im.unit_y)
+                im.display()
+                plt.title('Removed small edges because too numerous')
+        if nmb_edge > 1:
             # Remove small patches
             sizes = [np.sum(labels == label)
                      for label in np.arange(1, nmb + 1)]
             crit_size = np.sort(sizes)[-1]*size_ratio
             for i, size in enumerate(sizes):
                 if size < crit_size:
-                    if debug:
-                        print(f"Label {i+1} removed because too small")
                     im_edges[labels == i+1] = 0
                     labels[labels == i+1] = 0
                     nmb_edge -= 1
@@ -470,8 +487,7 @@ class Image(ScalarField):
             xys = np.array(xys)
             plt.plot(xys[:, 0], xys[:, 1], ".k")
             plt.title('Initial image + edge points')
-        edge = DropEdges(xy=xys, unit_x=self.unit_x, unit_y=self.unit_y,
-                         baseline=self.baseline, dx=self.dx, dy=self.dy)
+        edge = DropEdges(xy=xys, im=self)
         return edge
 
     def circle_detection(self, dp=1., minDist=10, verbose=False):

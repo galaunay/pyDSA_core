@@ -98,7 +98,8 @@ class TemporalImages(TemporalScalarFields):
 
     def edge_detection(self, threshold1=None, threshold2=None,
                        base_max_dist=15, size_ratio=.5,
-                       keep_exterior=True, verbose=False):
+                       nmb_edges=2, keep_exterior=True,
+                       verbose=False):
         """
         Perform edge detection.
 
@@ -110,6 +111,8 @@ class TemporalImages(TemporalScalarFields):
         base_max_dist: integers
             Maximal distance (in pixel) between the baseline and
             the beginning of the drop edge (default to 15).
+        nmb_edges: integer
+            Number of maximum expected edges (default to 2).
         size_ratio: number
             Minimum size of edges, regarding the bigger detected one
             (default to 0.5).
@@ -124,7 +127,8 @@ class TemporalImages(TemporalScalarFields):
         for i in range(len(self.fields)):
             try:
                 pt = self.fields[i].edge_detection(threshold1=threshold1,
-                                                   threshold2=threshold2)
+                                                   threshold2=threshold2,
+                                                   nmb_edges=nmb_edges)
             except Exception:
                 pt = DropEdges(xy=[], unit_x=self.unit_x, unit_y=self.unit_y,
                                baseline=self.baseline, dx=self.dx, dy=self.dy)
