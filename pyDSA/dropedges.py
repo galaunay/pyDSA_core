@@ -424,6 +424,7 @@ class DropEdges(Points):
         # super().display(*args, **kwargs)
         for edg in self.drop_edges:
             plt.plot(edg.y, edg.x, color='k', marker='o')
+        plt.axis('equal')
         # Display baseline
         x0 = np.min(self.xy[:, 0])
         xf = np.max(self.xy[:, 0])
