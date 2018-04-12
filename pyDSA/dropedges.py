@@ -42,19 +42,24 @@ def dummy_function(x):
     except TypeError:
         return np.nan
 
+
 class DropEdges(Points):
-    def __init__(self, baseline, dx, dy, *args, **kwargs):
+    def __init__(self, xy, im):
         """
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(xy=xy,
+                         unit_x=im.unit_x,
+                         unit_y=im.unit_y)
         self.drop_edges = self._separate_drop_edges()
         self.edges_fits = None
         self.triple_pts = None
-        self.baseline = baseline
-        self.dx = dx
-        self.dy = dy
+        self.baseline = im.baseline
         self.thetas = None
         self.thetas_triple = None
+        self.im_axe_x = im.axe_x
+        self.im_axe_y = im.axe_y
+        self.im_dx = im.dx
+        self.im_dy = im.dy
         self.colors = pplt.get_color_cycles()
 
     def _separate_drop_edges(self):
@@ -225,16 +230,35 @@ class DropEdges(Points):
         y1 = de1.x
         x2 = de2.y
         y2 = de2.x
+        spline1 = None
+        spline2 = None
+        # Don't fit if the edge doesn't touch the baseline
+        y_min_ind = np.argmin(y1)
+        y_min = y1[y_min_ind]
+        x_min = x1[y_min_ind]
+        dy_edge1 = abs(self.baseline.get_baseline_fun()(x_min) - y_min)
+        if dy_edge1 > 10*self.im_dy:
+            spline1 = dummy_function
+        y_min_ind = np.argmin(y2)
+        y_min = y2[y_min_ind]
+        x_min = x2[y_min_ind]
+        dy_edge2 = abs(self.baseline.get_baseline_fun()(x_min) - y_min)
+        if dy_edge2 > 10*self.im_dy:
+            spline2 = dummy_function
         # spline interpolation
-        s = s or 0.1*np.max([self.dx, self.dy])
+        s = s or 0.1*np.max([self.im_dx, self.im_dy])
         if verbose:
             print("Used 's={}'".format(s))
-        try:
-            spline1 = spint.UnivariateSpline(y1, x1, k=k, s=s)
-            spline2 = spint.UnivariateSpline(y2, x2, k=k, s=s)
-        except:
-            spline1 = dummy_function
-            spline2 = dummy_function
+        if spline1 is None:
+            try:
+                spline1 = spint.UnivariateSpline(y1, x1, k=k, s=s)
+            except:
+                spline1 = dummy_function
+        if spline2 is None:
+            try:
+                spline2 = spint.UnivariateSpline(y2, x2, k=k, s=s)
+            except:
+                spline2 = dummy_function
         # store
         self.edges_fits = [spline1, spline2]
         # Verbose if necessary
@@ -472,7 +496,10 @@ class DropEdges(Points):
         xys = []
         for i in range(2):
             sfun = self.edges_fits[i]
-            if flat:
+            if np.isnan(sfun(0)):
+                x_inter = np.nan
+                y_inter = np.nan
+            elif flat:
                 y_inter = self.baseline.pt1[1]
                 x_inter = sfun(y_inter)
             else:
