@@ -131,7 +131,7 @@ class TemporalImages(TemporalScalarFields):
                                                          threshold2=threshold2,
                                                          nmb_edges=nmb_edges)
             except Exception:
-                pt = DropEdges(xy=[], im=self)
+                pt = DropEdges(xy=[], im=self, type='canny')
             pts.add_pts(pt, time=self.times[i], unit_times=self.unit_times)
             if verbose:
                 pg.print_progress()
@@ -172,7 +172,7 @@ class TemporalImages(TemporalScalarFields):
                                                            ignored_pixels=ignored_pixels,
                                                            size_ratio=size_ratio)
             except Exception:
-                pt = DropEdges(xy=[], im=self)
+                pt = DropEdges(xy=[], im=self, type='contour')
             pts.add_pts(pt, time=self.times[i], unit_times=self.unit_times)
             if verbose:
                 pg.print_progress()
