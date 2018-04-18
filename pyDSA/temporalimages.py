@@ -96,6 +96,22 @@ class TemporalImages(TemporalScalarFields):
         else:
             pass
 
+    def scale_interactive(self, indice=None):
+        """
+        Scale the Images interactively.
+
+        Parameters
+        ==========
+        indice: integer
+            Frame number on which do the scaling.
+            (default to the mid one).
+        """
+        indice = indice or int(len(self.fields)/2)
+        scale, unit = self.fields[indice].scale_interactive()
+        self.scale(scalex=scale, scaley=scale, inplace=True)
+        self.unit_x = unit
+        self.unit_y = unit
+
     def edge_detection_canny(self, threshold1=None, threshold2=None,
                              base_max_dist=15, size_ratio=.5,
                              ignored_pixels=2, nmb_edges=2,

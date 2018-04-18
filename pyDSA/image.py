@@ -15,12 +15,14 @@
 # GNU General Public License for more details.
 
 import cv2
+import unum
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.ndimage as spim
 import skimage.measure as skim
 import warnings
 from IMTreatment import ScalarField, Points
+from IMTreatment.utils import make_unit
 import IMTreatment.plotlib as pplt
 from .dropedges import DropEdges
 from .baseline import Baseline
@@ -116,6 +118,73 @@ class Image(ScalarField):
         self.baseline = Baseline(pos, xmin=self.axe_x[0],
                                  xmax=self.axe_x[-1])
         return self.baseline
+
+    def scale_interactive(self):
+        """
+        Scale the Image interactively.
+        """
+        pos = []
+        eps = .01*(self.axe_x[-1] - self.axe_x[0])
+        # get cursor position on click
+        fig = plt.figure()
+        pts = plt.plot([], marker="o", ls="none", mec='w', mfc='k')[0]
+
+        def onclick(event):
+            # toolbar want the focus !
+            if fig.canvas.manager.toolbar._active is not None:
+                return None
+            # get the position
+            xy = [event.xdata, event.ydata]
+            diffs = [(xy[0] - xyi[0])**2 + (xy[1] - xyi[1])**2
+                     for xyi in pos]
+            # check if close to an existing point
+            closes = diffs < eps**2
+            if np.any(closes):
+                for i in np.arange(len(pos) - 1, -1, -1):
+                    if closes[i]:
+                        del pos[i]
+            elif len(pos) >= 2:
+                pass
+            else:
+                pos.append(xy)
+            # redraw
+            if len(pos) != 0:
+                pts.set_data(np.array(pos).transpose())
+            else:
+                pts.set_data(np.empty((2, 2)))
+            fig.canvas.draw()
+        # Getting actual length
+        fig.canvas.mpl_connect('button_press_event', onclick)
+        self.display(cmap=plt.cm.binary_r)
+        plt.title("Choose two points.")
+        plt.show()
+        actual_width = ((pos[0][0] - pos[1][0])**2 +
+                        (pos[0][1] - pos[1][1])**2)**.5
+        # Getting wanted length and unity
+        while True:
+            wanted_width = input("Real length: ")
+            try:
+                wanted_width = float(wanted_width)
+                break
+            except:
+                print("Invalid length ({})".format(wanted_width))
+        while True:
+            wanted_unity = input("Unity: ")
+            try:
+                wanted_unity = make_unit(wanted_unity)
+                if isinstance(wanted_unity, unum.Unum):
+                    break
+                else:
+                    print("Invalid unity ({})".format(wanted_unity))
+            except NameError:
+                print("Invalid unity ({})".format(wanted_unity))
+        # Compute and set the scale
+        scale = wanted_width/actual_width
+        self.scale(scalex=scale, scaley=scale, inplace=True)
+        self.unit_x = wanted_unity
+        self.unit_y = wanted_unity
+        return scale, wanted_unity
+
 
     def binarize(self, method='adaptative', threshold=None, inplace=False):
         """
