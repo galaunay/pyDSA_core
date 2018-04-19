@@ -111,7 +111,7 @@ class Image(ScalarField):
         plt.title("Put some points on the baseline."
                   "\nYou can remove points by clicking on it."
                   "\nClose the window when you are happy with the baseline")
-        plt.show()
+        plt.show(block=True)
         if len(pos) < 2:
             return None
         # use linear interpolation to get baseline
@@ -157,7 +157,7 @@ class Image(ScalarField):
         fig.canvas.mpl_connect('button_press_event', onclick)
         self.display(cmap=plt.cm.binary_r)
         plt.title("Choose two points.")
-        plt.show()
+        plt.show(block=True)
         actual_width = ((pos[0][0] - pos[1][0])**2 +
                         (pos[0][1] - pos[1][1])**2)**.5
         # Getting wanted length and unity

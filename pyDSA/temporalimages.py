@@ -136,6 +136,7 @@ class TemporalImages(TemporalScalarFields):
         keep_exterior: boolean
             If True (default), only keep the exterior edges.
         """
+        all_edge_empty = True
         pts = TemporalDropEdges()
         pts.baseline = self.baseline
         if verbose:
@@ -146,11 +147,16 @@ class TemporalImages(TemporalScalarFields):
                 pt = self.fields[i].edge_detection_canny(threshold1=threshold1,
                                                          threshold2=threshold2,
                                                          nmb_edges=nmb_edges)
+                all_edge_empty = False
             except Exception:
                 pt = DropEdges(xy=[], im=self, type='canny')
             pts.add_pts(pt, time=self.times[i], unit_times=self.unit_times)
             if verbose:
                 pg.print_progress()
+        # check if edges has been detected
+        if all_edge_empty:
+            raise Exception('No edges could be detected. You should'
+                            ' check the baseline position.')
         return pts
 
     def edge_detection_contour(self, size_ratio=.5, nmb_edges=2,
