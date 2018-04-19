@@ -206,7 +206,7 @@ class DropEdges(Points):
         self.triple_pts = tripl_pts
         return tripl_pts
 
-    def fit(self, k=5, s=None, verbose=False):
+    def fit(self, k=5, s=.75, verbose=False):
         """
         Compute a spline fitting for the droplet shape.
 
@@ -215,11 +215,9 @@ class DropEdges(Points):
         k : int, optional
             Degree of the smoothing spline.  Must be <= 5.
             Default is k=5.
-        s : float or None, optional
-            Positive smoothing factor used to choose the number of knots.
-            Smaller number means better fitted curves.
-            If None (default), a default value will be inferred from the data.
-            If 0, spline will interpolate through all data points.
+        s : float, optional
+            Smoothing factor between 0 (not smoothed) and 1 (very smoothed)
+            Default to 0.75
         """
         # Chec if edges are present
         if self.drop_edges[0] is None and self.drop_edges[1] is None:
@@ -254,24 +252,27 @@ class DropEdges(Points):
             if dy_edge2 > 10*self.im_dy:
                 spline2 = dummy_function
         # spline interpolation
-        if s is not None:
-            pass
-        elif self._type == "canny":
-            s = 0.1*np.max([self.im_dx, self.im_dy])
-        elif self._type == "contour":
-            s = 0.09*np.max([self.im_dx, self.im_dy])
-        else:
-            raise Exception("Unknown edge type")
+        max_smooth_carac_len = np.max([self.im_dx*len(self.im_axe_x),
+                                       self.im_dy*len(self.im_axe_y)])
+        min_smooth_carac_len = np.max([self.im_dx, self.im_dy])/6
+        max_smooth_carac_len = min_smooth_carac_len*2
+        min_smooth_fact = np.max([len(x1), len(x2)])*min_smooth_carac_len**2
+        max_smooth_fact = np.max([len(x1), len(x2)])*max_smooth_carac_len**2
+        s = max_smooth_fact - (max_smooth_fact - min_smooth_fact)*s
         if verbose:
             print("Used 's={}'".format(s))
+        w = [1]*len(x1)
+        w = None
         if spline1 is None:
             try:
-                spline1 = spint.UnivariateSpline(y1, x1, k=k, s=s)
+                spline1 = spint.UnivariateSpline(y1, x1, k=k, s=s, w=w)
             except:
                 spline1 = dummy_function
+        w = [1]*len(x2)
+        w = None
         if spline2 is None:
             try:
-                spline2 = spint.UnivariateSpline(y2, x2, k=k, s=s)
+                spline2 = spint.UnivariateSpline(y2, x2, k=k, s=s, w=w)
             except:
                 spline2 = dummy_function
         # store
