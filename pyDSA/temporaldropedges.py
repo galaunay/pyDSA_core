@@ -70,7 +70,8 @@ class TemporalDropEdges(TemporalPoints):
             if verbose:
                 pg.print_progress()
 
-    def detect_triple_points(self, smooth=None, verbose=False):
+    def detect_triple_points(self, smooth=None, use_x_minima=False,
+                             verbose=False):
         """
         Compute the triple points (water, oil and air interfaces) positions.
 
@@ -78,6 +79,10 @@ class TemporalDropEdges(TemporalPoints):
         ==========
         smooth: number
            Smoothing factor for the triple point position.
+        use_x_minima: boolean
+            If True, try to define the triple point as the minimal x values and
+            fall back to the curvature method if necessary.
+            (default to False).
 
         Returns
         =======
