@@ -20,6 +20,7 @@ import numpy as np
 from .image import Image
 from .temporalimages import TemporalImages
 from IMTreatment.utils import ProgressCounter
+import IMTreatment.file_operation as imtio
 import warnings
 
 """  """
@@ -92,6 +93,8 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         Images
     """
     frame_inds = frame_inds or [0, np.inf]
+    # Check if file exist
+    imtio.check_path(path)
     # open video
     vid = cv2.VideoCapture()
     vid.open(path)
