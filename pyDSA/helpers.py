@@ -106,6 +106,7 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
     if verbose:
         nmb_frames = frame_inds[1] - frame_inds[0]
         pg = ProgressCounter("Decoding video", "Done", nmb_frames, 'frames', 5)
+    t = 0
     while True:
         if i < frame_inds[0] or i % incr != 0:
             i += 1
@@ -125,7 +126,8 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         sf.import_from_arrays(axe_x, axe_y, im, mask=False,
                               unit_x=unit_x, unit_y=unit_y,
                               dtype=dtype)
-        ti.add_field(sf, time=i*dt, unit_times=unit_t, copy=False)
+        ti.add_field(sf, time=t, unit_times=unit_t, copy=False)
+        t += dt
         i += 1
         if verbose:
             pg.print_progress()
