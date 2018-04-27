@@ -94,7 +94,7 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
     # open video
     vid = cv2.VideoCapture()
     vid.open(path)
-    ti = TemporalImages()
+    ti = TemporalImages(filepath=path)
     i = 0
     if frame_inds is None:
         frame_inds = [0, int(vid.get(cv2.CAP_PROP_FRAME_COUNT))]
@@ -127,6 +127,12 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
             pg.print_progress()
         if i >= frame_inds[1]:
             break
+    # Try to import infos if the infofile exist
+    if os.path.isfile(ti.infofile_path):
+        ti._import_infos()
+    # cache axis
+    ti._dump_infos()
+    #
     if verbose and frame_inds[1] == np.inf:
         pg._print_end()
     if len(ti.fields) == 0:

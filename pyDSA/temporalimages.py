@@ -15,15 +15,16 @@
 # GNU General Public License for more details.
 
 import numpy as np
-import matplotlib.pyplot as plt
-from IMTreatment import TemporalScalarFields, TemporalPoints
+import json
+import os
+import warnings
+from IMTreatment import TemporalScalarFields
 from IMTreatment.utils import ProgressCounter
 import IMTreatment.plotlib as pplt
 from .image import Image
 from .baseline import Baseline
 from .temporaldropedges import TemporalDropEdges
 from .dropedges import DropEdges
-
 
 
 """  """
@@ -38,10 +39,26 @@ __status__ = "Development"
 
 
 class TemporalImages(TemporalScalarFields):
-    def __init__(self):
+    def __init__(self, filepath=None, cache_infos=True):
         super().__init__()
         self.baseline = None
         self.field_type = Image
+        if filepath is not None:
+            self.filepath = os.path.abspath(filepath)
+            self.infofile_path = os.path.splitext(self.filepath)[0] + ".info"
+            self.cache_infos = cache_infos
+        else:
+            self.filepath = None
+            self.infofile_path = None
+            self.cache_infos = False
+
+    def add_field(self, field, time=0, unit_times="", copy=True):
+        super().add_field(field=field, time=time, unit_times=unit_times,
+                          copy=copy)
+        if self.baseline:
+            self.fields[-1].baseline = self.baseline
+        else:
+            self.baseline = self.fields[-1].baseline
 
     def set_baseline(self, pt1, pt2):
         """
@@ -49,7 +66,11 @@ class TemporalImages(TemporalScalarFields):
         """
         for i in range(len(self.fields)):
             self.fields[i].set_baseline(pt1=pt1, pt2=pt2)
-        self.baseline = self.fields[0].baseline
+        self.baseline = Baseline([pt1, pt2],
+                                 xmax=self.axe_x[-1],
+                                 xmin=self.axe_x[0])
+        if self.cache_infos:
+            self._dump_infos()
 
     def set_evolving_baseline(self, baseline1, baseline2):
         """
@@ -66,6 +87,8 @@ class TemporalImages(TemporalScalarFields):
             pt2 = base1_pt2*(1 - ratio) + base2_pt2*ratio
             self.fields[i].set_baseline(pt1, pt2)
         self.baseline = "evolving"
+        if self.cache_infos:
+            self._dump_infos()
 
     def choose_baseline(self, ind_image=0):
         """
@@ -75,8 +98,13 @@ class TemporalImages(TemporalScalarFields):
         and close the figure when done.
         """
         self.baseline = self.fields[ind_image].choose_baseline()
+        # No baseline set
+        if self.baseline is None:
+            return None
         for i in range(len(self.fields)):
             self.fields[i].baseline = self.baseline
+        if self.cache_infos:
+            self._dump_infos()
         return self.baseline
 
     def display(self, *args, **kwargs):
@@ -111,6 +139,58 @@ class TemporalImages(TemporalScalarFields):
         self.scale(scalex=scale, scaley=scale, inplace=True)
         self.unit_x = unit
         self.unit_y = unit
+        if self.cache_infos:
+            self._dump_infos()
+
+    def _dump_infos(self):
+        # Gather old information if necessary
+        if os.path.isfile(self.infofile_path):
+            with open(self.infofile_path, 'r') as f:
+                dic = json.load(f)
+        else:
+            dic = {}
+        # Update with new values
+        unit_x = self.unit_x.strUnit()[1:-1]
+        unit_y = self.unit_y.strUnit()[1:-1]
+        if self.baseline != "evolving" and self.baseline is not None:
+            pt1 = self.baseline.pt1
+            pt2 = self.baseline.pt2
+        else:
+            pt1 = None
+            pt2 = None
+        new_dic = {"dx": self.dx,
+                   "dy": self.dy,
+                   "baseline_pt1": pt1,
+                   "baseline_pt2": pt2,
+                   "unit_x": unit_x,
+                   "unit_y": unit_y}
+        dic.update(new_dic)
+        # Write back infos
+        with open(self.infofile_path, 'w+') as f:
+            json.dump(dic, f)
+
+    def _import_infos(self):
+        if not os.path.isfile(self.infofile_path):
+            return None
+        try:
+            with open(self.infofile_path, 'r') as f:
+                dic = json.load(f)
+        except:
+            warnings.warn('Corrupted infofile, reinitializing...')
+            os.remove(self.infofile_path)
+            return None
+        # Update with infos
+        dx = dic['dx']
+        dy = dic['dy']
+        self.scale(scalex=dx/(self.axe_x[1] - self.axe_x[0]),
+                   scaley=dy/(self.axe_y[1] - self.axe_y[0]),
+                   inplace=True)
+        self.unit_x = dic['unit_x']
+        self.unit_y = dic['unit_y']
+        base1 = dic['baseline_pt1']
+        base2 = dic['baseline_pt2']
+        if base1 is not None and base2 is not None:
+            self.set_baseline(base1, base2)
 
     def edge_detection_canny(self, threshold1=None, threshold2=None,
                              base_max_dist=15, size_ratio=.5,
