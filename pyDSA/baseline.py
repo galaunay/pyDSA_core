@@ -34,6 +34,10 @@ class Baseline(object):
         """
 
         """
+        self.pt1 = None
+        self.pt2 = None
+        self.xy = []
+        self.coefs = []
         if pts is not None:
             self.from_points(pts=pts, xmin=xmin, xmax=xmax)
 
@@ -71,6 +75,14 @@ class Baseline(object):
             def fun(x):
                 return a*x + b
         return fun
+
+    def scale(self, scalex=1, scaley=1):
+        """
+        Scale the baseline.
+        """
+        pt1 = self.pt1*scalex
+        pt2 = self.pt2*scalex
+        self.get_baseline_from_points([pt1, pt2])
 
     def display(self, x0=None, xf=None, *args, **kwargs):
         if x0 is None:
