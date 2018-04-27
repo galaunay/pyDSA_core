@@ -15,6 +15,7 @@
 # GNU General Public License for more details.
 
 import cv2
+import os
 import numpy as np
 from .image import Image
 from .temporalimages import TemporalImages
@@ -54,7 +55,7 @@ def import_from_image(path, dx=1, dy=1, unit_x="", unit_y=""):
     data = data[:, ::-1]
     axe_x = np.arange(0, data.shape[0]*dx, dx)
     axe_y = np.arange(0, data.shape[1]*dy, dy)
-    img = Image()
+    img = Image(filepath=path)
     img.import_from_arrays(axe_x, axe_y, data,
                            unit_x=unit_x, unit_y=unit_y)
     return img

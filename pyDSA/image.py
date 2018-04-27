@@ -40,13 +40,14 @@ __status__ = "Development"
 
 
 class Image(ScalarField):
-    def __init__(self):
+    def __init__(self, filepath=None):
         """
         Class representing a greyscale image.
         """
         super().__init__()
         self.baseline = None
         self.colors = pplt.get_color_cycles()
+        self.filepath = filepath
 
     def display(self, *args, **kwargs):
         super().display(*args, **kwargs)
