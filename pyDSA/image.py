@@ -113,7 +113,10 @@ class Image(ScalarField):
                   "\nClose the window when you are happy with the baseline")
         plt.show(block=True)
         if len(pos) < 2:
-            return None
+            if self.baseline is not None:
+                return self.baseline
+            else:
+                return None
         # use linear interpolation to get baseline
         self.baseline = Baseline(pos, xmin=self.axe_x[0],
                                  xmax=self.axe_x[-1])
@@ -156,7 +159,8 @@ class Image(ScalarField):
         # Getting actual length
         fig.canvas.mpl_connect('button_press_event', onclick)
         self.display(cmap=plt.cm.binary_r)
-        plt.title("Choose two points.")
+        plt.title("Scaling step:\n"
+                  "Choose two points separated by a known distance.")
         plt.show(block=True)
         actual_width = ((pos[0][0] - pos[1][0])**2 +
                         (pos[0][1] - pos[1][1])**2)**.5
