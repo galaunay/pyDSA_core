@@ -142,6 +142,32 @@ class TemporalImages(TemporalScalarFields):
         if self.cache_infos:
             self._dump_infos()
 
+    def scale(self, scalex=None, scaley=None, scalev=None, scalet=None,
+              inplace=False):
+        """
+        Scale the Fields.
+
+        Parameters
+        ----------
+        scalex, scaley, scalev : numbers or Unum objects
+            Scale for the axis and the values.
+        inplace : boolean
+            .
+        """
+        if inplace:
+            tmp_f = self
+        else:
+            tmp_f = self.copy()
+        # scale the scalarfields
+        super(TemporalImages, tmp_f).scale(scalex=scalex, scaley=scaley,
+                                           scalev=scalev, scalet=scalet,
+                                           inplace=True)
+        # scale baseline
+        if self.baseline is not None:
+            self.baseline.scale(scalex=scalex, scaley=scaley)
+        #
+        return tmp_f
+
     def _dump_infos(self):
         # Gather old information if necessary
         if os.path.isfile(self.infofile_path):
@@ -216,6 +242,10 @@ class TemporalImages(TemporalScalarFields):
         keep_exterior: boolean
             If True (default), only keep the exterior edges.
         """
+        # check
+        if self.baseline is None:
+            raise Exception('You have to define a baseline first.')
+        #
         all_edge_empty = True
         pts = TemporalDropEdges()
         pts.baseline = self.baseline
