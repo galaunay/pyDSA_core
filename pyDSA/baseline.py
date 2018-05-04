@@ -43,8 +43,8 @@ class Baseline(object):
 
     def from_points(self, pts, xmin=None, xmax=None):
         if len(pts) == 2 and xmin is None and xmax is None:
-            self.pt1 = pts[0]
-            self.pt2 = pts[1]
+            self.pt1 = np.array(pts[0], dtype=float)
+            self.pt2 = np.array(pts[1], dtype=float)
         else:
             self.pt1, self.pt2 = self.get_baseline_from_points(pts,
                                                                xmin=xmin,
@@ -60,7 +60,8 @@ class Baseline(object):
             xmin = np.min(pos[:, 0])
         if xmax is None:
             xmax = np.max(pos[:, 0])
-        res = [[xmin, a*xmin + b], [xmax, a*xmax + b]]
+        res = np.array([[xmin, a*xmin + b], [xmax, a*xmax + b]],
+                       dtype=float)
         return res
 
     def get_baseline_fun(self, along_y=False):

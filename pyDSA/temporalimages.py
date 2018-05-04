@@ -179,8 +179,8 @@ class TemporalImages(TemporalScalarFields):
         unit_x = self.unit_x.strUnit()[1:-1]
         unit_y = self.unit_y.strUnit()[1:-1]
         if self.baseline != "evolving" and self.baseline is not None:
-            pt1 = self.baseline.pt1
-            pt2 = self.baseline.pt2
+            pt1 = list(self.baseline.pt1)
+            pt2 = list(self.baseline.pt2)
         else:
             pt1 = None
             pt2 = None
