@@ -90,13 +90,15 @@ class TemporalImages(TemporalScalarFields):
         if self.cache_infos:
             self._dump_infos()
 
-    def choose_baseline(self, ind_image=0):
+    def choose_baseline(self, ind_image=None):
         """
         Choose baseline position interactively.
 
         Select as many points as you want (click on points to delete them),
         and close the figure when done.
         """
+        #
+        ind_image = ind_image or int(len(self.fields)/2)
         self.baseline = self.fields[ind_image].choose_baseline()
         # No baseline set
         if self.baseline is None:
@@ -162,10 +164,6 @@ class TemporalImages(TemporalScalarFields):
         super(TemporalImages, tmp_f).scale(scalex=scalex, scaley=scaley,
                                            scalev=scalev, scalet=scalet,
                                            inplace=True)
-        # scale baseline
-        if self.baseline is not None:
-            self.baseline.scale(scalex=scalex, scaley=scaley)
-        #
         return tmp_f
 
     def _dump_infos(self):

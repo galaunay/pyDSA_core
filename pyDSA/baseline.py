@@ -77,13 +77,18 @@ class Baseline(object):
                 return a*x + b
         return fun
 
-    def scale(self, scalex=1, scaley=1):
+    def scale(self, scalex=None, scaley=None):
         """
         Scale the baseline.
         """
-        pt1 = self.pt1*scalex
-        pt2 = self.pt2*scalex
-        self.get_baseline_from_points([pt1, pt2])
+        pt1 = self.pt1
+        pt2 = self.pt2
+        if scalex is not None:
+            pt1 *= scalex
+        if scaley is not None:
+            pt2 *= scaley
+        if (scalex is not None) or (scaley is not None):
+            self.from_points([pt1, pt2])
 
     def display(self, x0=None, xf=None, *args, **kwargs):
         if x0 is None:

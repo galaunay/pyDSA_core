@@ -132,6 +132,19 @@ class Image(ScalarField):
         sc = ScaleChooser(self)
         return sc.ret_values
 
+    def scale(self, scalex=None, scaley=None, scalev=None, inplace=True):
+        """
+        Scale the Image.
+
+        Parameters
+        ----------
+        scalex, scaley, scalev : numbers or Unum objects
+            Scale for the axis and the values
+        """
+        super().scale(scalex=scalex, scaley=scaley, scalev=scalev,
+                      inplace=inplace)
+        if self.baseline is not None:
+            self.baseline.scale(scalex=scalex, scaley=scaley)
 
     def binarize(self, method='adaptative', threshold=None, inplace=False):
         """
