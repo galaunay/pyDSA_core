@@ -18,6 +18,8 @@ import cv2
 import unum
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+from matplotlib.widgets import Button, TextBox
 import scipy.ndimage as spim
 import skimage.measure as skim
 import warnings
@@ -127,68 +129,8 @@ class Image(ScalarField):
         """
         Scale the Image interactively.
         """
-        pos = []
-        eps = .01*(self.axe_x[-1] - self.axe_x[0])
-        # get cursor position on click
-        fig = plt.figure()
-        pts = plt.plot([], marker="o", ls="none", mec='w', mfc='k')[0]
-
-        def onclick(event):
-            # toolbar want the focus !
-            if fig.canvas.manager.toolbar._active is not None:
-                return None
-            # get the position
-            xy = [event.xdata, event.ydata]
-            diffs = [(xy[0] - xyi[0])**2 + (xy[1] - xyi[1])**2
-                     for xyi in pos]
-            # check if close to an existing point
-            closes = diffs < eps**2
-            if np.any(closes):
-                for i in np.arange(len(pos) - 1, -1, -1):
-                    if closes[i]:
-                        del pos[i]
-            elif len(pos) >= 2:
-                pass
-            else:
-                pos.append(xy)
-            # redraw
-            if len(pos) != 0:
-                pts.set_data(np.array(pos).transpose())
-            else:
-                pts.set_data(np.empty((2, 2)))
-            fig.canvas.draw()
-        # Getting actual length
-        fig.canvas.mpl_connect('button_press_event', onclick)
-        self.display(cmap=plt.cm.binary_r)
-        plt.title("Scaling step:\n"
-                  "Choose two points separated by a known distance.")
-        plt.show(block=True)
-        actual_width = ((pos[0][0] - pos[1][0])**2 +
-                        (pos[0][1] - pos[1][1])**2)**.5
-        # Getting wanted length and unity
-        while True:
-            wanted_width = input("Real length: ")
-            try:
-                wanted_width = float(wanted_width)
-                break
-            except:
-                print("Invalid length ({})".format(wanted_width))
-        while True:
-            wanted_unity = input("Unity: ")
-            try:
-                wanted_unity = make_unit(wanted_unity)
-                if isinstance(wanted_unity, unum.Unum):
-                    break
-                else:
-                    print("Invalid unity ({})".format(wanted_unity))
-            except NameError:
-                print("Invalid unity ({})".format(wanted_unity))
-        # Compute and set the scale
-        scale = wanted_width/actual_width
-        self.scale(scalex=scale, scaley=scale, inplace=True)
-        self.unit_x = wanted_unity
-        self.unit_y = wanted_unity
-        return scale, wanted_unity
+        sc = ScaleChooser(self)
+        return sc.ret_values
 
 
     def binarize(self, method='adaptative', threshold=None, inplace=False):
@@ -685,3 +627,80 @@ class Image(ScalarField):
             p = PatchCollection(patches)
             plt.gca().add_collection(p)
             plt.show()
+
+
+class ScaleChooser(object):
+    def __init__(self, im):
+        """
+
+        """
+        self.fig = plt.figure()
+        self.pos = []
+        self.im = im
+        self.eps = .01*(self.im.axe_x[-1] - self.im.axe_x[0])
+        self.pts = plt.plot([], marker="o", ls="none", mec='w', mfc='k')[0]
+        self.ret_values = []
+        self.real_dist = None
+        # Display
+        self.im.display(cmap=plt.cm.binary_r)
+        plt.title("Scaling step:\n"
+                  "Choose two points separated by a known distance.")
+        # Connect click event on graph
+        self.fig.canvas.mpl_connect('button_press_event', self.onclick)
+        # Add ok button
+        button_kwargs = {"color": "w", "hovercolor": [.5]*3}
+        self.axok = mpl.axes.Axes(self.fig, [0.88, 0.02, 0.1, 0.05])
+        self.bnok = Button(self.axok, 'Done', **button_kwargs)
+        self.bnok.on_clicked(self.done)        # set up the apsect
+        self.fig.add_axes(self.axok)
+        # Add text
+        self.axtxt = mpl.axes.Axes(self.fig, [0.68, 0.02, 0.1, 0.05])
+        self.btntxt = TextBox(self.axtxt, 'Distance in mm', "")
+        self.btntxt.on_submit(self.on_submit)
+        self.fig.add_axes(self.axtxt)
+        # show the plot
+        plt.show(block=True)
+
+    def on_submit(self, txt):
+        self.real_dist = float(txt)
+
+    def onclick(self, event):
+        # toolbar want the focus !
+        if self.fig.canvas.manager.toolbar._active is not None:
+            return None
+        # get the position
+        xy = [event.xdata, event.ydata]
+        diffs = [(xy[0] - xyi[0])**2 + (xy[1] - xyi[1])**2
+                 for xyi in self.pos]
+        # check if close to an existing point
+        closes = diffs < self.eps**2
+        if np.any(closes):
+            for i in np.arange(len(self.pos) - 1, -1, -1):
+                if closes[i]:
+                    del self.pos[i]
+        elif len(self.pos) >= 2:
+            pass
+        else:
+            self.pos.append(xy)
+        # redraw
+        if len(self.pos) != 0:
+            self.pts.set_data(np.array(self.pos).transpose())
+        else:
+            self.pts.set_data(np.empty((2, 2)))
+        self.fig.canvas.draw()
+
+    def done(self, event):
+        if len(self.pos) != 2:
+            return None, None
+        actual_width = ((self.pos[0][0] - self.pos[1][0])**2 +
+                        (self.pos[0][1] - self.pos[1][1])**2)**.5
+        # Getting wanted length and unity
+        wanted_width = self.real_dist
+        wanted_unity = make_unit('mm')
+        # Compute and set the scale
+        scale = wanted_width/actual_width
+        self.im.scale(scalex=scale, scaley=scale, inplace=True)
+        self.im.unit_x = wanted_unity
+        self.im.unit_y = wanted_unity
+        self.ret_values = scale, wanted_unity
+        plt.close(self.fig)
