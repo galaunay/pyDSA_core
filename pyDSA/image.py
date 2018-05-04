@@ -15,6 +15,7 @@
 # GNU General Public License for more details.
 
 import cv2
+import re
 import unum
 import numpy as np
 import matplotlib.pyplot as plt
@@ -652,8 +653,10 @@ class ScaleChooser(object):
         self.im = im
         self.eps = .01*(self.im.axe_x[-1] - self.im.axe_x[0])
         self.pts = plt.plot([], marker="o", ls="none", mec='w', mfc='k')[0]
-        self.ret_values = []
+        self.axplot = plt.gca()
+        self.ret_values = [None, None]
         self.real_dist = None
+        self.real_unit = None
         # Display
         self.im.display(cmap=plt.cm.binary_r)
         plt.title("Scaling step:\n"
@@ -668,18 +671,24 @@ class ScaleChooser(object):
         self.fig.add_axes(self.axok)
         # Add text
         self.axtxt = mpl.axes.Axes(self.fig, [0.68, 0.02, 0.1, 0.05])
-        self.btntxt = TextBox(self.axtxt, 'Distance in mm', "")
+        self.btntxt = TextBox(self.axtxt,
+                              "Distance ('0.7mm' for example):", "")
         self.btntxt.on_submit(self.on_submit)
         self.fig.add_axes(self.axtxt)
         # show the plot
         plt.show(block=True)
 
     def on_submit(self, txt):
-        self.real_dist = float(txt)
+        match = re.match(r'\s*([0-9.]+)\s*(.*)\s*', txt)
+        self.real_dist = float(match.groups()[0])
+        self.real_unit = match.groups()[1]
 
     def onclick(self, event):
         # toolbar want the focus !
         if self.fig.canvas.manager.toolbar._active is not None:
+            return None
+        # Do nothing if not above an axe
+        if event.inaxes != self.axplot:
             return None
         # get the position
         xy = [event.xdata, event.ydata]
@@ -709,7 +718,7 @@ class ScaleChooser(object):
                         (self.pos[0][1] - self.pos[1][1])**2)**.5
         # Getting wanted length and unity
         wanted_width = self.real_dist
-        wanted_unity = make_unit('mm')
+        wanted_unity = make_unit(self.real_unit)
         # Compute and set the scale
         scale = wanted_width/actual_width
         self.im.scale(scalex=scale, scaley=scale, inplace=True)

@@ -138,6 +138,8 @@ class TemporalImages(TemporalScalarFields):
         """
         indice = indice or int(len(self.fields)/2)
         scale, unit = self.fields[indice].scale_interactive()
+        if scale is None and unit is None:
+            return None
         self.scale(scalex=scale, scaley=scale, inplace=True)
         self.unit_x = unit
         self.unit_y = unit
