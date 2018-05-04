@@ -146,7 +146,8 @@ class TemporalDropEdges(TemporalPoints):
             h1, h2 = edge.get_ridge_height()
             height1.append(h1)
             height2.append(h2)
-        return height1, height2
+        return (np.array(height1, dtype=float),
+                np.array(height2, dtype=float))
 
     def get_drop_base(self):
         """

@@ -583,6 +583,15 @@ class DropEdges(Points):
         else:
             return np.nan
 
+    def get_drop_height(self):
+        """
+        Return the evolution of the drop height.
+        """
+        h = []
+        for edge in self.point_sets:
+            h.append(np.max(edge.xy[:, 1]))
+        return h
+
     def get_ridge_height(self):
         """
         Return the ridge height.
