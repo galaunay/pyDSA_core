@@ -361,9 +361,9 @@ class TemporalDropEdges(TemporalPoints):
                 ys.append([np.nan, np.nan])
             else:
                 xs.append([edge.triple_pts[0][0],
-                            edge.triple_pts[1][0]])
+                           edge.triple_pts[1][0]])
                 ys.append([edge.triple_pts[0][1],
-                            edge.triple_pts[1][1]])
+                           edge.triple_pts[1][1]])
         if len(xs) != length or len(ys) != length:
             raise Exception()
         if not np.all(np.isnan(xs)):

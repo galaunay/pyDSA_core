@@ -102,6 +102,8 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
     i = 0
     if frame_inds is None:
         frame_inds = [0, int(vid.get(cv2.CAP_PROP_FRAME_COUNT))]
+    if frame_inds[1] == np.inf:
+        frame_inds[1] = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
     # logs
     if verbose:
         nmb_frames = frame_inds[1] - frame_inds[0]

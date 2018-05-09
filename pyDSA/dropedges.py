@@ -287,22 +287,20 @@ class DropEdges(Points):
         s = max_smooth_fact - (max_smooth_fact - min_smooth_fact)*s
         if verbose:
             print("Used 's={}'".format(s))
-        w = [1]*len(x1)
-        w = None
         if spline1 is None:
             try:
-                spline1 = spint.UnivariateSpline(y1, x1, k=k, s=s, w=w)
+                spline1 = spint.UnivariateSpline(y1, x1, k=k, s=s)
             except:
                 spline1 = dummy_function
-        w = [1]*len(x2)
-        w = None
+                if verbose:
+                    print("Fitting failed for edge number one")
         if spline2 is None:
             try:
-                spline2 = spint.UnivariateSpline(y2, x2, k=k, s=s, w=w)
+                spline2 = spint.UnivariateSpline(y2, x2, k=k, s=s)
             except:
                 spline2 = dummy_function
-        # store
-        self.edges_fits = [spline1, spline2]
+                if verbose:
+                    print("Fitting failed for edge number one")
         # Verbose if necessary
         if verbose:
             tmp_y1 = np.linspace(y1.min(), y1.max(), 1000)
@@ -316,6 +314,9 @@ class DropEdges(Points):
             plt.plot(spline2(tmp_y2), tmp_y2, 'r')
             plt.axis('equal')
             plt.show()
+        # store
+        self.edges_fits = [spline1, spline2]
+        # return
         return spline1, spline2
 
     def fit_ellipse(self):

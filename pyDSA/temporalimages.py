@@ -219,7 +219,7 @@ class TemporalImages(TemporalScalarFields):
             self.set_baseline(base1, base2)
 
     def edge_detection_canny(self, threshold1=None, threshold2=None,
-                             base_max_dist=15, size_ratio=.5,
+                             base_max_dist=30, size_ratio=.5,
                              ignored_pixels=2, nmb_edges=2,
                              keep_exterior=True,
                              verbose=False):
@@ -233,7 +233,7 @@ class TemporalImages(TemporalScalarFields):
             (By default, inferred from the data histogram)
         base_max_dist: integers
             Maximal distance (in pixel) between the baseline and
-            the beginning of the drop edge (default to 15).
+            the beginning of the drop edge (default to 30).
         nmb_edges: integer
             Number of maximum expected edges (default to 2).
         size_ratio: number
@@ -256,6 +256,10 @@ class TemporalImages(TemporalScalarFields):
             try:
                 pt = self.fields[i].edge_detection_canny(threshold1=threshold1,
                                                          threshold2=threshold2,
+                                                         base_max_dist=base_max_dist,
+                                                         size_ratio=size_ratio,
+                                                         ignored_pixels=ignored_pixels,
+                                                         keep_exterior=keep_exterior,
                                                          nmb_edges=nmb_edges)
                 all_edge_empty = False
             except Exception:
