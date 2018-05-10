@@ -106,12 +106,16 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         frame_inds[1] = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
     # logs
     if verbose:
-        nmb_frames = frame_inds[1] - frame_inds[0]
-        pg = ProgressCounter("Decoding video", "Done", nmb_frames, 'frames', 5)
+        nmb_frames = int(np.round((frame_inds[1] - frame_inds[0])/incr))
+        pg = ProgressCounter(init_mess="Decoding video",
+                             nmb_max=nmb_frames,
+                             things='frames',
+                             perc_interv=5)
     t = 0
     while True:
         if i < frame_inds[0] or i % incr != 0:
             i += 1
+            t += dt
             vid.grab()
             continue
         success, im = vid.read()
