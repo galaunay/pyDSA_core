@@ -250,8 +250,10 @@ class TemporalImages(TemporalScalarFields):
         pts = TemporalDropEdges()
         pts.baseline = self.baseline
         if verbose:
-            pg = ProgressCounter("Detecting drop edges", "Done",
-                                 len(self.fields), 'images', 5)
+            pg = ProgressCounter(init_mess="Detecting drop edges",
+                                 nmb_max=len(self.fields),
+                                 name_things='images',
+                                 perc_interv=5)
         for i in range(len(self.fields)):
             try:
                 pt = self.fields[i].edge_detection_canny(threshold1=threshold1,

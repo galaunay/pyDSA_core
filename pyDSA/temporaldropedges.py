@@ -61,8 +61,9 @@ class TemporalDropEdges(TemporalPoints):
             Default to 0.75
         """
         if verbose:
-            pg = ProgressCounter("Fitting droplet interfaces", "Done",
-                                 len(self.point_sets), 'edges', 5)
+            pg = ProgressCounter(init_mess="Fitting droplet interfaces",
+                                 nmb_max=len(self.point_sets),
+                                 name_things='edges', perc_interv=5)
         for edge in self.point_sets:
             edge.fit(k=k, s=s, verbose=False)
             if verbose:
@@ -88,8 +89,10 @@ class TemporalDropEdges(TemporalPoints):
            Position of the triple points for each edge ([pt1, pt2])
         """
         if verbose:
-            pg = ProgressCounter("Detecting triple point positions", "Done",
-                                 len(self.point_sets), 'triple points', 5)
+            pg = ProgressCounter(init_mess="Detecting triple point positions",
+                                 nmb_max=len(self.point_sets),
+                                 name_things='triple points',
+                                 perc_interv=5)
         for edge in self.point_sets:
             try:
                 edge.detect_triple_points(use_x_minima=use_x_minima)
@@ -181,8 +184,10 @@ class TemporalDropEdges(TemporalPoints):
         Compute the drop contact angles."
         """
         if verbose:
-            pg = ProgressCounter("Getting contact angles", "Done",
-                                 len(self.point_sets), 'images', 5)
+            pg = ProgressCounter(init_mess="Getting contact angles",
+                                 nmb_max=len(self.point_sets),
+                                 name_things='images',
+                                 perc_interv=5)
         for edge in self.point_sets:
             try:
                 edge.compute_contact_angle()

@@ -100,21 +100,21 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
     vid.open(path)
     ti = TemporalImages(filepath=path)
     i = 0
+    max_frame = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
     if frame_inds is None:
-        frame_inds = [0, int(vid.get(cv2.CAP_PROP_FRAME_COUNT))]
-    if frame_inds[1] == np.inf:
-        frame_inds[1] = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
+        frame_inds = [0, max_frame]
+    if frame_inds[1] > max_frame:
+        frame_inds[1] = max_frame
     # logs
     if verbose:
-        nmb_frames = int(np.round((frame_inds[1] - frame_inds[0])/incr))
+        nmb_frames = int((frame_inds[1] - frame_inds[0])/incr)
         pg = ProgressCounter(init_mess="Decoding video",
                              nmb_max=nmb_frames,
-                             things='frames',
+                             name_things='frames',
                              perc_interv=5)
     t = 0
-    while True:
+    for i in np.arange(0, frame_inds[1], 1):
         if i < frame_inds[0] or i % incr != 0:
-            i += 1
             t += dt
             vid.grab()
             continue
@@ -134,11 +134,9 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
                               dtype=dtype)
         ti.add_field(sf, time=t, unit_times=unit_t, copy=False)
         t += dt
-        i += 1
         if verbose:
             pg.print_progress()
-        if i >= frame_inds[1]:
-            break
+
     # Try to import infos if the infofile exist
     if os.path.isfile(ti.infofile_path):
         ti._import_infos()
