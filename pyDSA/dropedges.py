@@ -159,17 +159,29 @@ class DropEdges(Points):
         def dzerofun(y):
             return spmisc.derivative(zerofun, y, dx=dy, n=1, order=3)
         y0 = y[0]
-        ind = np.where(zerofun(y0)*zerofun(y) < 0)[0]
-        # check if something was found
-        if len(ind) == 0:
+        deriv = zerofun(y)
+        deriv_sign = deriv[1:]*deriv[:-1]
+        inds = np.where(deriv_sign < 0)[0] + 1
+        # If no x minima
+        if len(inds) == 0:
+            if verbose:
+                plt.figure()
+                plt.plot(y, zerofun(y), 'o-')
+                plt.xlabel('y')
+                plt.xlabel('dy/dx')
+                plt.title('x-minima method failed: no minima')
+                plt.grid()
             return None
-        ind = ind[0]
-        # check if the triple point is curvature coherent,
-        deriv = dzerofun(y0)
-        if (edge_number == 0 and deriv > 0) or (edge_number == 1 and deriv < 0):
-            return None
-        # Allright, proceed
+        # Choose first point with right curvature sign
+        for indi in inds:
+            curv = dzerofun(y[indi])
+            if ((edge_number == 0 and curv < 0) or
+                (edge_number == 1 and curv > 0)):
+                ind = indi
+                break
+        # Find the accurate position
         y0 = spopt.brentq(zerofun, y[ind-1], y[ind])
+        # verbose
         if verbose:
             plt.figure()
             plt.plot(y, zerofun(y), 'o-')
