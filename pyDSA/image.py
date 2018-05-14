@@ -329,6 +329,7 @@ class Image(ScalarField):
                              base_max_dist=15, size_ratio=.5,
                              nmb_edges=2, ignored_pixels=2,
                              keep_exterior=True,
+                             smooth_size=None,
                              verbose=False, debug=False):
         """
         Perform edge detection using canny edge detection.
@@ -353,6 +354,11 @@ class Image(ScalarField):
             small surface defects to be taken into account.
         keep_exterior: boolean
             If True (default), only keep the exterior edges.
+        smooth_size: number
+            If specified, the image is smoothed before
+            performing the edge detection.
+            (can be useful to put this to 1 to get rid of compression
+             artefacts on images).
         """
         # check for baseline
         if self.baseline is None:
@@ -375,6 +381,9 @@ class Image(ScalarField):
         tmp_im = self.crop(intervy=[np.min([self.baseline.pt2[1],
                                             self.baseline.pt1[1]]), np.inf],
                            inplace=False)
+        # Smooth if asked
+        if smooth_size is not None:
+            tmp_im.smooth(tos='gaussian', size=smooth_size, inplace=True)
         if verbose:
             plt.figure()
             tmp_im.display()

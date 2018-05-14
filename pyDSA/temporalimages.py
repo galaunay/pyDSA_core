@@ -222,6 +222,7 @@ class TemporalImages(TemporalScalarFields):
                              base_max_dist=30, size_ratio=.5,
                              ignored_pixels=2, nmb_edges=2,
                              keep_exterior=True,
+                             smooth_size=None,
                              verbose=False):
         """
         Perform edge detection.
@@ -241,6 +242,11 @@ class TemporalImages(TemporalScalarFields):
             (default to 0.5).
         keep_exterior: boolean
             If True (default), only keep the exterior edges.
+        smooth_size: number
+            If specified, the image is smoothed before
+            performing the edge detection.
+            (can be useful to put this to 1 to get rid of compression
+             artefacts on images).
         """
         # check
         if self.baseline is None:
@@ -262,7 +268,8 @@ class TemporalImages(TemporalScalarFields):
                                                          size_ratio=size_ratio,
                                                          ignored_pixels=ignored_pixels,
                                                          keep_exterior=keep_exterior,
-                                                         nmb_edges=nmb_edges)
+                                                         nmb_edges=nmb_edges,
+                                                         smooth_size=smooth_size)
                 all_edge_empty = False
             except Exception:
                 pt = DropEdges(xy=[], im=self, type='canny')
