@@ -301,7 +301,8 @@ class TemporalDropEdges(TemporalPoints):
         kwargs['cpkw']['aspect'] = 'equal'
         kwargs['cpkw']['color'] = 'k'
         kwargs['cpkw']['marker'] = 'x'
-        super().display(*args, **kwargs)
+        displ = super().display(*args, **kwargs)
+        bmgr = displ.button_manager
         # Display points
         if self[0].drop_edges is not None:
             x1s = []
@@ -323,8 +324,7 @@ class TemporalDropEdges(TemporalPoints):
                 raise Exception()
             db1 = pplt.Displayer(x1s, y1s, color='k', marker="o")
             db2 = pplt.Displayer(x2s, y2s, color='k', marker="o")
-            pplt.ButtonManager(db1)
-            pplt.ButtonManager(db2)
+            bmgr.add_displayers([db1, db2])
         # Display fitting
         if self[0].edges_fits is not None:
             x1s = []
@@ -355,8 +355,7 @@ class TemporalDropEdges(TemporalPoints):
                 raise Exception()
             db1 = pplt.Displayer(x1s, y1s, color=self[0].colors[1])
             db2 = pplt.Displayer(x2s, y2s, color=self[0].colors[1])
-            pplt.ButtonManager(db1)
-            pplt.ButtonManager(db2)
+            bmgr.add_displayers([db1, db2])
         # Display triple points
         xs = []
         ys = []
@@ -375,7 +374,7 @@ class TemporalDropEdges(TemporalPoints):
             db = pplt.Displayer(xs, ys, ls='none', marker='o',
                                 kind='plot',
                                 color=self[0].colors[2])
-            pplt.ButtonManager(db)
+            bmgr.add_displayers([db])
         # Display contact angles
         if np.any([edge.thetas for edge in self.point_sets] is not None):
             lines = [edge._get_angle_display_lines()
@@ -400,7 +399,33 @@ class TemporalDropEdges(TemporalPoints):
                         raise Exception()
                     db = pplt.Displayer(line[:, 0], line[:, 1],
                                         kind='plot', color=self[0].colors[0])
-                    pplt.ButtonManager(db)
+                    bmgr.add_displayers([db])
+        # Add button manager
+        return bmgr
+
+    def display_ridge_evolution(self):
+        """
+        Display an interactive plot with the ridge height evolution.
+        """
+        # Get dat
+        rh1, rh2 = self.get_ridge_heights()
+        rh = rh1.copy()
+        rh[np.isnan(rh1)] = rh2[np.isnan(rh1)]
+        filt = np.logical_and(~np.isnan(rh1), ~np.isnan(rh2))
+        rh[filt] = (rh1[filt] + rh2[filt])/2
+        #
+        plt.figure()
+        bmgr = self.display()
+        plt.figure()
+        displ2 = pplt.Displayer([[xi] for xi in self.times],
+                                [[yi] for yi in rh],
+                                data_type="points",
+                                color=self[0].colors[2],
+                                edgecolors='k')
+        bmgr2 = pplt.ButtonManager([displ2])
+        plt.plot(self.times, rh, zorder=0)
+        bmgr.link_to_other_graph(bmgr2)
+        return bmgr, bmgr2
 
     def display_summary(self, figsize=None):
         """
