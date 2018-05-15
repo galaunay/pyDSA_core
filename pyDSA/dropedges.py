@@ -328,6 +328,10 @@ class DropEdges(Points):
             plt.show()
         # store
         self.edges_fits = [spline1, spline2]
+        # delete variables derived from the previous fitting
+        self.triple_pts = None
+        self.thetas = None
+        self.thetas_triple = None
         # return
         return spline1, spline2
 
