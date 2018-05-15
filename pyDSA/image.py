@@ -371,7 +371,7 @@ class Image(ScalarField):
             hist = self.get_histogram(cum=True)
             threshold1 = hist.get_value_position(hist.max/2)[0]
             threshold2 = np.max(hist.x)
-        # remove useless part of the image
+        # Remove useless part of the image
         tmp_im = self.crop(intervy=[np.min([self.baseline.pt2[1],
                                             self.baseline.pt1[1]]), np.inf],
                            inplace=False)
@@ -413,7 +413,7 @@ class Image(ScalarField):
                                   unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
             im.display()
             plt.title('Removed points under baseline')
-        # dilatation / erosion to ensure line continuity
+        # Dilatation / erosion to ensure line continuity
         im_edges = spim.binary_dilation(im_edges, iterations=1)
         im_edges = spim.binary_erosion(im_edges, iterations=1)
         if verbose:
@@ -430,7 +430,7 @@ class Image(ScalarField):
         X, Y = np.meshgrid(tmp_im.axe_x, tmp_im.axe_y, indexing="ij")
         dy = self.axe_y[1] - self.axe_y[0]
         # Let only the maximum allowed number of edges
-        if np.max(labels) > nmb_edges:
+        if np.max(labels) > nmb_edges and not keep_exterior:
             sizes = [np.sum(labels == label)
                      for label in np.arange(1, nmb + 1)]
             indsort = np.argsort(sizes)

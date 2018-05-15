@@ -38,7 +38,7 @@ __status__ = "Development"
 
 def dummy_function(x):
     try:
-        return [np.nan]*len(x)
+        return np.array([np.nan]*len(x))
     except TypeError:
         return np.nan
 
