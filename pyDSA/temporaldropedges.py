@@ -403,7 +403,7 @@ class TemporalDropEdges(TemporalPoints):
         # Add button manager
         return bmgr
 
-    def display_ridge_evolution(self):
+    def display_ridge_evolution(self, tis=None):
         """
         Display an interactive plot with the ridge height evolution.
         """
@@ -413,10 +413,26 @@ class TemporalDropEdges(TemporalPoints):
         rh[np.isnan(rh1)] = rh2[np.isnan(rh1)]
         filt = np.logical_and(~np.isnan(rh1), ~np.isnan(rh2))
         rh[filt] = (rh1[filt] + rh2[filt])/2
-        #
+        # Check if there is ridge to display
+        if not np.any(filt):
+            raise Exception('No ridge detected, cannot display them...')
+
+        # Display images + edges
         plt.figure()
         bmgr = self.display()
-        plt.figure()
+        if tis is not None:
+            tis.display()
+        # Display ridge evolution
+        fig2 = plt.figure()
+        #     function to navigate through images
+        def on_click(event):
+            if fig2.canvas.manager.toolbar._active is not None:
+                return None
+            x = event.xdata
+            ind = np.argmin(abs(x - self.times))
+            bmgr.ind = ind
+            bmgr.update()
+        fig2.canvas.mpl_connect('button_press_event', on_click)
         displ2 = pplt.Displayer([[xi] for xi in self.times],
                                 [[yi] for yi in rh],
                                 data_type="points",
@@ -424,6 +440,7 @@ class TemporalDropEdges(TemporalPoints):
                                 edgecolors='k')
         bmgr2 = pplt.ButtonManager([displ2])
         plt.plot(self.times, rh, zorder=0)
+        plt.ylim(ymin=0)
         bmgr.link_to_other_graph(bmgr2)
         return bmgr, bmgr2
 
