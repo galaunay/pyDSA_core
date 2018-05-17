@@ -119,7 +119,7 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
                              perc_interv=5)
     t = 0
     for i in np.arange(0, frame_inds[1], 1):
-        if i < frame_inds[0] or i % incr != 0:
+        if i < frame_inds[0] or (i - frame_inds[0]) % incr != 0:
             t += dt
             vid.grab()
             continue
