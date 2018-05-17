@@ -63,7 +63,8 @@ def import_from_image(path, dx=1, dy=1, unit_x="", unit_y=""):
 
 
 def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
-                      frame_inds=None, incr=1, dtype=np.uint8, verbose=False):
+                      frame_inds=None, incr=1, intervx=None, intervy=None,
+                      dtype=np.uint8, verbose=False):
     """
     Import a images from a video file.
 
@@ -82,6 +83,8 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
     incr: integer
         Number of frame to import.
         (ex: with a value of 2, only 1/2 frames will be imported).
+    intervx, intervy: 2x1 list of numbers
+        Cropping dimensions applied on each frames.
     dtype: type
         Numerical type used for the stored data.
         Should be a type supported by numpy arrays.
@@ -105,11 +108,9 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         frame_inds = [0, max_frame - 1]
     if frame_inds[1] > max_frame - 1:
         frame_inds[1] = max_frame - 1
-    print(frame_inds)
     # logs
     if verbose:
         nmb_frames = int((frame_inds[1] - frame_inds[0])/incr + 0.99999)
-        print((frame_inds[1] - frame_inds[0])/incr)
         if nmb_frames <= 1:
             raise Exception("No frames selected, maybe 'incr' is to high ?")
         pg = ProgressCounter(init_mess="Decoding video",
@@ -136,6 +137,7 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         sf.import_from_arrays(axe_x, axe_y, im, mask=False,
                               unit_x=unit_x, unit_y=unit_y,
                               dtype=dtype)
+        sf.crop(intervx=intervx, intervy=intervy, inplace=True)
         ti.add_field(sf, time=t, unit_times=unit_t, copy=False)
         t += dt
         if verbose:
