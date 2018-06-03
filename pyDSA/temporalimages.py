@@ -20,6 +20,7 @@ import os
 import warnings
 from IMTreatment import TemporalScalarFields
 from IMTreatment.utils import ProgressCounter
+from IMTreatment.stabilize import Stabilizer
 import IMTreatment.plotlib as pplt
 from .image import Image
 from .baseline import Baseline
@@ -98,7 +99,8 @@ class TemporalImages(TemporalScalarFields):
         and close the figure when done.
         """
         #
-        ind_image = ind_image or int(len(self.fields)/2)
+        if ind_image is None:
+            ind_image = int(len(self.fields)/2)
         self.baseline = self.fields[ind_image].choose_baseline()
         # No baseline set
         if self.baseline is None:
@@ -108,6 +110,25 @@ class TemporalImages(TemporalScalarFields):
         if self.cache_infos:
             self._dump_infos()
         return self.baseline
+
+    def track_baseline(self, ind_image=0, verbose=False):
+        """
+        Track the baseline from the wanted frame.
+
+        Use opencv features tracking algorithm.
+        """
+        stab = Stabilizer(self, orb_kwargs={}, mode='continuous')
+        stab._compute_transform(dense=False, opt_flow_args={}, verbose=verbose)
+        stab._smooth_transform(smooth_size=30, verbose=verbose)
+        pt1 = self[0].baseline.pt1
+        pt2 = self[0].baseline.pt2
+        pts = stab._apply_transform_to_point([pt1, pt2], from_frame=ind_image,
+                                             verbose=verbose)
+        # apply new baselines
+        for i, im in enumerate(self.fields):
+            im.set_baseline(pt1=pts[0][i], pt2=pts[1][i])
+        # set baseline to evolving
+        self.baseline = "evolving"
 
     def display(self, *args, **kwargs):
         super().display(*args, **kwargs)
