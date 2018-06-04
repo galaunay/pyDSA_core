@@ -111,15 +111,16 @@ class TemporalImages(TemporalScalarFields):
             self._dump_infos()
         return self.baseline
 
-    def track_baseline(self, ind_image=0, verbose=False):
+    def track_baseline(self, ind_image=0, orb_kwargs={}, mode='continuous',
+                       verbose=False, dense=False):
         """
         Track the baseline from the wanted frame.
 
         Use opencv features tracking algorithm.
         """
-        stab = Stabilizer(self, orb_kwargs={}, mode='continuous')
-        stab._compute_transform(dense=False, opt_flow_args={}, verbose=verbose)
-        stab._smooth_transform(smooth_size=30, verbose=verbose)
+        stab = Stabilizer(self, orb_kwargs=orb_kwargs, mode=mode)
+        stab._compute_transform(dense=dense, opt_flow_args={}, verbose=verbose)
+        stab._smooth_transform(smooth_size=0, verbose=verbose)
         pt1 = self[0].baseline.pt1
         pt2 = self[0].baseline.pt2
         pts = stab._apply_transform_to_point([pt1, pt2], from_frame=ind_image,
@@ -129,6 +130,10 @@ class TemporalImages(TemporalScalarFields):
             im.set_baseline(pt1=pts[0][i], pt2=pts[1][i])
         # set baseline to evolving
         self.baseline = "evolving"
+        # return
+        return stab
+
+
 
     def display(self, *args, **kwargs):
         super().display(*args, **kwargs)
