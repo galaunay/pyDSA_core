@@ -102,7 +102,7 @@ class TemporalDropEdges(TemporalPoints):
         if smooth is not None:
             self.smooth_triple_points(tos='gaussian', size=smooth)
 
-    def fit_circles(self, sigma_max=None, verbose=False):
+    def fit_circles(self, sigma_max=None, verbose=False, nmb_pass=1):
         """
         Fit circles to the edges, cutting them if a triple point is
         present.
@@ -114,19 +114,33 @@ class TemporalDropEdges(TemporalPoints):
             until:
             std(R) < mean(R)*sigma_max
             With R the radii.
+        nmb_pass: positive integer
+            If superior to 1, specify the number of pass to make.
+            Addintional passes use the previously triple points detected by
+            circle fits to more accurately detect the next ones.
         """
         if verbose:
             pg = ProgressCounter(init_mess="Fitting circles to edges",
-                                 nmb_max=len(self.point_sets),
+                                 nmb_max=len(self.point_sets)*nmb_pass,
                                  name_things='edges',
                                  perc_interv=5)
-        for edge in self.point_sets:
-            try:
-                edge.fit_circles(sigma_max=sigma_max)
-            except Exception:
-                pass
-            if verbose:
-                pg.print_progress()
+        # backup triple points
+        tps_back = [edge.triple_pts for edge in self.point_sets]
+        #  passes
+        for i in range(nmb_pass):
+            self.smooth_triple_points('gaussian', size=10)
+            for edge in self.point_sets:
+                try:
+                    edge.fit_circles(sigma_max=sigma_max)
+                except Exception:
+                    pass
+                if verbose:
+                    pg.print_progress()
+            for edge in self.point_sets:
+                edge.triple_pts = edge.circle_triple_pts
+        # restore triple point
+        for i, tps in enumerate(tps_back):
+            self.point_sets[i].triple_pts = tps
 
     def get_contact_angles(self):
         """
@@ -505,12 +519,12 @@ class TemporalDropEdges(TemporalPoints):
         bm = pplt.ButtonManager(displs)
         return bm
 
-    def display_ridge_evolution(self, tis=None):
+    def display_ridge_evolution(self, tis=None, from_circ_fit=False):
         """
         Display an interactive plot with the ridge height evolution.
         """
         # Get dat
-        rh1, rh2 = self.get_ridge_heights()
+        rh1, rh2 = self.get_ridge_heights(from_circ_fit=from_circ_fit)
         rh = rh1.copy()
         rh[np.isnan(rh1)] = rh2[np.isnan(rh1)]
         filt = np.logical_and(~np.isnan(rh1), ~np.isnan(rh2))
@@ -541,7 +555,8 @@ class TemporalDropEdges(TemporalPoints):
                                 color=self[0].colors[2],
                                 edgecolors='k')
         bmgr2 = pplt.ButtonManager([displ2])
-        plt.plot(self.times, rh, zorder=0)
+        plt.plot(self.times, rh1, zorder=0)
+        plt.plot(self.times, rh2, zorder=0)
         plt.ylim(ymin=0)
         bmgr.link_to_other_graph(bmgr2)
         return bmgr, bmgr2

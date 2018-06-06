@@ -470,6 +470,9 @@ class DropEdges(Points):
         Fit circles to the edges, cutting them if a triple point is
         present.
 
+        If a triple point is present, the ridge fits are made to be tangent
+        to the drop and to the baseline.
+
         Parameters
         ==========
         sigma_max: number
@@ -497,13 +500,20 @@ class DropEdges(Points):
             xs_d = np.concatenate((xs1[ind_sep1::], xs2[ind_sep2::][::-1]))
             ys_d = np.concatenate((ys1[ind_sep1::], ys2[ind_sep2::][::-1]))
             # Fit circles
-            c_o1, R1 = fit_circle(xs_o1, ys_o1, self.baseline,
-                                  sigma_max=sigma_max)
-            c_o2, R2 = fit_circle(xs_o2, ys_o2, self.baseline,
-                                  sigma_max=sigma_max)
+            # (use the middle circle fit to enhance the ridge fits)
             c_d, Rd = fit_circle(xs_d, ys_d,
                                  sigma_max=sigma_max)
-            self.circle_fits = [[c_o1, R1], [c_o2, R2], [c_d, Rd]]
+            c_o1, R1 = fit_circle(xs_o1, ys_o1, self.baseline,
+                                  sigma_max=sigma_max,
+                                  tangent_circ=(c_d, Rd))
+            c_o2, R2 = fit_circle(xs_o2, ys_o2, self.baseline,
+                                  sigma_max=sigma_max,
+                                  tangent_circ=(c_d, Rd))
+            # check for abnormal values
+            if R1 > Rd or R2 > Rd or c_o1[0] > c_d[0] or c_o2[0] < c_d[0]:
+                return None
+            else:
+                self.circle_fits = [[c_o1, R1], [c_o2, R2], [c_d, Rd]]
             # Get triple points based from circles
             xtp1 = (c_o1[0]*Rd + c_d[0]*R1)/(Rd + R1)
             ytp1 = (c_o1[1]*Rd + c_d[1]*R1)/(Rd + R1)

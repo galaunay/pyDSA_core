@@ -173,7 +173,7 @@ def circle_from_three_points(pt1, pt2, pt3):
     return (x, y), R
 
 
-def fit_circle(xs, ys, baseline=None, sigma_max=None):
+def fit_circle(xs, ys, baseline=None, tangent_circ=None, sigma_max=None):
     """
     Fit a circle to the given points.
 
@@ -183,6 +183,8 @@ def fit_circle(xs, ys, baseline=None, sigma_max=None):
         Coordinates of the points to fit.
     baseline: Baseline object
         If specified, the fitting will try to not pass through the baseline.
+    tangent_circ: ((x, y), R) tuple
+        Circle to be tangent to the fitting
     sigma_max: number
         If specified, points too far from the fit are iteratively removed
         until they all fall in the range R +- sigma*R
@@ -203,12 +205,15 @@ def fit_circle(xs, ys, baseline=None, sigma_max=None):
         """
         xc, yc = args
         Ri = calc_R(x, y, xc, yc)
-        if baseline:
+        residu = Ri - Ri.mean()
+        if baseline is not None:
             yb = basefun(xc)
-            R_mean = yc - yb
-        else:
-            R_mean = Ri.mean()
-        return Ri - R_mean
+            residu += (Ri.mean() - (yc - yb))
+        if tangent_circ is not None:
+            (xo, yo), Ro = tangent_circ
+            dist_circ = ((xo - xc)**2 + (yo - yc)**2)**.5
+            residu += (dist_circ - (Ro + Ri.mean()))
+        return residu
 
     # First guess from three points
     (xc, yc), R = circle_from_three_points([xs[0], ys[0]],
@@ -216,24 +221,30 @@ def fit_circle(xs, ys, baseline=None, sigma_max=None):
                                             ys[int(len(xs)/2)]],
                                            [xs[-1], ys[-1]])
     # Fit
+    tmp_xs = xs.copy()
+    tmp_ys = ys.copy()
     if sigma_max is not None:
+        i = 0
         while True:
+            i += 1
             center, ier = spopt.leastsq(
                 f_2b, (xc, yc), col_deriv=True,
-                args=(xs, ys))
-            Rs = calc_R(xs, ys, *center)
+                args=(tmp_xs, tmp_ys))
+            Rs = calc_R(tmp_xs, tmp_ys, *center)
             R_mean = np.mean(Rs)
             R_std = np.std(Rs)
-            if R_std < R_mean*sigma_max:
+            if R_std < R_mean*sigma_max or len(tmp_xs) <= 10:
                 break
             filt = np.logical_and(Rs < R_mean + R_std*2,
                                   Rs > R_mean - R_std*2)
-            xs = xs[filt]
-            ys = ys[filt]
+            if np.all(filt):
+                filt[np.argmax(abs(Rs - R_mean))] = False
+            tmp_xs = tmp_xs[filt]
+            tmp_ys = tmp_ys[filt]
     else:
         center, ier = spopt.leastsq(
             f_2b, (xc, yc), col_deriv=True,
-            args=(xs, ys))
+            args=(tmp_xs, tmp_ys))
     # return
-    R = np.mean(calc_R(xs, ys, *center))
+    R = np.mean(calc_R(tmp_xs, tmp_ys, *center))
     return center, R
