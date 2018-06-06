@@ -294,17 +294,17 @@ class TemporalDropEdges(TemporalPoints):
                 if not mask2[i]:
                     edge.thetas_triple = [theta3[i], theta4[i]]
 
-    def display(self, *args, **kwargs):
+    def display(self, displ_pts=True, displ_fit=True,
+                displ_tp=True, displ_ca=True, *args, **kwargs):
         #
         length = len(self.point_sets)
         kwargs['cpkw'] = {}
         kwargs['cpkw']['aspect'] = 'equal'
         kwargs['cpkw']['color'] = 'k'
         kwargs['cpkw']['marker'] = 'x'
-        displ = super().display(*args, **kwargs)
-        bmgr = displ.button_manager
+        displs = []
         # Display points
-        if self[0].drop_edges is not None:
+        if self[0].drop_edges is not None and displ_pts:
             x1s = []
             y1s = []
             x2s = []
@@ -324,9 +324,10 @@ class TemporalDropEdges(TemporalPoints):
                 raise Exception()
             db1 = pplt.Displayer(x1s, y1s, color='k', marker="o")
             db2 = pplt.Displayer(x2s, y2s, color='k', marker="o")
-            bmgr.add_displayers([db1, db2])
+            displs.append(db1)
+            displs.append(db2)
         # Display fitting
-        if self[0].edges_fits is not None:
+        if self[0].edges_fits is not None and displ_fit:
             x1s = []
             y1s = []
             x2s = []
@@ -355,28 +356,31 @@ class TemporalDropEdges(TemporalPoints):
                 raise Exception()
             db1 = pplt.Displayer(x1s, y1s, color=self[0].colors[1])
             db2 = pplt.Displayer(x2s, y2s, color=self[0].colors[1])
-            bmgr.add_displayers([db1, db2])
+            displs.append(db1)
+            displs.append(db2)
         # Display triple points
-        xs = []
-        ys = []
-        for edge in self.point_sets:
-            if edge.triple_pts is None:
-                xs.append([np.nan, np.nan])
-                ys.append([np.nan, np.nan])
-            else:
-                xs.append([edge.triple_pts[0][0],
-                           edge.triple_pts[1][0]])
-                ys.append([edge.triple_pts[0][1],
-                           edge.triple_pts[1][1]])
-        if len(xs) != length or len(ys) != length:
-            raise Exception()
-        if not np.all(np.isnan(xs)):
-            db = pplt.Displayer(xs, ys, ls='none', marker='o',
-                                kind='plot',
-                                color=self[0].colors[2])
-            bmgr.add_displayers([db])
+        if displ_tp:
+            xs = []
+            ys = []
+            for edge in self.point_sets:
+                if edge.triple_pts is None:
+                    xs.append([np.nan, np.nan])
+                    ys.append([np.nan, np.nan])
+                else:
+                    xs.append([edge.triple_pts[0][0],
+                               edge.triple_pts[1][0]])
+                    ys.append([edge.triple_pts[0][1],
+                               edge.triple_pts[1][1]])
+            if len(xs) != length or len(ys) != length:
+                raise Exception()
+            if not np.all(np.isnan(xs)):
+                db = pplt.Displayer(xs, ys, ls='none', marker='o',
+                                    kind='plot',
+                                    color=self[0].colors[2])
+                displs.append(db)
         # Display contact angles
-        if np.any([edge.thetas for edge in self.point_sets] is not None):
+        if np.any([edge.thetas for edge in self.point_sets] is not None) \
+           and displ_ca:
             lines = [edge._get_angle_display_lines()
                      for edge in self.point_sets]
             lines1 = []
@@ -399,9 +403,10 @@ class TemporalDropEdges(TemporalPoints):
                         raise Exception()
                     db = pplt.Displayer(line[:, 0], line[:, 1],
                                         kind='plot', color=self[0].colors[0])
-                    bmgr.add_displayers([db])
+                    displs.append(db)
         # Add button manager
-        return bmgr
+        bm = pplt.ButtonManager(displs)
+        return bm
 
     def display_ridge_evolution(self, tis=None):
         """
