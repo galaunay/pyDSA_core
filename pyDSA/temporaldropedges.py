@@ -18,7 +18,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from IMTreatment.utils import ProgressCounter
 from IMTreatment import TemporalPoints, Profile, plotlib as pplt
-from .dropedges import DropEdges
 
 
 """  """

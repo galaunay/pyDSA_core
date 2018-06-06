@@ -23,6 +23,7 @@ import scipy.optimize as spopt
 import scipy.misc as spmisc
 from IMTreatment import Points, Profile
 import IMTreatment.plotlib as pplt
+from .helpers import fit_circle
 
 
 """  """
@@ -54,6 +55,8 @@ class DropEdges(Points):
         self.drop_edges = self._separate_drop_edges()
         self.edges_fits = None
         self.triple_pts = None
+        self.circle_fits = None
+        self.circle_fits = None
         self.baseline = im.baseline
         self.thetas = None
         self.thetas_triple = None
@@ -462,12 +465,57 @@ class DropEdges(Points):
             plt.show()
         return z1, - new_r1 + self.get_drop_position()
 
-    def display(self, *args, **kwargs):
+    def fit_circles(self):
+        """
+        Fit circles to the edges, cutting them if a triple point is
+        present.
+        """
+        if self.triple_pts is not None:
+            # get data
+            tp1 = self.triple_pts[0]
+            tp2 = self.triple_pts[1]
+            xs1 = self.drop_edges[0].y
+            ys1 = self.drop_edges[0].x
+            xs2 = self.drop_edges[1].y
+            ys2 = self.drop_edges[1].x
+            # separate at the triple point
+            ind_sep1 = np.where(ys1 > tp1[1])[0][0]
+            ind_sep2 = np.where(ys2 > tp2[1])[0][0]
+            xs_o1 = xs1[0:ind_sep1]
+            ys_o1 = ys1[0:ind_sep1]
+            xs_o2 = xs2[0:ind_sep2]
+            ys_o2 = ys2[0:ind_sep2]
+            xs_d = np.concatenate((xs1[ind_sep1::], xs2[ind_sep2::][::-1]))
+            ys_d = np.concatenate((ys1[ind_sep1::], ys2[ind_sep2::][::-1]))
+            # Fit circles
+            c_o1, R1 = fit_circle(xs_o1, ys_o1)
+            c_o2, R2 = fit_circle(xs_o2, ys_o2)
+            c_d, Rd = fit_circle(xs_d, ys_d)
+            self.circle_fits = [[c_o1, R1], [c_o2, R2], [c_d, Rd]]
+            # Get triple points based from circles
+            xtp1 = (c_o1[0]*Rd + c_d[0]*R1)/(Rd + R1)
+            ytp1 = (c_o1[1]*Rd + c_d[1]*R1)/(Rd + R1)
+            xtp2 = (c_o2[0]*Rd + c_d[0]*R2)/(Rd + R2)
+            ytp2 = (c_o2[1]*Rd + c_d[1]*R2)/(Rd + R2)
+            self.circle_triple_pts = [[xtp1, ytp1], [xtp2, ytp2]]
+        else:
+            # get data
+            xs = np.concatenate((self.drop_edges[0].y,
+                                 self.drop_edges[1].y[::-1]))
+            ys = np.concatenate((self.drop_edges[0].y,
+                                 self.drop_edges[1].y[::-1]))
+            # Fit circles
+            c, R = fit_circle(xs, ys)
+            self.circle_fits = [[c, R]]
+
+    def display(self, displ_edges=True, displ_fits=True, displ_ca=True,
+                displ_tp=True, displ_circ=True, *args, **kwargs):
         """
         """
         # super().display(*args, **kwargs)
-        for edg in self.drop_edges:
-            plt.plot(edg.y, edg.x, color='k', marker='o')
+        if displ_edges:
+            for edg in self.drop_edges:
+                plt.plot(edg.y, edg.x, color='k', marker='o')
         plt.axis('equal')
         # Display baseline
         x0 = np.min(self.xy[:, 0])
@@ -476,7 +524,7 @@ class DropEdges(Points):
         xf += np.abs(xf - x0)*.1
         self.baseline.display(x0, xf, color=self.colors[0])
         # Display fits
-        if self.edges_fits is not None:
+        if self.edges_fits is not None and displ_fits:
             xy_inter = self._get_inters_base_fit()
             y1 = np.linspace(xy_inter[0][1],
                              np.max(self.xy[:, 1]),
@@ -489,7 +537,7 @@ class DropEdges(Points):
             plt.plot(x1, y1, color=self.colors[1])
             plt.plot(x2, y2, color=self.colors[1])
         # Display contact angles
-        if self.thetas is not None:
+        if self.thetas is not None and displ_ca:
             lines = self._get_angle_display_lines()
             for line in lines:
                 plt.plot(line[0], line[1],
@@ -498,12 +546,22 @@ class DropEdges(Points):
                          line[0][1],
                          color=self.colors[0])
         # Display triple points
-        if self.triple_pts is not None:
+        if self.triple_pts is not None and displ_tp:
             for i in [0, 1]:
                 plt.plot(self.triple_pts[i][0],
                          self.triple_pts[i][1],
                          marker="o",
                          color=self.colors[4])
+        # Display circles
+        if self.circle_fits is not None and displ_circ:
+            for cf in self.circle_fits:
+                xyc, R = cf
+                plt.plot(xyc[0], xyc[1], 'o',
+                         color=self.colors[5])
+                circ = plt.Circle((xyc[0], xyc[1]), radius=R,
+                                  color=self.colors[5],
+                                  fill=False)
+                plt.gca().add_artist(circ)
 
     def _get_angle_display_lines(self):
         lines = []

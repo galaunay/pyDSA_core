@@ -22,10 +22,10 @@ from IMTreatment import TemporalScalarFields
 from IMTreatment.utils import ProgressCounter
 from IMTreatment.stabilize import Stabilizer
 import IMTreatment.plotlib as pplt
-from .image import Image
-from .baseline import Baseline
-from .temporaldropedges import TemporalDropEdges
-from .dropedges import DropEdges
+from . import image
+from . import baseline
+from . import temporaldropedges as tde
+from . import dropedges
 
 
 """  """
@@ -43,7 +43,7 @@ class TemporalImages(TemporalScalarFields):
     def __init__(self, filepath=None, cache_infos=True):
         super().__init__()
         self.baseline = None
-        self.field_type = Image
+        self.field_type = image.Image
         if filepath is not None:
             self.filepath = os.path.abspath(filepath)
             self.infofile_path = os.path.splitext(self.filepath)[0] + ".info"
@@ -67,7 +67,7 @@ class TemporalImages(TemporalScalarFields):
         """
         for i in range(len(self.fields)):
             self.fields[i].set_baseline(pt1=pt1, pt2=pt2)
-        self.baseline = Baseline([pt1, pt2],
+        self.baseline = baseline.Baseline([pt1, pt2],
                                  xmax=self.axe_x[-1],
                                  xmin=self.axe_x[0])
         if self.cache_infos:
@@ -137,7 +137,7 @@ class TemporalImages(TemporalScalarFields):
 
     def display(self, *args, **kwargs):
         super().display(*args, **kwargs)
-        if isinstance(self.baseline, Baseline):
+        if isinstance(self.baseline, baseline.Baseline):
             self.baseline.display()
         elif self.baseline == "evolving":
             # Display evolving baseline
@@ -279,7 +279,7 @@ class TemporalImages(TemporalScalarFields):
             raise Exception('You have to define a baseline first.')
         #
         all_edge_empty = True
-        pts = TemporalDropEdges()
+        pts = tde.TemporalDropEdges()
         pts.baseline = self.baseline
         if verbose:
             pg = ProgressCounter(init_mess="Detecting drop edges",
@@ -331,7 +331,7 @@ class TemporalImages(TemporalScalarFields):
             Putting a small value to this allow to avoid
             small surface defects to be taken into account.
         """
-        pts = TemporalDropEdges()
+        pts = tde.TemporalDropEdges()
         pts.baseline = self.baseline
         if verbose:
             pg = ProgressCounter("Detecting drop edges", "Done",
@@ -343,7 +343,7 @@ class TemporalImages(TemporalScalarFields):
                                                            ignored_pixels=ignored_pixels,
                                                            size_ratio=size_ratio)
             except Exception:
-                pt = DropEdges(xy=[], im=self, type='contour')
+                pt = dropedges.DropEdges(xy=[], im=self, type='contour')
             pts.add_pts(pt, time=self.times[i], unit_times=self.unit_times)
             if verbose:
                 pg.print_progress()
