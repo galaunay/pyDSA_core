@@ -56,7 +56,7 @@ class DropEdges(Points):
         self.edges_fits = None
         self.triple_pts = None
         self.circle_fits = None
-        self.circle_fits = None
+        self.circle_triple_pts = None
         self.baseline = im.baseline
         self.thetas = None
         self.thetas_triple = None
@@ -249,7 +249,7 @@ class DropEdges(Points):
             while True:
                 if zerofun(y0)*zerofun(yf) > 0 and \
                     abs(y0 - yf)/((y0 + yf)/2) > 0.01:
-                    yf -= (yf - y0)*1/5
+                    yf -= (yf - y0)*1/10
                 else:
                     break
             # get exact position
@@ -465,10 +465,19 @@ class DropEdges(Points):
             plt.show()
         return z1, - new_r1 + self.get_drop_position()
 
-    def fit_circles(self):
+    def fit_circles(self, sigma_max=None):
         """
         Fit circles to the edges, cutting them if a triple point is
         present.
+
+        Parameters
+        ==========
+        sigma_max: number
+            If specified, points too far from the fit are iteratively removed
+            until:
+            std(R) < mean(R)*sigma_max
+            With R the radii.
+
         """
         if self.triple_pts is not None:
             # get data
@@ -488,9 +497,12 @@ class DropEdges(Points):
             xs_d = np.concatenate((xs1[ind_sep1::], xs2[ind_sep2::][::-1]))
             ys_d = np.concatenate((ys1[ind_sep1::], ys2[ind_sep2::][::-1]))
             # Fit circles
-            c_o1, R1 = fit_circle(xs_o1, ys_o1)
-            c_o2, R2 = fit_circle(xs_o2, ys_o2)
-            c_d, Rd = fit_circle(xs_d, ys_d)
+            c_o1, R1 = fit_circle(xs_o1, ys_o1, self.baseline,
+                                  sigma_max=sigma_max)
+            c_o2, R2 = fit_circle(xs_o2, ys_o2, self.baseline,
+                                  sigma_max=sigma_max)
+            c_d, Rd = fit_circle(xs_d, ys_d,
+                                 sigma_max=sigma_max)
             self.circle_fits = [[c_o1, R1], [c_o2, R2], [c_d, Rd]]
             # Get triple points based from circles
             xtp1 = (c_o1[0]*Rd + c_d[0]*R1)/(Rd + R1)
@@ -500,16 +512,18 @@ class DropEdges(Points):
             self.circle_triple_pts = [[xtp1, ytp1], [xtp2, ytp2]]
         else:
             # get data
+            raise Exception('Not tested yet')
             xs = np.concatenate((self.drop_edges[0].y,
                                  self.drop_edges[1].y[::-1]))
             ys = np.concatenate((self.drop_edges[0].y,
                                  self.drop_edges[1].y[::-1]))
             # Fit circles
-            c, R = fit_circle(xs, ys)
+            c, R = fit_circle(xs, ys, sigma_max=sigma_max)
             self.circle_fits = [[c, R]]
 
     def display(self, displ_edges=True, displ_fits=True, displ_ca=True,
-                displ_tp=True, displ_circ=True, *args, **kwargs):
+                displ_tp=True, displ_circ_tp=True, displ_circ=True,
+                *args, **kwargs):
         """
         """
         # super().display(*args, **kwargs)
@@ -556,12 +570,17 @@ class DropEdges(Points):
         if self.circle_fits is not None and displ_circ:
             for cf in self.circle_fits:
                 xyc, R = cf
-                plt.plot(xyc[0], xyc[1], 'o',
+                plt.plot(xyc[0], xyc[1], marker='o',
                          color=self.colors[5])
                 circ = plt.Circle((xyc[0], xyc[1]), radius=R,
                                   color=self.colors[5],
                                   fill=False)
                 plt.gca().add_artist(circ)
+        # Display triple points from circle fits
+        if self.circle_triple_pts is not None and displ_circ_tp:
+            for tp in self.circle_triple_pts:
+                plt.plot(tp[0], tp[1], marker='o',
+                         color=self.colors[5])
 
     def _get_angle_display_lines(self):
         lines = []
@@ -693,14 +712,25 @@ class DropEdges(Points):
             h.append(np.max(edge.xy[:, 1]))
         return h
 
-    def get_ridge_height(self):
+    def get_ridge_height(self, from_circ_fit=False):
+
         """
         Return the ridge height.
+
+        Parameters
+        ==========
+        from_circ_fit: boolean
+            If true, use the triple points found by the
+            circle fits.
         """
-        if self.triple_pts is None:
+        if from_circ_fit:
+            pts = self.circle_triple_pts
+        else:
+            pts = self.triple_pts
+        if pts is None:
             return np.nan, np.nan
         heights = []
-        for pt in self.triple_pts:
+        for pt in pts:
             x = pt[0]
             y = pt[1]
             y0 = self.baseline.get_baseline_fun()(x)

@@ -102,6 +102,32 @@ class TemporalDropEdges(TemporalPoints):
         if smooth is not None:
             self.smooth_triple_points(tos='gaussian', size=smooth)
 
+    def fit_circles(self, sigma_max=None, verbose=False):
+        """
+        Fit circles to the edges, cutting them if a triple point is
+        present.
+
+        Parameters
+        ==========
+        sigma_max: number
+            If specified, points too far from the fit are iteratively removed
+            until:
+            std(R) < mean(R)*sigma_max
+            With R the radii.
+        """
+        if verbose:
+            pg = ProgressCounter(init_mess="Fitting circles to edges",
+                                 nmb_max=len(self.point_sets),
+                                 name_things='edges',
+                                 perc_interv=5)
+        for edge in self.point_sets:
+            try:
+                edge.fit_circles(sigma_max=sigma_max)
+            except Exception:
+                pass
+            if verbose:
+                pg.print_progress()
+
     def get_contact_angles(self):
         """
         Return the drop contact angles.
@@ -138,14 +164,20 @@ class TemporalDropEdges(TemporalPoints):
         triple_pts2 = np.asarray(triple_pts2)
         return triple_pts1, triple_pts2
 
-    def get_ridge_heights(self):
+    def get_ridge_heights(self, from_circ_fit=False):
         """
         Return the ridge heights.
+
+        Parameters
+        ==========
+        from_circ_fit: boolean
+            If true, use the triple points found by the
+            circle fits.
         """
         height1 = []
         height2 = []
         for edge in self.point_sets:
-            h1, h2 = edge.get_ridge_height()
+            h1, h2 = edge.get_ridge_height(from_circ_fit=from_circ_fit)
             height1.append(h1)
             height2.append(h2)
         return (np.array(height1, dtype=float),
@@ -294,7 +326,9 @@ class TemporalDropEdges(TemporalPoints):
                     edge.thetas_triple = [theta3[i], theta4[i]]
 
     def display(self, displ_pts=True, displ_fit=True,
-                displ_tp=True, displ_ca=True, *args, **kwargs):
+                displ_tp=True, displ_ca=True,
+                displ_circ=True, displ_circ_tp=True,
+                *args, **kwargs):
         #
         length = len(self.point_sets)
         kwargs['cpkw'] = {}
@@ -403,6 +437,70 @@ class TemporalDropEdges(TemporalPoints):
                     db = pplt.Displayer(line[:, 0], line[:, 1],
                                         kind='plot', color=self[0].colors[0])
                     displs.append(db)
+        # Display circles
+        if displ_circ:
+            thetas = np.linspace(0, np.pi*2, 100)
+            # loop on different circles
+            for i in range(3):
+                xs = []
+                ys = []
+                xps = []
+                yps = []
+                # Loop on times
+                for j in range(len(self.point_sets)):
+                    if self[j].circle_fits is None:
+                        for l in [xs, ys]:
+                            l.append(np.nan*thetas)
+                        for l in [xps, yps]:
+                            l.append([np.nan])
+                        continue
+                    if i >= len(self[j].circle_fits):
+                        for l in [xs, ys]:
+                            l.append(np.nan*thetas)
+                        for l in [xps, yps]:
+                            l.append([np.nan])
+                        continue
+                    if self[j].circle_fits[i] is None:
+                        for l in [xs, ys]:
+                            l.append(np.nan*thetas)
+                        for l in [xps, yps]:
+                            l.append([np.nan])
+                        continue
+                    # plot the circle !
+                    (xc, yc), R = self[j].circle_fits[i]
+                    xs.append(xc + R*np.cos(thetas))
+                    ys.append(yc + R*np.sin(thetas))
+                    xps.append([xc])
+                    yps.append([yc])
+                if not np.all(np.isnan(ys)):
+                    db = pplt.Displayer(xs, ys, kind='plot',
+                                        color=self[0].colors[5])
+                    displs.append(db)
+                if not np.all(np.isnan(yps)):
+                    dbp = pplt.Displayer(xps, yps, kind='plot',
+                                         marker='o',
+                                         color=self[0].colors[5])
+                    displs.append(dbp)
+        # Display triple points from circle fits
+        if displ_circ_tp:
+            xs = []
+            ys = []
+            for i in range(len(self.point_sets)):
+                # check
+                if self[i].circle_triple_pts is None:
+                    for l in [xs, ys]:
+                        l.append([np.nan, np.nan])
+                    continue
+                xs.append([self[i].circle_triple_pts[0][0],
+                           self[i].circle_triple_pts[1][0]])
+                ys.append([self[i].circle_triple_pts[0][1],
+                           self[i].circle_triple_pts[1][1]])
+            if not np.all(np.isnan(ys)):
+                db = pplt.Displayer(xs, ys, kind='plot',
+                                    marker='o', ls='none',
+                                    color=self[0].colors[5])
+                displs.append(db)
+
         # Add button manager
         bm = pplt.ButtonManager(displs)
         return bm

@@ -158,10 +158,38 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
     return ti
 
 
-def fit_circle(xs, ys):
+def circle_from_three_points(pt1, pt2, pt3):
+    """
+    Give the center and radius of a circle from three points
+    """
+    x1, y1 = pt1
+    x2, y2 = pt2
+    x3, y3 = pt3
+    ma = (y2 - y1)/(x2 - x1)
+    mb = (y3 - y2)/(x3 - x2)
+    x = (ma*mb*(y1 - y3) + mb*(x1 + x2) - ma*(x2 + x3))/(2*(mb - ma))
+    y = -(1/ma)*(x - (x1 + x2)/2) + (y1 + y2)/2
+    R = ((y1 - y)**2 + (x1 - x)**2)**.5
+    return (x, y), R
+
+
+def fit_circle(xs, ys, baseline=None, sigma_max=None):
     """
     Fit a circle to the given points.
+
+    Parameters
+    ==========
+    xs, ys: arrays
+        Coordinates of the points to fit.
+    baseline: Baseline object
+        If specified, the fitting will try to not pass through the baseline.
+    sigma_max: number
+        If specified, points too far from the fit are iteratively removed
+        until they all fall in the range R +- sigma*R
     """
+    if baseline:
+        basefun = baseline.get_baseline_fun()
+
     def calc_R(x, y, xc, yc):
         """
         Calculate the distance of each data points from the center (xc, yc)
@@ -175,29 +203,37 @@ def fit_circle(xs, ys):
         """
         xc, yc = args
         Ri = calc_R(x, y, xc, yc)
-        return Ri - Ri.mean()
+        if baseline:
+            yb = basefun(xc)
+            R_mean = yc - yb
+        else:
+            R_mean = Ri.mean()
+        return Ri - R_mean
 
-    def Df_2b(args, x, y):
-        """
-        Jacobian of f_2b.
-        The axis corresponding to derivatives must be coherent with the
-        col_deriv option of leastsq
-        """
-        xc, yc = args
-        df2b_dc = np.empty((2, x.size))
-        Ri = calc_R(x, y, xc, yc)
-        df2b_dc[0] = (xc - x) / Ri  # dR/dxc
-        df2b_dc[1] = (yc - y) / Ri  # dR/dyc
-        df2b_dc = df2b_dc - df2b_dc.mean(axis=1)[:, np.newaxis]
-        return df2b_dc
-
-    # First guess for the centered
-    xc = np.mean(xs)
-    yc = np.mean(ys)
+    # First guess from three points
+    (xc, yc), R = circle_from_three_points([xs[0], ys[0]],
+                                           [xs[int(len(xs)/2)],
+                                            ys[int(len(xs)/2)]],
+                                           [xs[-1], ys[-1]])
     # Fit
-    center, ier = spopt.leastsq(
-        f_2b, (xc, yc), Dfun=Df_2b, col_deriv=True,
-        args=(xs, ys))
+    if sigma_max is not None:
+        while True:
+            center, ier = spopt.leastsq(
+                f_2b, (xc, yc), col_deriv=True,
+                args=(xs, ys))
+            Rs = calc_R(xs, ys, *center)
+            R_mean = np.mean(Rs)
+            R_std = np.std(Rs)
+            if R_std < R_mean*sigma_max:
+                break
+            filt = np.logical_and(Rs < R_mean + R_std*2,
+                                  Rs > R_mean - R_std*2)
+            xs = xs[filt]
+            ys = ys[filt]
+    else:
+        center, ier = spopt.leastsq(
+            f_2b, (xc, yc), col_deriv=True,
+            args=(xs, ys))
     # return
     R = np.mean(calc_R(xs, ys, *center))
     return center, R
