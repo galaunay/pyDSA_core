@@ -298,7 +298,7 @@ class TemporalImages(TemporalScalarFields):
                                                          smooth_size=smooth_size)
                 all_edge_empty = False
             except Exception:
-                pt = DropEdges(xy=[], im=self, type='canny')
+                pt = dropedges.DropEdges(xy=[], im=self, type='canny')
             pts.add_pts(pt, time=self.times[i], unit_times=self.unit_times)
             if verbose:
                 pg.print_progress()
