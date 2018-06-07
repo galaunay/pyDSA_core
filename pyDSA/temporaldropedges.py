@@ -102,7 +102,8 @@ class TemporalDropEdges(TemporalPoints):
         if smooth is not None:
             self.smooth_triple_points(tos='gaussian', size=smooth)
 
-    def fit_circles(self, sigma_max=None, verbose=False, nmb_pass=1):
+    def fit_circles(self, sigma_max=None, verbose=False, nmb_pass=1,
+                    soft_constr=False):
         """
         Fit circles to the edges, cutting them if a triple point is
         present.
@@ -131,7 +132,8 @@ class TemporalDropEdges(TemporalPoints):
             self.smooth_triple_points('gaussian', size=10)
             for edge in self.point_sets:
                 try:
-                    edge.fit_circles(sigma_max=sigma_max)
+                    edge.fit_circles(sigma_max=sigma_max,
+                                     soft_constr=soft_constr)
                 except Exception:
                     pass
                 if verbose:

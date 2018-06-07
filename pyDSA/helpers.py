@@ -57,7 +57,7 @@ def import_from_image(path, dx=1, dy=1, unit_x="", unit_y=""):
     data = data[:, ::-1]
     axe_x = np.arange(0, data.shape[0]*dx, dx)
     axe_y = np.arange(0, data.shape[1]*dy, dy)
-    img = Image(filepath=path)
+    img = image.Image(filepath=path)
     img.import_from_arrays(axe_x, axe_y, data,
                            unit_x=unit_x, unit_y=unit_y)
     return img
@@ -173,7 +173,8 @@ def circle_from_three_points(pt1, pt2, pt3):
     return (x, y), R
 
 
-def fit_circle(xs, ys, baseline=None, tangent_circ=None, sigma_max=None):
+def fit_circle(xs, ys, baseline=None, tangent_circ=None, sigma_max=None,
+               soft_constr=False):
     """
     Fit a circle to the given points.
 
@@ -188,9 +189,18 @@ def fit_circle(xs, ys, baseline=None, tangent_circ=None, sigma_max=None):
     sigma_max: number
         If specified, points too far from the fit are iteratively removed
         until they all fall in the range R +- sigma*R
+    soft_constr: boolean
+        If True, constraints are fitted instead of being imposed.
     """
-    if baseline:
+    # Init some params
+    if baseline is not None:
         basefun = baseline.get_baseline_fun()
+    if tangent_circ is not None:
+        (xd, yd), Rd = tangent_circ
+        if xd > np.mean(xs):
+            side = -1
+        else:
+            side = +1
 
     def calc_R(x, y, xc, yc):
         """
@@ -198,7 +208,7 @@ def fit_circle(xs, ys, baseline=None, tangent_circ=None, sigma_max=None):
         """
         return np.sqrt((x - xc)**2 + (y - yc)**2)
 
-    def f_2b(args, x, y):
+    def f_circle_soft_constr(args, x, y):
         """
         Calculate the algebraic distance between the 2D points and the mean
         circle centered at c=(xc, yc)
@@ -215,36 +225,102 @@ def fit_circle(xs, ys, baseline=None, tangent_circ=None, sigma_max=None):
             residu += (dist_circ - (Ro + Ri.mean()))
         return residu
 
+    def f_circle_constr(args, x, y):
+        """
+        Calculate the algebraic distance between the 2D points and the mean
+        circle centered at c=(xc, yc)
+        """
+        R = abs(args[0])
+        (xd, yd), Rd = tangent_circ
+        # first y guess
+        xc, yc = center_from_R(R)
+        # return residu
+        Ri = calc_R(x, y, xc, yc)
+        residu = Ri - R
+        return residu
+
+    def f_circle(args, x, y):
+        """
+        Calculate the algebraic distance between the 2D points and the mean
+        circle centered at c=(xc, yc)
+        """
+        xc, yc = args
+        Ri = calc_R(x, y, xc, yc)
+        residu = Ri - Ri.mean()
+        return residu
+
+    def center_from_R(R):
+        """
+        Return the position of the fitting center for a
+        constrained circle of diameter R
+        """
+        (xd, yd), Rd = tangent_circ
+        # first y guess
+        yc = basefun(xd - Rd - R) + R
+        # first x guess
+        xc = xd + side*((R + Rd)**2 - (yc - yd)**2)**.5
+        # corrections
+        old_yc = np.inf
+        while abs(old_yc - yc)/R > 1e-6:
+            old_yc = yc
+            yc = basefun(xc) + R
+            xc = xd + side*((R + Rd)**2 - (yc - yd)**2)**.5
+        return xc, yc
+
     # First guess from three points
     (xc, yc), R = circle_from_three_points([xs[0], ys[0]],
                                            [xs[int(len(xs)/2)],
                                             ys[int(len(xs)/2)]],
                                            [xs[-1], ys[-1]])
-    # Fit
+    # Choose adequate fitting function
+    if baseline is None and tangent_circ is None:
+        fit_function = f_circle
+        init_guess = (xc, yc)
+    elif baseline is not None and tangent_circ is not None:
+        # checking side
+        if soft_constr:
+            fit_function = f_circle_soft_constr
+            init_guess = (xc, yc)
+        else:
+            fit_function = f_circle_constr
+            init_guess = (R,)
+    else:
+        raise Exception("Not implemented yet")
+    # Iterative fit (removing marginal values each time)
     tmp_xs = xs.copy()
     tmp_ys = ys.copy()
     if sigma_max is not None:
-        i = 0
         while True:
-            i += 1
-            center, ier = spopt.leastsq(
-                f_2b, (xc, yc), col_deriv=True,
+            args, ier = spopt.leastsq(
+                fit_function, init_guess,
                 args=(tmp_xs, tmp_ys))
-            Rs = calc_R(tmp_xs, tmp_ys, *center)
-            R_mean = np.mean(Rs)
+            if len(args) == 1:
+                R = abs(args[0])
+                center = center_from_R(R)
+                Rs = calc_R(tmp_xs, tmp_ys, *center)
+            else:
+                center = args
+                Rs = calc_R(tmp_xs, tmp_ys, *center)
+                R = np.mean(Rs)
             R_std = np.std(Rs)
-            if R_std < R_mean*sigma_max or len(tmp_xs) <= 10:
+            if R_std < R*sigma_max or len(tmp_xs) <= 10:
                 break
-            filt = np.logical_and(Rs < R_mean + R_std*2,
-                                  Rs > R_mean - R_std*2)
+            filt = np.logical_and(Rs < R + R_std*2,
+                                  Rs > R - R_std*2)
             if np.all(filt):
-                filt[np.argmax(abs(Rs - R_mean))] = False
+                filt[np.argmax(abs(Rs - R))] = False
             tmp_xs = tmp_xs[filt]
             tmp_ys = tmp_ys[filt]
+    # Classical fit
     else:
-        center, ier = spopt.leastsq(
-            f_2b, (xc, yc), col_deriv=True,
+        args, ier = spopt.leastsq(
+            fit_function, init_guess,
             args=(tmp_xs, tmp_ys))
+        if len(args) == 1:
+            R = abs(args[0])
+            center = center_from_R(R)
+        else:
+            center = args
+            R = np.mean(calc_R(tmp_xs, tmp_ys, *center))
     # return
-    R = np.mean(calc_R(tmp_xs, tmp_ys, *center))
     return center, R

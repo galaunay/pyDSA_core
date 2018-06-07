@@ -104,7 +104,6 @@ class DropEdges(Points):
         de2.smooth(tos='gaussian', size=1, inplace=True)
         return de1, de2
 
-
     def detect_triple_points(self, verbose=False, use_x_minima=False):
         """
         Compute the triple points (water, oil and air interfaces) position.
@@ -216,13 +215,15 @@ class DropEdges(Points):
             plt.grid()
         # Get the triple point iteratively
         while True:
-            y0 = self._get_curvature_root(y=y, zerofun=zerofun, verbose=verbose)
+            y0 = self._get_curvature_root(y=y, zerofun=zerofun,
+                                          verbose=verbose)
             if y0 is None:
                 return None
             # check if the triple point is curvature coherent,
             # else, find the next one
             deriv = dzerofun(y0)
-            if (edge_number == 0 and deriv < 0) or (edge_number == 1 and deriv > 0):
+            if (edge_number == 0 and deriv < 0) or (edge_number == 1
+                                                    and deriv > 0):
                 y = y[y > y0]
             else:
                 break
@@ -465,7 +466,7 @@ class DropEdges(Points):
             plt.show()
         return z1, - new_r1 + self.get_drop_position()
 
-    def fit_circles(self, sigma_max=None):
+    def fit_circles(self, sigma_max=None, soft_constr=False):
         """
         Fit circles to the edges, cutting them if a triple point is
         present.
@@ -505,10 +506,12 @@ class DropEdges(Points):
                                  sigma_max=sigma_max)
             c_o1, R1 = fit_circle(xs_o1, ys_o1, self.baseline,
                                   sigma_max=sigma_max,
-                                  tangent_circ=(c_d, Rd))
+                                  tangent_circ=(c_d, Rd),
+                                  soft_constr=soft_constr)
             c_o2, R2 = fit_circle(xs_o2, ys_o2, self.baseline,
                                   sigma_max=sigma_max,
-                                  tangent_circ=(c_d, Rd))
+                                  tangent_circ=(c_d, Rd),
+                                  soft_constr=soft_constr)
             # check for abnormal values
             if R1 > Rd or R2 > Rd or c_o1[0] > c_d[0] or c_o2[0] < c_d[0]:
                 return None
@@ -779,7 +782,7 @@ class DropEdges(Points):
             dy = self.drop_edges[i].x
             dy = (dy[-1] - dy[0])/100
             deriv = spmisc.derivative(sfun, y_inter, dx=dy)
-            theta =  np.pi*1/2 - np.arctan(deriv)
+            theta = np.pi*1/2 - np.arctan(deriv)
             thetas.append(theta/np.pi*180)
         return thetas
 
