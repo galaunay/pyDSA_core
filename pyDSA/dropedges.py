@@ -674,56 +674,20 @@ class DropEdges(Points):
             plt.show()
         return xys
 
-    def get_drop_base(self):
+    def _get_inters_base_circle_fit(self):
         """
-        Return the drop base.
-
-        Returns
-        =======
-        x1, x2: numbers
-            Coordinates of the drop base.
         """
-        if self.edges_fits is None:
-            return [np.nan, np.nan]
-        pt1, pt2 = self._get_inters_base_fit()
-        return np.sort([pt1[0], pt2[0]])
-
-    def get_drop_position(self):
-        """
-        Return the drop position along x (drop center)
-
-        Returns
-        =======
-        x : number
-            Position of the drop
-        """
-        return np.mean(self.get_drop_base())
-
-    def get_drop_base_radius(self):
-        """
-        Return the drop base radius.
-        """
-        db = self.get_drop_base()
-        return db[1] - db[0]
-
-    def get_drop_radius(self):
-        """
-        Return the drop base radius. based on the triple points.
-        """
-        # Use triple points if present
-        if self.triple_pts is not None and not np.any(np.isnan(self.triple_pts)):
-            return abs(self.triple_pts[0][0] - self.triple_pts[1][0])
-        else:
-            return np.nan
-
-    def get_drop_height(self):
-        """
-        Return the evolution of the drop height.
-        """
-        h = []
-        for edge in self.point_sets:
-            h.append(np.max(edge.xy[:, 1]))
-        return h
+        if self.circle_fits is None:
+            raise Exception()
+        bs1, bs2 = self.baseline.pt1, self.baseline.pt2
+        alpha = np.atan((bs2[1] - bs1[1])/(bs2[0] - bs2[0]))
+        xys = []
+        for fit in self.circle_fits[1::]:
+            xc, yc, R = fit
+            tmpx = xc + R*np.sin(alpha)
+            tmpy = yc - R*np.cos(alpha)
+            xys.append(tmpx, tmpy)
+        return xys
 
     def get_ridge_height(self, from_circ_fit=False):
 
@@ -750,6 +714,23 @@ class DropEdges(Points):
             y -= y0
             heights.append(y)
         return heights
+
+    def get_base_diameter(self, from_circ_fit=False):
+        """
+        Return the base diameter.
+
+        Parameters
+        ==========
+        from_circ_fit: boolean
+            If True, us te circle fits (more accurate),
+            else, use the spline fits.
+        """
+        if from_circ_fit:
+            pt1, pt2 = self._get_inters_base_circle_fit()
+        else:
+            pt1, pt2 = self._get_inters_base_fit()
+        diam = ((pt1[0] - pt2[0])**2 + (pt1[1] - pt2[1])**2)**0.5
+        return diam
 
     def compute_contact_angle(self, verbose=False):
         """
