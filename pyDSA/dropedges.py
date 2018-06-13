@@ -680,13 +680,13 @@ class DropEdges(Points):
         if self.circle_fits is None:
             raise Exception()
         bs1, bs2 = self.baseline.pt1, self.baseline.pt2
-        alpha = np.atan((bs2[1] - bs1[1])/(bs2[0] - bs2[0]))
+        alpha = np.arctan((bs2[1] - bs1[1])/(bs2[0] - bs2[0]))
         xys = []
-        for fit in self.circle_fits[1::]:
-            xc, yc, R = fit
-            tmpx = xc + R*np.sin(alpha)
-            tmpy = yc - R*np.cos(alpha)
-            xys.append(tmpx, tmpy)
+        for fit in self.circle_fits[:-1]:
+            (xc, yc), R = fit
+            tmpx = xc + R*np.cos(alpha)
+            tmpy = yc - R*np.sin(alpha)
+            xys.append([tmpx, tmpy])
         return xys
 
     def get_ridge_height(self, from_circ_fit=False):

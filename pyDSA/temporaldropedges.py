@@ -199,32 +199,23 @@ class TemporalDropEdges(TemporalPoints):
         return (np.array(height1, dtype=float),
                 np.array(height2, dtype=float))
 
-    def get_drop_base(self):
+    def get_base_diameter(self, from_circ_fit=False):
         """
-        Return the drops base.
-        """
-        dbs = []
-        for edge in self.point_sets:
-            dbs.append(edge.get_drop_base())
-        return np.array(dbs)
+        Return the base diameters.
 
-    def get_drop_base_radius(self):
+        Parameters
+        ==========
+        from_circ_fit: boolean
+            If True, us te circle fits (more accurate),
+            else, use the spline fits.
         """
-        Return the drops base radius.
-        """
-        radii = []
+        diams = []
         for edge in self.point_sets:
-            radii.append(edge.get_drop_base_radius())
-        return radii
-
-    def get_drop_radius(self):
-        """
-        Return the drops base radius based on the triple points position.
-        """
-        radii = []
-        for edge in self.point_sets:
-            radii.append(edge.get_drop_radius())
-        return radii
+            if edge.circle_fits is None:
+                diams.append(np.nan)
+            else:
+                diams.append(edge.get_base_diameter(from_circ_fit=from_circ_fit))
+        return diams
 
     def compute_contact_angle(self, smooth=None, verbose=False):
         """
