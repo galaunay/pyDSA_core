@@ -64,7 +64,8 @@ def import_from_image(path, dx=1, dy=1, unit_x="", unit_y=""):
 
 
 def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
-                      frame_inds=None, incr=1, intervx=None, intervy=None,
+                      frame_inds=None, incr=1, nmb_frame_to_import=None,
+                      intervx=None, intervy=None,
                       dtype=np.uint8, verbose=False):
     """
     Import a images from a video file.
@@ -84,6 +85,9 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
     incr: integer
         Number of frame to import.
         (ex: with a value of 2, only 1/2 frames will be imported).
+    nmb_frame_to_import: integer
+        Number of evenly distributed frames to import
+        Will overwrite any values of 'incr'
     intervx, intervy: 2x1 list of numbers
         Cropping dimensions applied on each frames.
     dtype: type
@@ -109,6 +113,10 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         frame_inds = [0, max_frame - 1]
     if frame_inds[1] > max_frame - 1:
         frame_inds[1] = max_frame - 1
+    if nmb_frame_to_import is not None:
+        incr = int((frame_inds[-1] - frame_inds[0])/nmb_frame_to_import)
+        if incr == 0:
+            incr = 1
     # logs
     if verbose:
         nmb_frames = int((frame_inds[1] - frame_inds[0])/incr + 0.99999)
