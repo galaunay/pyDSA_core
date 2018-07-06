@@ -67,9 +67,10 @@ class TemporalImages(TemporalScalarFields):
         """
         for i in range(len(self.fields)):
             self.fields[i].set_baseline(pt1=pt1, pt2=pt2)
-        self.baseline = baseline.Baseline([pt1, pt2],
-                                 xmax=self.axe_x[-1],
-                                 xmin=self.axe_x[0])
+        self.baseline = baseline.Baseline(
+            [pt1, pt2],
+            xmax=self.axe_x[-1],
+            xmin=self.axe_x[0])
         if self.cache_infos:
             self._dump_infos()
 

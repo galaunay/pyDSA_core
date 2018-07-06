@@ -15,6 +15,8 @@
 # GNU General Public License for more details.
 
 import cv2
+import os
+import json
 import re
 import unum
 import numpy as np
@@ -43,14 +45,21 @@ __status__ = "Development"
 
 
 class Image(ScalarField):
-    def __init__(self, filepath=None):
+    def __init__(self, filepath=None, cache_infos=True):
         """
         Class representing a greyscale image.
         """
         super().__init__()
         self.baseline = None
         self.colors = pplt.get_color_cycles()
-        self.filepath = filepath
+        if filepath is not None:
+            self.filepath = os.path.abspath(filepath)
+            self.infofile_path = os.path.splitext(self.filepath)[0] + ".info"
+            self.cache_infos = cache_infos
+        else:
+            self.filepath = None
+            self.infofile_path = None
+            self.cache_infos = False
 
     def display(self, *args, **kwargs):
         super().display(*args, **kwargs)
@@ -71,6 +80,8 @@ class Image(ScalarField):
         self.baseline = Baseline([pt1, pt2],
                                  xmax=self.axe_x[-1],
                                  xmin=self.axe_x[0])
+        if self.cache_infos:
+            self._dump_infos()
 
     def choose_baseline(self):
         """
@@ -124,6 +135,8 @@ class Image(ScalarField):
         # use linear interpolation to get baseline
         self.baseline = Baseline(pos, xmin=self.axe_x[0],
                                  xmax=self.axe_x[-1])
+        if self.cache_infos:
+            self._dump_infos()
         return self.baseline
 
     def scale_interactive(self):
@@ -131,6 +144,8 @@ class Image(ScalarField):
         Scale the Image interactively.
         """
         sc = ScaleChooser(self)
+        if self.cache_infos:
+            self._dump_infos()
         return sc.ret_values
 
     def scale(self, scalex=None, scaley=None, scalev=None, inplace=True):
@@ -146,6 +161,58 @@ class Image(ScalarField):
                       inplace=inplace)
         if self.baseline is not None:
             self.baseline.scale(scalex=scalex, scaley=scaley)
+        if self.cache_infos:
+            self._dump_infos()
+
+    def _dump_infos(self):
+        # Gather old information if necessary
+        if os.path.isfile(self.infofile_path):
+            with open(self.infofile_path, 'r') as f:
+                dic = json.load(f)
+        else:
+            dic = {}
+        # Update with new values
+        unit_x = self.unit_x.strUnit()[1:-1]
+        unit_y = self.unit_y.strUnit()[1:-1]
+        if self.baseline is not None:
+            pt1 = list(self.baseline.pt1)
+            pt2 = list(self.baseline.pt2)
+        else:
+            pt1 = None
+            pt2 = None
+        new_dic = {"dx": self.dx,
+                   "dy": self.dy,
+                   "baseline_pt1": pt1,
+                   "baseline_pt2": pt2,
+                   "unit_x": unit_x,
+                   "unit_y": unit_y}
+        dic.update(new_dic)
+        # Write back infos
+        with open(self.infofile_path, 'w+') as f:
+            json.dump(dic, f)
+
+    def _import_infos(self):
+        if not os.path.isfile(self.infofile_path):
+            return None
+        try:
+            with open(self.infofile_path, 'r') as f:
+                dic = json.load(f)
+        except:
+            warnings.warn('Corrupted infofile, reinitializing...')
+            os.remove(self.infofile_path)
+            return None
+        # Update with infos
+        dx = dic['dx']
+        dy = dic['dy']
+        self.scale(scalex=dx/(self.axe_x[1] - self.axe_x[0]),
+                   scaley=dy/(self.axe_y[1] - self.axe_y[0]),
+                   inplace=True)
+        self.unit_x = dic['unit_x']
+        self.unit_y = dic['unit_y']
+        base1 = dic['baseline_pt1']
+        base2 = dic['baseline_pt2']
+        if base1 is not None and base2 is not None:
+            self.set_baseline(base1, base2)
 
     def binarize(self, method='adaptative', threshold=None, inplace=False):
         """
@@ -330,6 +397,7 @@ class Image(ScalarField):
                              nmb_edges=2, ignored_pixels=2,
                              keep_exterior=True,
                              smooth_size=None,
+                             dilatation_steps=1,
                              verbose=False, debug=False):
         """
         Perform edge detection using canny edge detection.
@@ -359,6 +427,9 @@ class Image(ScalarField):
             performing the edge detection.
             (can be useful to put this to 1 to get rid of compression
              artefacts on images).
+        dilatation_steps: positive integer
+            Number of dilatation/erosion steps.
+            Increase this if the drop edges are discontinuous.
         """
         # check for baseline
         if self.baseline is None:
@@ -423,8 +494,8 @@ class Image(ScalarField):
             im.display()
             plt.title('Removed points under baseline')
         # Dilatation / erosion to ensure line continuity
-        im_edges = spim.binary_dilation(im_edges, iterations=1)
-        im_edges = spim.binary_erosion(im_edges, iterations=1)
+        im_edges = spim.binary_dilation(im_edges, iterations=dilatation_steps)
+        im_edges = spim.binary_erosion(im_edges, iterations=dilatation_steps)
         if verbose:
             plt.figure()
             im = Image()

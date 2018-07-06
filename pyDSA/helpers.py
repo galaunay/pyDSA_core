@@ -60,6 +60,11 @@ def import_from_image(path, dx=1, dy=1, unit_x="", unit_y=""):
     img = image.Image(filepath=path)
     img.import_from_arrays(axe_x, axe_y, data,
                            unit_x=unit_x, unit_y=unit_y)
+    # Try to import infos if the infofile exist
+    if os.path.isfile(img.infofile_path):
+        img._import_infos()
+    # cache axis
+    img._dump_infos()
     return img
 
 
