@@ -16,6 +16,7 @@
 
 import cv2
 import os
+from glob import glob
 import numpy as np
 from . import temporalimages as tis
 from . import image
@@ -35,7 +36,8 @@ __email__ = "gaby.launay@tutanota.com"
 __status__ = "Development"
 
 
-def import_from_image(path, dx=1, dy=1, unit_x="", unit_y=""):
+def import_from_image(path, dx=1, dy=1, unit_x="", unit_y="",
+                      cache_infos=True, dtype=np.uint8):
     """
     Import an image into an Image object.
 
@@ -61,15 +63,61 @@ def import_from_image(path, dx=1, dy=1, unit_x="", unit_y=""):
     data = data[:, ::-1]
     axe_x = np.arange(0, data.shape[0]*dx, dx)
     axe_y = np.arange(0, data.shape[1]*dy, dy)
-    img = image.Image(filepath=path)
+    img = image.Image(filepath=path, cache_infos=cache_infos)
     img.import_from_arrays(axe_x, axe_y, data,
-                           unit_x=unit_x, unit_y=unit_y)
-    # Try to import infos if the infofile exist
-    if os.path.isfile(img.infofile_path):
-        img._import_infos()
-    # cache axis
-    img._dump_infos()
+                           unit_x=unit_x, unit_y=unit_y,
+                           dtype=dtype)
+    if cache_infos:
+        # Try to import infos if the infofile exist
+        if os.path.isfile(img.infofile_path):
+            img._import_infos()
+        # cache axis
+        img._dump_infos()
     return img
+
+
+def import_from_images(path, dx=1, dy=1, dt=1, unit_x="", unit_y="",
+                       unit_times="", dtype=np.uint8, verbose=False):
+    """
+    Import a set of images into an TemporalImages object.
+
+    Parameters
+    ==========
+    path: string
+        Path to the images directory.
+    dx, dy: numbers
+        Real distance between two pixels.
+    dt: numbers
+        Time interval between two images.
+    unit_x, unit_y, unit_times: strings
+        Unities of dx, dy and time.
+
+    Returns
+    =======
+    imgs: TemporalImages object
+        Images
+    """
+    dirname = os.path.dirname(path)
+    imtio.check_path(dirname)
+    paths = glob(path)
+    paths = sorted(paths)
+    ims = tis.TemporalImages(dirname, cache_infos=True)
+    t = 0
+    # verbose
+    if verbose:
+        pg = ProgressCounter("Importing images", len(paths),
+                             end_mess="Done", name_things="images")
+    for i, path in enumerate(paths):
+        im = import_from_image(path=path, dx=dx, dy=dy, unit_y=unit_y,
+                               unit_x=unit_x, cache_infos=False,
+                               dtype=dtype)
+        ims.add_field(im, time=t, unit_times=unit_times)
+        t += dt
+        if verbose:
+            pg.print_progress()
+    # load saved things if necessary
+    ims._import_infos()
+    return ims
 
 
 def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",

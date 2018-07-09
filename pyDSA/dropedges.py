@@ -627,6 +627,12 @@ class DropEdges(Points):
     def _get_angle_display_lines(self):
         lines = []
         # contact angle with solid
+        if len(self.xy) == 0:
+            lines.append([[np.nan, np.nan],
+                          [np.nan, np.nan]])
+            lines.append([[np.nan, np.nan],
+                          [np.nan, np.nan]])
+            return lines
         length = (np.max(self.xy[:, 1]) - np.min(self.xy[:, 1]))/3
         if self.thetas is not None:
             theta1 = self.thetas[0]/180*np.pi
