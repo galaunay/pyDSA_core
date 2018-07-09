@@ -466,7 +466,33 @@ class DropEdges(Points):
             plt.show()
         return z1, - new_r1 + self.get_drop_position()
 
-    def fit_circles(self, sigma_max=None, soft_constr=False):
+    def fit_circle(self, verbose=False):
+        """
+        Fit a circle to the edges.
+        """
+        # get data
+        xs = np.concatenate((self.drop_edges[0].y,
+                             self.drop_edges[1].y[::-1]))
+        ys = np.concatenate((self.drop_edges[0].x,
+                             self.drop_edges[1].x[::-1]))
+        # Fit circles
+        c, R = fit_circle(xs, ys)
+        # verbose
+        if verbose:
+            plt.plot(xs, ys, '.k')
+            plt.plot(c[0], c[1], "ok")
+            theta = np.linspace(0, 2*np.pi, 100)
+            tmpxs = c[0] + R*np.cos(theta)
+            tmpys = c[1] + R*np.sin(theta)
+            plt.plot(tmpxs, tmpys, "-k")
+            plt.axis('image')
+            plt.show()
+            self.circle_fits = [[c, R]]
+        # return
+        return self.circle_fits
+
+    def fit_circles(self, sigma_max=None, soft_constr=False,
+                    verbose=False):
         """
         Fit circles to the edges, cutting them if a triple point is
         present.
@@ -483,7 +509,15 @@ class DropEdges(Points):
             With R the radii.
 
         """
-        if self.triple_pts is not None:
+        # Check if multiple or simple circles need to be detected
+        simple_circ = False
+        if self.triple_pts is None:
+            simple_circ = True
+        else:
+            if np.any(np.isnan(np.array(self.triple_pts))):
+                simple_circ = True
+        # Three circles detection
+        if not simple_circ:
             # get data
             tp1 = self.triple_pts[0]
             tp2 = self.triple_pts[1]
@@ -523,16 +557,11 @@ class DropEdges(Points):
             xtp2 = (c_o2[0]*Rd + c_d[0]*R2)/(Rd + R2)
             ytp2 = (c_o2[1]*Rd + c_d[1]*R2)/(Rd + R2)
             self.circle_triple_pts = [[xtp1, ytp1], [xtp2, ytp2]]
+        # Simple one circle detection
         else:
-            # get data
-            raise Exception('Not tested yet')
-            xs = np.concatenate((self.drop_edges[0].y,
-                                 self.drop_edges[1].y[::-1]))
-            ys = np.concatenate((self.drop_edges[0].y,
-                                 self.drop_edges[1].y[::-1]))
-            # Fit circles
-            c, R = fit_circle(xs, ys, sigma_max=sigma_max)
-            self.circle_fits = [[c, R]]
+            self.fit_circle(verbose=verbose)
+        # Return
+        return self.circle_fits
 
     def display(self, displ_edges=True, displ_fits=True, displ_ca=True,
                 displ_tp=True, displ_circ_tp=True, displ_circ=True,
