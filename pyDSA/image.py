@@ -89,12 +89,18 @@ class Image(ScalarField):
 
         Select as many points as you want (click on points to delete them),
         and close the figure when done.
+
+        You can adjust the position of the point closer to your mouse with
+        arrows, ctrl+arrows and shift+arrows.
         """
         pos = []
         eps = .01*(self.axe_x[-1] - self.axe_x[0])
+        dx, dy = self.dx, self.dy
         # get cursor position on click
         fig = plt.figure()
         pts = plt.plot([], marker="o", ls="none", mec='w', mfc='k')[0]
+        hl_pt = plt.plot([], marker="o", ls="none", mec='k', mfc='none',
+                         ms=10)[0]
         baseline = plt.plot([], ls="-", color="k")[0]
         bs = Baseline()
 
@@ -114,14 +120,75 @@ class Image(ScalarField):
                         del pos[i]
             else:
                 pos.append(xy)
-            # redraw if necessary
+            hl_pt.set_data(np.array(pos[-1:]).transpose())
+            redraw_if_necessary()
+
+        def on_mouse_move(event):
+            # toolbar want the focus !
+            if fig.canvas.manager.toolbar._active is not None:
+                return None
+            ind = get_closest_point(event.xdata, event.ydata)
+            hl_pt.set_data(np.array(pos[ind:ind+1]).transpose())
+            fig.canvas.draw()
+
+        def redraw_if_necessary():
             if len(pos) != 0:
                 pts.set_data(np.array(pos).transpose())
                 if len(pos) > 1:
                     bs.from_points(pos)
                     baseline.set_data(bs.xy)
                 fig.canvas.draw()
+
+        def get_closest_point(x, y):
+            # get the position
+            if x is None or y is None:
+                return None
+            print(x, y)
+            xy = [x, y]
+            diffs = [(xy[0] - xyi[0])**2 + (xy[1] - xyi[1])**2
+                     for xyi in pos]
+            # check if close to an existing point
+            ind = np.argmin(diffs)
+            return ind
+
+        def onpress(event):
+            x, y = event.xdata, event.ydata
+            ind = get_closest_point(x, y)
+            if ind is None:
+                return None
+            if event.key == 'up':
+                pos[ind][1] += dy
+            elif event.key == 'down':
+                pos[ind][1] -= dy
+            elif event.key == 'left':
+                pos[ind][0] -= dx
+            elif event.key == 'right':
+                pos[ind][0] += dx
+            elif event.key == 'shift+up':
+                pos[ind][1] += 10*dy
+            elif event.key == 'shift+down':
+                pos[ind][1] -= 10*dy
+            elif event.key == 'shift+left':
+                pos[ind][0] -= 10*dx
+            elif event.key == 'shift+right':
+                pos[ind][0] += 10*dx
+            elif event.key == 'ctrl+up':
+                pos[ind][1] += 0.1*dy
+            elif event.key == 'ctrl+down':
+                pos[ind][1] -= 0.1*dy
+            elif event.key == 'ctrl+left':
+                pos[ind][0] -= 0.1*dx
+            elif event.key == 'ctrl+right':
+                pos[ind][0] += 0.1*dx
+            else:
+                print(f"You pressed {event.key}")
+            # Update indicator
+            hl_pt.set_data(np.array(pos[ind:ind+1]).transpose())
+            redraw_if_necessary()
+
         fig.canvas.mpl_connect('button_press_event', onclick)
+        fig.canvas.mpl_connect('motion_notify_event', on_mouse_move)
+        fig.canvas.mpl_connect('key_press_event', onpress)
         self.display(cmap=plt.cm.binary_r)
         plt.title("Put some points on the baseline."
                   "\nYou can remove points by clicking on it."
