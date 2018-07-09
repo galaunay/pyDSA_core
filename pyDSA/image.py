@@ -128,8 +128,9 @@ class Image(ScalarField):
             if fig.canvas.manager.toolbar._active is not None:
                 return None
             ind = get_closest_point(event.xdata, event.ydata)
-            hl_pt.set_data(np.array(pos[ind:ind+1]).transpose())
-            fig.canvas.draw()
+            if ind is not None:
+                hl_pt.set_data(np.array(pos[ind:ind+1]).transpose())
+                fig.canvas.draw()
 
         def redraw_if_necessary():
             if len(pos) != 0:
@@ -143,7 +144,8 @@ class Image(ScalarField):
             # get the position
             if x is None or y is None:
                 return None
-            print(x, y)
+            if len(pos) == 0:
+                return None
             xy = [x, y]
             diffs = [(xy[0] - xyi[0])**2 + (xy[1] - xyi[1])**2
                      for xyi in pos]
@@ -180,8 +182,6 @@ class Image(ScalarField):
                 pos[ind][0] -= 0.1*dx
             elif event.key == 'ctrl+right':
                 pos[ind][0] += 0.1*dx
-            else:
-                print(f"You pressed {event.key}")
             # Update indicator
             hl_pt.set_data(np.array(pos[ind:ind+1]).transpose())
             redraw_if_necessary()

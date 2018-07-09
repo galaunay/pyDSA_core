@@ -677,8 +677,8 @@ class DropEdges(Points):
             y2 = xy_inter[1][1]
             x1 = xy_inter[0][0]
             x2 = xy_inter[1][0]
-            lines.append([[x1, x1 + length*np.cos(np.pi/2-theta)],
-                          [y1, y1 + length*np.sin(np.pi/2-theta)]])
+            lines.append([[x1, x1 + length*np.cos(np.pi-theta)],
+                          [y1, y1 + length*np.sin(np.pi-theta)]])
             lines.append([[x2, x2 + length*np.cos(theta)],
                           [y2, y2 + length*np.sin(theta)]])
         else:

@@ -46,7 +46,10 @@ class TemporalImages(TemporalScalarFields):
         self.field_type = image.Image
         if filepath is not None:
             self.filepath = os.path.abspath(filepath)
-            self.infofile_path = os.path.splitext(self.filepath)[0] + ".info"
+            if os.path.isdir(self.filepath):
+                self.infofile_path = os.path.join(self.filepath, "info.info")
+            else:
+                self.infofile_path = os.path.splitext(self.filepath)[0] + ".info"
             self.cache_infos = cache_infos
         else:
             self.filepath = None
@@ -249,6 +252,7 @@ class TemporalImages(TemporalScalarFields):
                              base_max_dist=30, size_ratio=.5,
                              ignored_pixels=2, nmb_edges=2,
                              keep_exterior=True,
+                             dilatation_steps=1,
                              smooth_size=None,
                              verbose=False):
         """
@@ -274,6 +278,9 @@ class TemporalImages(TemporalScalarFields):
             performing the edge detection.
             (can be useful to put this to 1 to get rid of compression
              artefacts on images).
+        dilatation_steps: positive integer
+            Number of dilatation/erosion steps.
+            Increase this if the drop edges are discontinuous.
         """
         # check
         if self.baseline is None:
@@ -289,14 +296,16 @@ class TemporalImages(TemporalScalarFields):
                                  perc_interv=5)
         for i in range(len(self.fields)):
             try:
-                pt = self.fields[i].edge_detection_canny(threshold1=threshold1,
-                                                         threshold2=threshold2,
-                                                         base_max_dist=base_max_dist,
-                                                         size_ratio=size_ratio,
-                                                         ignored_pixels=ignored_pixels,
-                                                         keep_exterior=keep_exterior,
-                                                         nmb_edges=nmb_edges,
-                                                         smooth_size=smooth_size)
+                pt = self.fields[i].edge_detection_canny(
+                    threshold1=threshold1,
+                    threshold2=threshold2,
+                    base_max_dist=base_max_dist,
+                    size_ratio=size_ratio,
+                    ignored_pixels=ignored_pixels,
+                    keep_exterior=keep_exterior,
+                    nmb_edges=nmb_edges,
+                    dilatation_steps=dilatation_steps,
+                    smooth_size=smooth_size)
                 all_edge_empty = False
             except Exception:
                 pt = dropedges.DropEdges(xy=[], im=self, type='canny')
