@@ -60,6 +60,7 @@ class DropEdges(Points):
         self.baseline = im.baseline
         self.thetas = None
         self.thetas_triple = None
+        self.theta_circ = None
         self.im_axe_x = im.axe_x
         self.im_axe_y = im.axe_y
         self.im_dx = im.dx
@@ -477,6 +478,7 @@ class DropEdges(Points):
                              self.drop_edges[1].x[::-1]))
         # Fit circles
         c, R = fit_circle(xs, ys)
+        self.circle_fits = [[c, R]]
         # verbose
         if verbose:
             plt.plot(xs, ys, '.k')
@@ -487,7 +489,6 @@ class DropEdges(Points):
             plt.plot(tmpxs, tmpys, "-k")
             plt.axis('image')
             plt.show()
-            self.circle_fits = [[c, R]]
         # return
         return self.circle_fits
 
@@ -593,13 +594,12 @@ class DropEdges(Points):
             plt.plot(x1, y1, color=self.colors[1])
             plt.plot(x2, y2, color=self.colors[1])
         # Display contact angles
-        if self.thetas is not None and displ_ca:
+        if displ_ca:
             lines = self._get_angle_display_lines()
             for line in lines:
                 plt.plot(line[0], line[1],
                          color=self.colors[0])
-                plt.plot(line[0][0],
-                         line[0][1],
+                plt.plot(line[0][0], line[0][1],
                          color=self.colors[0])
         # Display triple points
         if self.triple_pts is not None and displ_tp:
@@ -627,8 +627,8 @@ class DropEdges(Points):
     def _get_angle_display_lines(self):
         lines = []
         # contact angle with solid
+        length = (np.max(self.xy[:, 1]) - np.min(self.xy[:, 1]))/3
         if self.thetas is not None:
-            length = (np.max(self.xy[:, 1]) - np.min(self.xy[:, 1]))/3
             theta1 = self.thetas[0]/180*np.pi
             theta2 = self.thetas[1]/180*np.pi
             xy_inter = self._get_inters_base_fit()
@@ -647,7 +647,6 @@ class DropEdges(Points):
                           [np.nan, np.nan]])
         if self.thetas_triple is not None:
             # contact angle with triple points
-            length = (np.max(self.xy[:, 1]) - np.min(self.xy[:, 1]))/3
             theta1 = self.thetas_triple[0]/180*np.pi
             theta2 = self.thetas_triple[1]/180*np.pi
             xy_inter = self.triple_pts
@@ -664,6 +663,24 @@ class DropEdges(Points):
                           [np.nan, np.nan]])
             lines.append([[np.nan, np.nan],
                           [np.nan, np.nan]])
+        if self.theta_circ is not None:
+            # circle fit projected contact angle
+            theta = self.theta_circ/np.pi*180
+            xy_inter = self._get_inters_base_circle_fit()
+            y1 = xy_inter[0][1]
+            y2 = xy_inter[1][1]
+            x1 = xy_inter[0][0]
+            x2 = xy_inter[1][0]
+            lines.append([[x1, x1 + length*np.cos(np.pi/2-theta)],
+                          [y1, y1 + length*np.sin(np.pi/2-theta)]])
+            lines.append([[x2, x2 + length*np.cos(theta)],
+                          [y2, y2 + length*np.sin(theta)]])
+        else:
+            lines.append([[np.nan, np.nan],
+                          [np.nan, np.nan]])
+            lines.append([[np.nan, np.nan],
+                          [np.nan, np.nan]])
+
         return lines
 
     def _get_inters_base_fit(self, verbose=False):
@@ -708,15 +725,28 @@ class DropEdges(Points):
         """
         if self.circle_fits is None:
             raise Exception()
-        bs1, bs2 = self.baseline.pt1, self.baseline.pt2
-        alpha = np.arctan((bs2[1] - bs1[1])/(bs2[0] - bs2[0]))
-        xys = []
-        for fit in self.circle_fits[:-1]:
-            (xc, yc), R = fit
-            tmpx = xc + R*np.cos(alpha)
-            tmpy = yc - R*np.sin(alpha)
-            xys.append([tmpx, tmpy])
-        return xys
+        # getting intersection points
+        # from: http://mathworld.wolfram.com/Circle-LineIntersection.html
+        (xc, yc), r = self.circle_fits[0]
+        xbas1 = self.baseline.pt1[0] - xc
+        xbas2 = self.baseline.pt2[0] - xc
+        ybas1 = self.baseline.pt1[1] - yc
+        ybas2 = self.baseline.pt2[1] - yc
+        dx = xbas2 - xbas1
+        dy = ybas2 - ybas1
+        dr = (dx**2 + dy**2)**.5
+        D = xbas1*ybas2 - xbas2*ybas1
+        #
+        x1 = (D*dy + np.sign(dy)*dx*(r**2*dr**2 - D**2)**.5)/dr**2
+        x2 = (D*dy - np.sign(dy)*dx*(r**2*dr**2 - D**2)**.5)/dr**2
+        y1 = (-D*dx + abs(dy)*(r**2*dr**2 - D**2)**.5)/dr**2
+        y2 = (-D*dx - abs(dy)*(r**2*dr**2 - D**2)**.5)/dr**2
+        #
+        x1 += xc
+        x2 += xc
+        y1 += yc
+        y2 += yc
+        return [[x1, y1], [x2, y2]]
 
     def get_ridge_height(self, from_circ_fit=False):
 
@@ -770,11 +800,16 @@ class DropEdges(Points):
         thetas : 2x1 array of numbers
            Contact angles in °
         """
-        if self.edges_fits is None:
-            raise Exception("You should compute fitting first with 'fit()'")
         # Compute base contact angle
-        xy_inter = self._get_inters_base_fit()
-        self.thetas = self._compute_fitting_angle_at_pts(xy_inter)
+        if self.edges_fits is not None:
+            xy_inter = self._get_inters_base_fit()
+            self.thetas = self._compute_fitting_angle_at_pts(xy_inter)
+        # Compute circle fits contact angles
+        if self.circle_fits is not None:
+            xyc, R = self.circle_fits[0]
+            xy_inter = self._get_inters_base_circle_fit()[0]
+            theta = np.pi + np.arccos(abs(xyc[0] - xy_inter[0])/R)
+            self.theta_circ = theta
         # Compute triple point contact angle
         if self.triple_pts is not None:
             xy_tri = self.triple_pts
