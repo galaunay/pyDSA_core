@@ -470,12 +470,27 @@ class DropEdges(Points):
     def fit_circle(self, verbose=False):
         """
         Fit a circle to the edges.
+
+        Ignore the lower part of the drop if triple points are presents.
         """
         # get data
-        xs = np.concatenate((self.drop_edges[0].y,
-                             self.drop_edges[1].y[::-1]))
-        ys = np.concatenate((self.drop_edges[0].x,
-                             self.drop_edges[1].x[::-1]))
+        ys1 = self.drop_edges[0].y
+        xs1 = self.drop_edges[0].x
+        ys2 = self.drop_edges[1].y
+        xs2 = self.drop_edges[1].x
+        if self.triple_pts is not None:
+            if not np.any(np.isnan(self.triple_pts[0])):
+                ytp = self.triple_pts[0][1]
+                filt = ys1 > ytp
+                xs1 = xs1[filt]
+                ys1 = ys1[filt]
+            if not np.any(np.isnan(self.triple_pts[1])):
+                ytp = self.triple_pts[1][1]
+                filt = ys2 > ytp
+                xs2 = xs2[filt]
+                ys2 = ys2[filt]
+        xs = np.concatenate((ys1, ys2))
+        ys = np.concatenate((xs1, xs2))
         # Fit circles
         c, R = fit_circle(xs, ys)
         self.circle_fits = [[c, R]]
@@ -671,12 +686,13 @@ class DropEdges(Points):
                           [np.nan, np.nan]])
         if self.theta_circ is not None:
             # circle fit projected contact angle
-            theta = self.theta_circ/np.pi*180
+            theta = self.theta_circ*np.pi/180
             xy_inter = self._get_inters_base_circle_fit()
             y1 = xy_inter[0][1]
             y2 = xy_inter[1][1]
             x1 = xy_inter[0][0]
             x2 = xy_inter[1][0]
+            print(theta)
             lines.append([[x1, x1 + length*np.cos(np.pi-theta)],
                           [y1, y1 + length*np.sin(np.pi-theta)]])
             lines.append([[x2, x2 + length*np.cos(theta)],
@@ -815,7 +831,7 @@ class DropEdges(Points):
             xyc, R = self.circle_fits[0]
             xy_inter = self._get_inters_base_circle_fit()[0]
             theta = np.pi + np.arccos(abs(xyc[0] - xy_inter[0])/R)
-            self.theta_circ = theta
+            self.theta_circ = theta*180/np.pi - 90
         # Compute triple point contact angle
         if self.triple_pts is not None:
             xy_tri = self.triple_pts

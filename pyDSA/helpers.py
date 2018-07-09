@@ -232,8 +232,14 @@ def circle_from_three_points(pt1, pt2, pt3):
     x3, y3 = pt3
     ma = (y2 - y1)/(x2 - x1)
     mb = (y3 - y2)/(x3 - x2)
-    x = (ma*mb*(y1 - y3) + mb*(x1 + x2) - ma*(x2 + x3))/(2*(mb - ma))
-    y = -(1/ma)*(x - (x1 + x2)/2) + (y1 + y2)/2
+    if (mb - ma) == 0:
+        x = np.mean([x1, x2, x3])
+    else:
+        x = (ma*mb*(y1 - y3) + mb*(x1 + x2) - ma*(x2 + x3))/(2*(mb - ma))
+    if ma == 0:
+        y = np.mean([y1, y2, y3])
+    else:
+        y = -(1/ma)*(x - (x1 + x2)/2) + (y1 + y2)/2
     R = ((y1 - y)**2 + (x1 - x)**2)**.5
     return (x, y), R
 
@@ -266,24 +272,28 @@ def fit_circle(xs, ys, baseline=None, tangent_circ=None, sigma_max=None,
             side = -1
         else:
             side = +1
-    # Compute weight from points density
-    # (to not give too much power to high density regions)
-    if np.all(ys[1::] - ys[:-1] > 0):
-        indsort = np.argsort(ys)
-        ys = ys[indsort]
-        xs = xs[indsort]
-    weights = []
-    for i in range(len(ys)):
-        if i == 0:
-            weights.append(((ys[i] - ys[i+1])**2 + (xs[i] - xs[i+1])**2)**.5)
-        elif i == len(ys) - 1:
-            weights.append(((ys[i] - ys[i-1])**2 + (xs[i] - xs[i-1])**2)**.5)
-        else:
-            d1 = ((ys[i] - ys[i+1])**2 + (xs[i] - xs[i+1])**2)**.5
-            d2 = ((ys[i] - ys[i-1])**2 + (xs[i] - xs[i-1])**2)**.5
-            weights.append((d1 + d2)/2)
-    weights = np.asarray(weights)
-    weights /= np.sum(weights)/len(weights)
+    # # Compute weight from points density
+    # # (to not give too much power to high density regions)
+    # # DOES NOT WORK BECAUSE THE POINTS ARE NOT SORTED !
+    # if np.all(ys[1::] - ys[:-1] > 0):
+    #     indsort = np.argsort(ys)
+    #     ys = ys[indsort]
+    #     xs = xs[indsort]
+    # weights = []
+    # for i in range(len(ys)):
+    #     if i == 0:
+    #         weights.append(((ys[i] - ys[i+1])**2 + (xs[i] - xs[i+1])**2)**.5)
+    #     elif i == len(ys) - 1:
+    #         weights.append(((ys[i] - ys[i-1])**2 + (xs[i] - xs[i-1])**2)**.5)
+    #     else:
+    #         d1 = ((ys[i] - ys[i+1])**2 + (xs[i] - xs[i+1])**2)**.5
+    #         d2 = ((ys[i] - ys[i-1])**2 + (xs[i] - xs[i-1])**2)**.5
+    #         weights.append((d1 + d2)/2)
+    # weights = np.asarray(weights)
+    # weights /= np.sum(weights)/len(weights)
+    # # TEMP
+    # weights = np.ones(len(weights))
+    # # TEMP - End
 
     def calc_R(x, y, xc, yc):
         """
@@ -291,14 +301,14 @@ def fit_circle(xs, ys, baseline=None, tangent_circ=None, sigma_max=None,
         """
         return np.sqrt((x - xc)**2 + (y - yc)**2)
 
-    def f_circle_soft_constr(args, x, y, weights):
+    def f_circle_soft_constr(args, x, y):
         """
         Calculate the algebraic distance between the 2D points and the mean
         circle centered at c=(xc, yc)
         """
         xc, yc = args
         Ri = calc_R(x, y, xc, yc)
-        residu = (Ri - Ri.mean())*weights
+        residu = (Ri - Ri.mean())
         if baseline is not None:
             yb = basefun(xc)
             residu += (Ri.mean() - (yc - yb))
@@ -308,7 +318,7 @@ def fit_circle(xs, ys, baseline=None, tangent_circ=None, sigma_max=None,
             residu += (dist_circ - (Ro + Ri.mean()))
         return residu
 
-    def f_circle_constr(args, x, y, weights):
+    def f_circle_constr(args, x, y):
         """
         Calculate the algebraic distance between the 2D points and the mean
         circle centered at c=(xc, yc)
@@ -319,17 +329,17 @@ def fit_circle(xs, ys, baseline=None, tangent_circ=None, sigma_max=None,
         xc, yc = center_from_R(R)
         # return residu
         Ri = calc_R(x, y, xc, yc)
-        residu = (Ri - R)*weights
+        residu = (Ri - R)
         return residu
 
-    def f_circle(args, x, y, weights):
+    def f_circle(args, x, y):
         """
         Calculate the algebraic distance between the 2D points and the mean
         circle centered at c=(xc, yc)
         """
         xc, yc = args
         Ri = calc_R(x, y, xc, yc)
-        residu = (Ri - Ri.mean())*weights
+        residu = (Ri - Ri.mean())
         return residu
 
     def center_from_R(R):
@@ -376,7 +386,7 @@ def fit_circle(xs, ys, baseline=None, tangent_circ=None, sigma_max=None,
         while True:
             args, ier = spopt.leastsq(
                 fit_function, init_guess,
-                args=(tmp_xs, tmp_ys, weights))
+                args=(tmp_xs, tmp_ys))
             if len(args) == 1:
                 R = abs(args[0])
                 center = center_from_R(R)
@@ -398,7 +408,7 @@ def fit_circle(xs, ys, baseline=None, tangent_circ=None, sigma_max=None,
     else:
         args, ier = spopt.leastsq(
             fit_function, init_guess,
-            args=(tmp_xs, tmp_ys, weights))
+            args=(tmp_xs, tmp_ys))
         if len(args) == 1:
             R = abs(args[0])
             center = center_from_R(R)
