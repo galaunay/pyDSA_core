@@ -120,7 +120,10 @@ class Image(ScalarField):
                         del pos[i]
             else:
                 pos.append(xy)
-            hl_pt.set_data(np.array(pos[-1:]).transpose())
+            if len(pos) == 0:
+                hl_pt.set_data([np.nan, np.nan])
+            else:
+                hl_pt.set_data(np.array(pos[-1:]).transpose())
             redraw_if_necessary()
 
         def on_mouse_move(event):
