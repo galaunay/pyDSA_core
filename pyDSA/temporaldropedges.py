@@ -102,6 +102,25 @@ class TemporalDropEdges(TemporalPoints):
         if smooth is not None:
             self.smooth_triple_points(tos='gaussian', size=smooth)
 
+    def fit_circle(self, verbose=False):
+        """
+        Fit a circle to the edges.
+
+        Ignore the lower part of the drop if triple points are presents.
+        """
+        if verbose:
+            pg = ProgressCounter(init_mess="Fitting circles to edges",
+                                 nmb_max=len(self.point_sets),
+                                 name_things='edges',
+                                 perc_interv=5)
+        for edge in self.point_sets:
+            try:
+                edge.fit_circle()
+            except Exception:
+                pass
+            if verbose:
+                pg.print_progress()
+
     def fit_circles(self, sigma_max=None, verbose=False, nmb_pass=1,
                     soft_constr=False):
         """
@@ -144,24 +163,41 @@ class TemporalDropEdges(TemporalPoints):
         for i, tps in enumerate(tps_back):
             self.point_sets[i].triple_pts = tps
 
-    def get_contact_angles(self):
+    def get_contact_angles(self, type='spline'):
         """
         Return the drop contact angles.
+
+        Parameters
+        ==========
+        type : string
+            Type of contact angle to get.
+            Can be 'spline' (default): contact angle from spline extrapolation,
+            'triple': contact angle at the triple point (if computed) or
+            'circ': contact angle from circle fit (if computed).
         """
         thetas = []
-        thetas_triple = []
-        for edge in self.point_sets:
-            if edge.thetas is not None:
-                thetas.append(edge.thetas)
-            else:
-                thetas.append([np.nan, np.nan])
-            if edge.thetas_triple is not None:
-                thetas_triple.append(edge.thetas_triple)
-            else:
-                thetas_triple.append([np.nan, np.nan])
+        if type == 'spline':
+            for edge in self.point_sets:
+                if edge.thetas is not None:
+                    thetas.append(edge.thetas)
+                else:
+                    thetas.append([np.nan, np.nan])
+        elif type == 'triple':
+            for edge in self.point_sets:
+                if edge.thetas_triple is not None:
+                    thetas.append(edge.thetas_triple)
+                else:
+                    thetas.append([np.nan, np.nan])
+        elif type == 'circ':
+            for edge in self.point_sets:
+                if edge.theta_circ is not None:
+                    thetas.append(edge.theta_circ)
+                else:
+                    thetas.append(np.nan)
+        else:
+            raise ValueError(f"Unknow value of 'type': '{type}'")
         thetas = np.asarray(thetas)
-        thetas_triple = np.asarray(thetas_triple)
-        return thetas, thetas_triple
+        return thetas
 
     def get_triple_points(self):
         """
@@ -217,7 +253,7 @@ class TemporalDropEdges(TemporalPoints):
                 diams.append(edge.get_base_diameter(from_circ_fit=from_circ_fit))
         return diams
 
-    def compute_contact_angle(self, smooth=None, verbose=False):
+    def compute_contact_angle(self, verbose=False):
         """
         Compute the drop contact angles."
         """
@@ -233,8 +269,6 @@ class TemporalDropEdges(TemporalPoints):
                 pass
             if verbose:
                 pg.print_progress()
-        if smooth is not None:
-            self.smooth_contact_angle(tos='gaussian', size=smooth)
 
     def smooth_triple_points(self, tos='gaussian', size=None):
         """
