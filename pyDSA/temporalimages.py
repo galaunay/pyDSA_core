@@ -196,6 +196,8 @@ class TemporalImages(TemporalScalarFields):
         super(TemporalImages, tmp_f).scale(scalex=scalex, scaley=scaley,
                                            scalev=scalev, scalet=scalet,
                                            inplace=True)
+        if self.baseline is not None:
+            tmp_f.baseline.scale(scalex=scalex, scaley=scaley)
         return tmp_f
 
     def _dump_infos(self):
