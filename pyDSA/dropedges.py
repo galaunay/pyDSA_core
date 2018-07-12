@@ -340,34 +340,27 @@ class DropEdges(Points):
         # return
         return spline1, spline2
 
-    def fit_ellipse(self):
+    def fit_ellipse(self, verbose=False):
         """
         Fit the drop edges with an ellipse.
         """
-        raise Exception('Not implemented yet')
-        def fit_ellipse(x, y):
-            x = x[:, np.newaxis]
-            y = y[:, np.newaxis]
-            D = np.hstack((x*x, x*y, y*y, x, y, np.ones_like(x)))
-            S = np.dot(D. T, D)
-            C = np.zeros([6, 6])
-            C[0, 2] = C[2, 0] = 2
-            C[1, 1] = -1
-            E, V = splin.eig(np.dot(splin.inv(S), C))
-            n = np.argmax(np.abs(E))
-            a = V[:, n]
-            b, c, d, f, g, a = a[1]/2, a[2], a[3]/2, a[4]/2, a[5], a[0]
-            num = b*b - a*c
-            x0 = (c*d - b*f)/num
-            y0 = (a*f - b*d)/num
-            return np.array([x0, y0])
-        # get data
-        x1 = self.drop_edges[0].y
-        y1 = self.drop_edges[0].x
-        plt.figure()
-        plt.plot(x1, y1, 'ok')
-        a = fit_ellipse(x1, y1)
-        plt.plot(a[0], a[1], 'or')
+        xs = self.xy[:, 0]
+        ys = self.xy[:, 1]
+        (xc, yc), R1, R2, theta = fit_ellipse(xs, ys)
+        self.ellipse_fit = (xc, yc), R1, R2, theta
+        if verbose:
+            plt.figure()
+            self.display()
+            thetas = np.linspace(0, np.pi*2, 100)
+            xs = xc + R1*np.cos(thetas)
+            ys = yc + R2*np.sin(thetas)
+            new_xs = xc + np.cos(theta)*(xs - xc) - np.sin(theta)*(ys - yc)
+            new_ys = yc + np.cos(theta)*(ys - yc) + np.sin(theta)*(xs - xc)
+            plt.figure()
+            self.display()
+            plt.plot(xc, yc, 'ok')
+            plt.plot(new_xs, new_ys)
+            plt.show()
 
     def fit_LY(self, interp_res=100, method=None, verbose=False):
         # get data
@@ -581,7 +574,7 @@ class DropEdges(Points):
 
     def display(self, displ_edges=True, displ_fits=True, displ_ca=True,
                 displ_tp=True, displ_circ_tp=True, displ_circ=True,
-                *args, **kwargs):
+                displ_ellipse=True, *args, **kwargs):
         """
         """
         # super().display(*args, **kwargs)
@@ -633,6 +626,19 @@ class DropEdges(Points):
                                   color=self.colors[5],
                                   fill=False)
                 plt.gca().add_artist(circ)
+        # Display ellipse
+        if self.ellipse_fit is not None and displ_ellipse:
+            (xc, yc), R1, R2, theta = self.ellipse_fit
+            elxs, elys = get_ellipse_points(xc, yc, R1, R2, theta, res=100)
+            rxs = [xc + R1*np.cos(theta),
+                   xc,
+                   xc + R2*np.cos(theta + np.pi/2)]
+            rys = [yc + R1*np.sin(theta),
+                   yc,
+                   yc + R2*np.sin(theta + np.pi/2)]
+            plt.plot(rxs, rys, color=self.colors[3], ls=":")
+            plt.plot(elxs, elys, color=self.colors[3])
+            plt.plot(xc, yc, color=self.colors[3], marker='o', ls='none')
         # Display triple points from circle fits
         if self.circle_triple_pts is not None and displ_circ_tp:
             for tp in self.circle_triple_pts:
@@ -640,6 +646,7 @@ class DropEdges(Points):
                          color=self.colors[5])
 
     def _get_angle_display_lines(self):
+        bs_angle = self.baseline.tilt_angle*180/np.pi
         lines = []
         # contact angle with solid
         if len(self.xy) == 0:
@@ -696,6 +703,19 @@ class DropEdges(Points):
                           [y1, y1 + length*np.sin(np.pi-theta)]])
             lines.append([[x2, x2 + length*np.cos(theta)],
                           [y2, y2 + length*np.sin(theta)]])
+        if self.thetas_ellipse is not None:
+            # Ellipse fit projected contact angle
+            theta1 = (self.thetas_ellipse[0] + bs_angle)*np.pi/180
+            theta2 = (self.thetas_ellipse[1] + bs_angle)*np.pi/180
+            xy_inter = self._get_inters_base_ellipse_fit()
+            y1 = xy_inter[0][1]
+            y2 = xy_inter[1][1]
+            x1 = xy_inter[0][0]
+            x2 = xy_inter[1][0]
+            lines.append([[x1, x1 + length*np.cos(theta1)],
+                          [y1, y1 + length*np.sin(theta1)]])
+            lines.append([[x2, x2 + length*np.cos(theta2)],
+                          [y2, y2 + length*np.sin(theta2)]])
         else:
             lines.append([[np.nan, np.nan],
                           [np.nan, np.nan]])
@@ -769,6 +789,41 @@ class DropEdges(Points):
         y2 += yc
         return [[x1, y1], [x2, y2]]
 
+    def _get_inters_base_ellipse_fit(self):
+        """
+        """
+        (h, k), a, b, theta = self.ellipse_fit
+        # Rotate the baseline in the ellipse referential
+        tmpbs = self.baseline.copy()
+        tmpbs.set_origin(h, k)
+        tmpbs.rotate(-theta)
+        tmpbs.set_origin(-h, -k)
+        m, c = tmpbs.coefs
+        # from: http://ambrsoft.com/TrigoCalc/Circles2/Ellipse/EllipseLine.htm
+        eps = c - k
+        delta = c + m*h
+        # x
+        A = h*b**2 - m*a**2*eps
+        B = a*b*(a**2*m**2 + b**2 - delta**2 - k**2 + 2*delta*k)**.5
+        C = a**2*m**2 + b**2
+        x1 = (A + B)/C
+        x2 = (A - B)/C
+        # y
+        D = b**2*delta + k*a**2*m**2
+        E = a*b*m*(a**2*m**2 + b**2 - delta**2 - k**2 + 2*delta*k)**.5
+        F = C
+        y1 = (D + E)/F
+        y2 = (D - E)/F
+        # Rotate back the point in the base referential
+        xs = [x1, x2]
+        ys = [y1, y2]
+        x1, x2 = h + np.cos(theta)*(xs - h) - np.sin(theta)*(ys - k)
+        y1, y2 = k + np.sin(theta)*(xs - h) + np.cos(theta)*(ys - k)
+        if x1 < x2:
+            return [[x1, y1], [x2, y2]]
+        else:
+            return [[x2, y2], [x1, y1]]
+
     def get_ridge_height(self, from_circ_fit=False):
 
         """
@@ -835,6 +890,22 @@ class DropEdges(Points):
         if self.triple_pts is not None:
             xy_tri = self.triple_pts
             self.thetas_triple = self._compute_fitting_angle_at_pts(xy_tri)
+        # Compute ellipse fit contact angle
+        if self.ellipse_fit is not None:
+            xy_inter = self._get_inters_base_ellipse_fit()
+            bs_angle = self.baseline.tilt_angle
+            (xc, yc), R1, R2, theta = self.ellipse_fit
+            thetas = []
+            for i, xy in enumerate(xy_inter):
+                x_ref = (xy[0] - xc)*np.cos(theta) + (xy[1] - yc)*np.sin(theta)
+                y_ref = (xy[1] - yc)*np.cos(theta) - (xy[0] - xc)*np.sin(theta)
+                slope = -(R2**2*x_ref)/(R1**2*y_ref)
+                thet = np.arctan(slope)
+                if np.sin(thet) < 0:
+                    thet += np.pi
+                thet += (theta - bs_angle)
+                thetas.append(thet)
+            self.thetas_ellipse = np.array(thetas)*180/np.pi
         # display if asked
         if verbose:
             self.display()

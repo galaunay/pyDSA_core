@@ -18,6 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from IMTreatment.utils import ProgressCounter
 from IMTreatment import TemporalPoints, Profile, plotlib as pplt
+from . import helpers as hlp
 
 
 """  """
@@ -121,6 +122,25 @@ class TemporalDropEdges(TemporalPoints):
             if verbose:
                 pg.print_progress()
 
+    def fit_ellipse(self, verbose=False):
+        """
+        Fit an ellipse to the edges.
+
+        Ignore the lower part of the drop if triple points are presents.
+        """
+        if verbose:
+            pg = ProgressCounter(init_mess="Fitting ellipses to edges",
+                                 nmb_max=len(self.point_sets),
+                                 name_things='edges',
+                                 perc_interv=5)
+        for edge in self.point_sets:
+            try:
+                edge.fit_ellipse()
+            except Exception:
+                pass
+            if verbose:
+                pg.print_progress()
+
     def fit_circles(self, sigma_max=None, verbose=False, nmb_pass=1,
                     soft_constr=False):
         """
@@ -174,6 +194,7 @@ class TemporalDropEdges(TemporalPoints):
             Can be 'spline' (default): contact angle from spline extrapolation,
             'triple': contact angle at the triple point (if computed) or
             'circ': contact angle from circle fit (if computed).
+            'ellipse': contact angle from ellipse fit (if computed).
         """
         thetas = []
         if type == 'spline':
@@ -190,10 +211,17 @@ class TemporalDropEdges(TemporalPoints):
                     thetas.append([np.nan, np.nan])
         elif type == 'circ':
             for edge in self.point_sets:
-                if edge.theta_circ is not None:
-                    thetas.append(edge.theta_circ)
+                if edge.thetas_circ is not None:
+                    thetas.append(edge.thetas_circ)
                 else:
-                    thetas.append(np.nan)
+                    thetas.append([np.nan, np.nan])
+        elif type == 'ellipse':
+            for edge in self.point_sets:
+                if edge.thetas_ellipse is not None:
+                    thetas.append(edge.thetas_ellipse)
+                else:
+                    thetas.append([np.nan, np.nan])
+
         else:
             raise ValueError(f"Unknow value of 'type': '{type}'")
         thetas = np.asarray(thetas)
@@ -369,7 +397,7 @@ class TemporalDropEdges(TemporalPoints):
     def display(self, displ_pts=True, displ_fit=True,
                 displ_tp=True, displ_ca=True,
                 displ_circ=True, displ_circ_tp=True,
-                *args, **kwargs):
+                displ_ellipse=True, *args, **kwargs):
         #
         length = len(self.point_sets)
         kwargs['cpkw'] = {}
@@ -461,6 +489,10 @@ class TemporalDropEdges(TemporalPoints):
             lines2 = []
             lines3 = []
             lines4 = []
+            lines5 = []
+            lines6 = []
+            lines7 = []
+            lines8 = []
             for line in lines:
                 lines1.append(line[0])
                 lines2.append(line[1])
@@ -470,7 +502,20 @@ class TemporalDropEdges(TemporalPoints):
                 else:
                     lines3.append([[np.nan, np.nan], [np.nan, np.nan]])
                     lines4.append([[np.nan, np.nan], [np.nan, np.nan]])
-            for line in [lines1, lines2, lines3, lines4]:
+                if len(line) > 4:
+                    lines5.append(line[4])
+                    lines6.append(line[5])
+                else:
+                    lines5.append([[np.nan, np.nan], [np.nan, np.nan]])
+                    lines6.append([[np.nan, np.nan], [np.nan, np.nan]])
+                if len(line) > 6:
+                    lines7.append(line[6])
+                    lines8.append(line[7])
+                else:
+                    lines7.append([[np.nan, np.nan], [np.nan, np.nan]])
+                    lines8.append([[np.nan, np.nan], [np.nan, np.nan]])
+            for line in [lines1, lines2, lines3, lines4, lines5, lines6,
+                         lines7, lines8]:
                 line = np.array(line)
                 if not np.all(np.isnan(line)):
                     if len(line[:, 0]) != length or len(line[:, 1]) != length:
@@ -522,6 +567,39 @@ class TemporalDropEdges(TemporalPoints):
                                          marker='o',
                                          color=self[0].colors[5])
                     displs.append(dbp)
+        # Display ellipse fits
+        if displ_ellipse:
+            res = 100
+            xs = []
+            ys = []
+            xps = []
+            yps = []
+            rxs = []
+            rys = []
+            # Loop on times
+            for i in range(len(self.point_sets)):
+                if self[i].ellipse_fit is None:
+                    for l in [xs, ys]:
+                        l.append([np.nan]*res)
+                    for l in [xps, yps]:
+                        l.append([np.nan])
+                    continue
+                # plot the circle !
+                (xc, yc), R1, R2, theta = self[i].ellipse_fit
+                elxs, elys = hlp.get_ellipse_points(xc, yc, R1, R2, theta)
+                xs.append(elxs)
+                ys.append(elys)
+                xps.append([xc])
+                yps.append([yc])
+            if not np.all(np.isnan(ys)):
+                db = pplt.Displayer(xs, ys, kind='plot',
+                                    color=self[0].colors[5])
+                displs.append(db)
+            if not np.all(np.isnan(yps)):
+                dbp = pplt.Displayer(xps, yps, kind='plot',
+                                     marker='o',
+                                     color=self[0].colors[5])
+                displs.append(dbp)
         # Display triple points from circle fits
         if displ_circ_tp:
             xs = []

@@ -417,3 +417,68 @@ def fit_circle(xs, ys, baseline=None, tangent_circ=None, sigma_max=None,
             R = np.mean(calc_R(tmp_xs, tmp_ys, *center))
     # return
     return center, R
+
+
+def fit_ellipse(xs, ys):
+    """
+    Fit an Ellispe to the given set of points.
+
+    Parameters
+    ----------
+    xs, ys: arrays
+        Coordinates of the points to fit.
+
+    Returns
+    -------
+    center: 2x1 array of numbers
+        Position of the ellipse center.
+    R1, R2: numbers
+        Main and secondary ellipse radii.
+    theta: angle
+        Angle of the ellispe main axis (in radian).
+    """
+
+    # Taken from: http://nicky.vanforeest.com/misc/fitEllipse/fitEllipse.html
+    # Get a
+    xs = xs[:, np.newaxis]
+    ys = ys[:, np.newaxis]
+    D = np.hstack((xs*xs, xs*ys, ys*ys, xs, ys, np.ones_like(xs)))
+    S = np.dot(D.T, D)
+    C = np.zeros([6, 6])
+    C[0, 2] = C[2, 0] = 2
+    C[1, 1] = -1
+    E, V = np.linalg.eig(np.dot(np.linalg.inv(S), C))
+    n = np.argmax(np.abs(E))
+    lambd = V[:, n]
+    b, c, d, f, g, a = (lambd[1]/2, lambd[2], lambd[3]/2,
+                        lambd[4]/2, lambd[5], lambd[0])
+    # Get ellipse center
+    num = b*b - a*c
+    x0 = (c*d - b*f) / num
+    y0 = (a*f - b*d) / num
+    xc = np.array([x0, y0])
+    # Get ellispe rotation
+    theta = 0.5*np.arctan(2*b / (a - c))
+    # Get ellipse radii
+    up = 2*(a*f*f + c*d*d + g*b*b - 2*b*d*f - a*c*g)
+    down1 = (b*b - a*c)*((c - a)*np.sqrt(1 + 4*b*b / (
+        (a - c)*(a - c))) - (c + a))
+    down2 = (b*b - a*c)*((a - c)*np.sqrt(1 + 4*b*b / (
+        (a - c)*(a - c))) - (c + a))
+    R1 = np.sqrt(up / down1)
+    R2 = np.sqrt(up / down2)
+    # Return
+    return xc, R1, R2, theta
+
+
+def get_ellipse_points(xc, yc, R1, R2, theta, res=100):
+    """
+    Return points on the coresponding ellipse.
+    (For plotting purposes)
+    """
+    thetas = np.linspace(0, np.pi*2, res)
+    xs = xc + R1*np.cos(thetas)
+    ys = yc + R2*np.sin(thetas)
+    rot_xs = xc + np.cos(theta)*(xs - xc) - np.sin(theta)*(ys - yc)
+    rot_ys = yc + np.cos(theta)*(ys - yc) + np.sin(theta)*(xs - xc)
+    return rot_xs, rot_ys
