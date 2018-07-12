@@ -16,6 +16,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import copy
 
 
 """  """
@@ -38,8 +39,12 @@ class Baseline(object):
         self.pt2 = None
         self.xy = []
         self.coefs = []
+        self.tilt_angle = None
         if pts is not None:
             self.from_points(pts=pts, xmin=xmin, xmax=xmax)
+
+    def copy(self):
+        return copy.deepcopy(self)
 
     def from_points(self, pts, xmin=None, xmax=None):
         if len(pts) == 2 and xmin is None and xmax is None:
@@ -52,6 +57,7 @@ class Baseline(object):
         # get coefs
         self.xy = [[self.pt1[0], self.pt2[0]], [self.pt1[1], self.pt2[1]]]
         self.coefs = np.polyfit(self.xy[0], self.xy[1], 1)
+        self.tilt_angle = np.arctan(self.coefs[0])
 
     def get_baseline_from_points(self, pts, xmin=None, xmax=None):
         pos = np.array(pts)
@@ -84,11 +90,42 @@ class Baseline(object):
         pt1 = self.pt1
         pt2 = self.pt2
         if scalex is not None:
-            pt1 *= scalex
+            pt1[0] *= scalex
+            pt2[0] *= scalex
         if scaley is not None:
-            pt2 *= scaley
+            pt1[1] *= scaley
+            pt2[1] *= scaley
         if (scalex is not None) or (scaley is not None):
             self.from_points([pt1, pt2])
+
+    def set_origin(self, xo, yo):
+        """
+        Change the origin of the baseline to the new point.
+        """
+        x = np.array([self.pt1[0], self.pt2[0]])
+        y = np.array([self.pt1[1], self.pt2[1]])
+        new_x = x - xo
+        new_y = y - yo
+        self.from_points([[new_x[0], new_y[0]],
+                          [new_x[1], new_y[1]]])
+
+
+    def rotate(self, angle):
+        """
+        Rotate the baseline.
+
+        Parameters
+        ----------
+        angle: number
+            Rotation angle in radian.
+        """
+        # Checks
+        x = np.array([self.pt1[0], self.pt2[0]])
+        y = np.array([self.pt1[1], self.pt2[1]])
+        new_x = x*np.cos(angle) - y*np.sin(angle)
+        new_y = y*np.cos(angle) + x*np.sin(angle)
+        self.from_points([[new_x[0], new_y[0]],
+                          [new_x[1], new_y[1]]])
 
     def display(self, x0=None, xf=None, *args, **kwargs):
         if x0 is None:
