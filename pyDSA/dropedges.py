@@ -18,12 +18,11 @@ import numpy as np
 import warnings
 import matplotlib.pyplot as plt
 import scipy.interpolate as spint
-import scipy.linalg as splin
 import scipy.optimize as spopt
 import scipy.misc as spmisc
 from IMTreatment import Points, Profile
 import IMTreatment.plotlib as pplt
-from .helpers import fit_circle
+from .helpers import fit_circle, fit_ellipse, get_ellipse_points
 
 
 """  """
@@ -56,11 +55,13 @@ class DropEdges(Points):
         self.edges_fits = None
         self.triple_pts = None
         self.circle_fits = None
+        self.ellipse_fit = None
         self.circle_triple_pts = None
         self.baseline = im.baseline
         self.thetas = None
         self.thetas_triple = None
-        self.theta_circ = None
+        self.thetas_circ = None
+        self.thetas_ellipse = None
         self.im_axe_x = im.axe_x
         self.im_axe_y = im.axe_y
         self.im_dx = im.dx
@@ -683,8 +684,8 @@ class DropEdges(Points):
             return lines
         length = (np.max(self.xy[:, 1]) - np.min(self.xy[:, 1]))/3
         if self.thetas is not None:
-            theta1 = self.thetas[0]/180*np.pi
-            theta2 = self.thetas[1]/180*np.pi
+            theta1 = (self.thetas[0] + bs_angle)/180*np.pi
+            theta2 = (self.thetas[1] + bs_angle)/180*np.pi
             xy_inter = self._get_inters_base_fit()
             y1 = xy_inter[0][1]
             y2 = xy_inter[1][1]
@@ -701,8 +702,8 @@ class DropEdges(Points):
                           [np.nan, np.nan]])
         if self.thetas_triple is not None:
             # contact angle with triple points
-            theta1 = self.thetas_triple[0]/180*np.pi
-            theta2 = self.thetas_triple[1]/180*np.pi
+            theta1 = (self.thetas_triple[0] + bs_angle)/180*np.pi
+            theta2 = (self.thetas_triple[1] + bs_angle)/180*np.pi
             xy_inter = self.triple_pts
             y1 = xy_inter[0][1]
             y2 = xy_inter[1][1]
@@ -717,18 +718,24 @@ class DropEdges(Points):
                           [np.nan, np.nan]])
             lines.append([[np.nan, np.nan],
                           [np.nan, np.nan]])
-        if self.theta_circ is not None:
+        if self.thetas_circ is not None:
             # circle fit projected contact angle
-            theta = self.theta_circ*np.pi/180
+            theta1 = (self.thetas_circ[0] + bs_angle)*np.pi/180
+            theta2 = (self.thetas_circ[1] + bs_angle)*np.pi/180
             xy_inter = self._get_inters_base_circle_fit()
             y1 = xy_inter[0][1]
             y2 = xy_inter[1][1]
             x1 = xy_inter[0][0]
             x2 = xy_inter[1][0]
-            lines.append([[x1, x1 + length*np.cos(np.pi-theta)],
-                          [y1, y1 + length*np.sin(np.pi-theta)]])
-            lines.append([[x2, x2 + length*np.cos(theta)],
-                          [y2, y2 + length*np.sin(theta)]])
+            lines.append([[x1, x1 + length*np.cos(theta1)],
+                          [y1, y1 + length*np.sin(theta1)]])
+            lines.append([[x2, x2 + length*np.cos(theta2)],
+                          [y2, y2 + length*np.sin(theta2)]])
+        else:
+            lines.append([[np.nan, np.nan],
+                          [np.nan, np.nan]])
+            lines.append([[np.nan, np.nan],
+                          [np.nan, np.nan]])
         if self.thetas_ellipse is not None:
             # Ellipse fit projected contact angle
             theta1 = (self.thetas_ellipse[0] + bs_angle)*np.pi/180
@@ -902,10 +909,13 @@ class DropEdges(Points):
         thetas : 2x1 array of numbers
            Contact angles in °
         """
+        bs_angle = self.baseline.tilt_angle*180/np.pi
         # Compute base contact angle
         if self.edges_fits is not None:
             xy_inter = self._get_inters_base_fit()
             self.thetas = self._compute_fitting_angle_at_pts(xy_inter)
+            # correct regardin baseline angle
+            self.thetas -= bs_angle
         # Compute circle fits contact angles
         if self.circle_fits is not None:
             (xc, yc), R = self.circle_fits[0]
@@ -921,6 +931,8 @@ class DropEdges(Points):
         if self.triple_pts is not None:
             xy_tri = self.triple_pts
             self.thetas_triple = self._compute_fitting_angle_at_pts(xy_tri)
+            # correct regardin baseline angle
+            self.theta_triple -= bs_angle
         # Compute ellipse fit contact angle
         if self.ellipse_fit is not None:
             xy_inter = self._get_inters_base_ellipse_fit()
