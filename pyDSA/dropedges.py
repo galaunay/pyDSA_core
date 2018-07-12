@@ -105,6 +105,31 @@ class DropEdges(Points):
         de2.smooth(tos='gaussian', size=1, inplace=True)
         return de1, de2
 
+    def rotate(self, angle, inplace=False):
+        """
+        Rotate the edge.
+
+        Parameters
+        ----------
+        angle: number
+            Rotation angle in radian.
+        """
+        # Checks
+        if inplace:
+            tmpp = self
+        else:
+            tmpp = self.copy()
+        super(DropEdges, tmpp).rotate(angle, inplace=True)
+        for de in tmpp.drop_edges:
+            de.rotate(angle=angle, inplace=True)
+        if tmpp.baseline is not None:
+            tmpp.baseline.rotate(angle=angle)
+        tmpp.edges_fits = None
+        tmpp.triple_pts = None
+        tmpp.circle_fits = None
+        tmpp.circle_triple_pts = None
+        return tmpp
+
     def detect_triple_points(self, verbose=False, use_x_minima=False):
         """
         Compute the triple points (water, oil and air interfaces) position.
