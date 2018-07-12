@@ -608,11 +608,12 @@ class DropEdges(Points):
                 plt.plot(edg.y, edg.x, color='k', marker='o')
         plt.axis('equal')
         # Display baseline
-        x0 = np.min(self.xy[:, 0])
-        xf = np.max(self.xy[:, 0])
-        x0 -= np.abs(xf - x0)*.1
-        xf += np.abs(xf - x0)*.1
-        self.baseline.display(x0, xf, color=self.colors[0])
+        if self.baseline is not None:
+            x0 = np.min(self.xy[:, 0])
+            xf = np.max(self.xy[:, 0])
+            x0 -= np.abs(xf - x0)*.1
+            xf += np.abs(xf - x0)*.1
+            self.baseline.display(x0, xf, color=self.colors[0])
         # Display fits
         if self.edges_fits is not None and displ_fits:
             xy_inter = self._get_inters_base_fit()
@@ -907,10 +908,15 @@ class DropEdges(Points):
             self.thetas = self._compute_fitting_angle_at_pts(xy_inter)
         # Compute circle fits contact angles
         if self.circle_fits is not None:
-            xyc, R = self.circle_fits[0]
-            xy_inter = self._get_inters_base_circle_fit()[0]
-            theta = np.pi + np.arccos(abs(xyc[0] - xy_inter[0])/R)
-            self.theta_circ = theta*180/np.pi - 90
+            (xc, yc), R = self.circle_fits[0]
+            pts = self._get_inters_base_circle_fit()
+            thetas = []
+            for pt in pts:
+                theta = np.pi/2 + np.arctan((yc - pt[1])/(xc - pt[0]))
+                thetas.append(theta)
+            self.thetas_circ = np.array(thetas)*180/np.pi
+            # correct regardin baseline angle
+            self.thetas_circ -= bs_angle
         # Compute triple point contact angle
         if self.triple_pts is not None:
             xy_tri = self.triple_pts
@@ -946,7 +952,7 @@ class DropEdges(Points):
             deriv = spmisc.derivative(sfun, y_inter, dx=dy)
             theta = np.pi*1/2 - np.arctan(deriv)
             thetas.append(theta/np.pi*180)
-        return thetas
+        return np.array(thetas)
 
 
 
