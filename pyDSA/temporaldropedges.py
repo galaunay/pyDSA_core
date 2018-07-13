@@ -263,23 +263,20 @@ class TemporalDropEdges(TemporalPoints):
         return (np.array(height1, dtype=float),
                 np.array(height2, dtype=float))
 
-    def get_base_diameter(self, from_circ_fit=False):
+    def get_base_diameter(self, type='spline'):
         """
         Return the base diameters.
 
         Parameters
         ==========
-        from_circ_fit: boolean
-            If True, us te circle fits (more accurate),
-            else, use the spline fits.
+        type: string
+            Type of fitting to extract the base diameter from,
+            can be 'spline' (default), 'circ' or 'ellipse'.
         """
         diams = []
         for edge in self.point_sets:
-            if edge.circle_fits is None:
-                diams.append(np.nan)
-            else:
-                diams.append(edge.get_base_diameter(from_circ_fit=from_circ_fit))
-        return diams
+            diams.append(edge.get_base_diameter(type=type))
+        return np.asarray(diams)
 
     def compute_contact_angle(self, verbose=False):
         """
@@ -666,14 +663,18 @@ class TemporalDropEdges(TemporalPoints):
         bmgr.link_to_other_graph(bmgr2)
         return bmgr, bmgr2
 
-    def display_summary(self, figsize=None):
+    def display_summary(self, type='spline', figsize=None):
         """
         Display a summary of the drop parameters evolution.
         """
-        bdp = self.get_drop_base()
-        radii = self.get_drop_base_radius()
-        radiit = self.get_drop_radius()
-        thetas, thetas_triple = self.get_contact_angles()
+        if type == 'spline':
+            bdp = self._get_inters_base_fit()
+        elif type == 'circ':
+            bdp = self._get_inters_base_circle_fit()
+        elif type == 'ellipse':
+            bdp = self._get_inters_base_ellipse_fit()
+        radii = self.get_drop_base_radius(type=type)
+        thetas, thetas_triple = self.get_contact_angles(type=type)
         triple_pts1, triple_pts2 = self.get_triple_points()
         ts = np.arange(0, len(self.point_sets)*self.dt, self.dt)[0: len(bdp)]
         fig, axs = plt.subplots(2, 1, figsize=figsize)

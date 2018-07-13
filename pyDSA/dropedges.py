@@ -874,24 +874,28 @@ class DropEdges(Points):
             pts = self.triple_pts
         if pts is None:
             return np.nan, np.nan
-    def get_base_diameter(self, from_circ_fit=False):
         heights = [self.baseline.get_distance_to_baseline(pt)
                    for pt in pts]
         return np.array(heights)
 
+    def get_base_diameter(self, type='spline'):
         """
         Return the base diameter.
 
         Parameters
         ==========
-        from_circ_fit: boolean
-            If True, us te circle fits (more accurate),
-            else, use the spline fits.
+        type: string
+            Type of fitting to extract the base diameter from,
+            can be 'spline' (default), 'circ' or 'ellipse'.
         """
-        if from_circ_fit:
+        if type == 'circ':
             pt1, pt2 = self._get_inters_base_circle_fit()
-        else:
+        elif type == 'spline':
             pt1, pt2 = self._get_inters_base_fit()
+        elif type == 'ellipse':
+            pt1, pt2 = self._get_inters_base_ellipse_fit()
+        else:
+            raise ValueError()
         diam = ((pt1[0] - pt2[0])**2 + (pt1[1] - pt2[1])**2)**0.5
         return diam
 
