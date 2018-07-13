@@ -284,6 +284,13 @@ class Image(ScalarField):
         if base1 is not None and base2 is not None:
             self.set_baseline(base1, base2)
 
+    def choose_tp_interactive(self):
+        """
+        Choose triple points interactively.
+        """
+        sc = TriplePointChooser(self)
+        return sc.rh
+
     def binarize(self, method='adaptative', threshold=None, inplace=False):
         """
         Binarize the image.
@@ -878,3 +885,74 @@ class ScaleChooser(object):
         self.im.unit_y = wanted_unity
         self.ret_values = scale, wanted_unity
         plt.close(self.fig)
+
+
+class TriplePointChooser(object):
+    def __init__(self, im):
+        """
+        """
+        self.fig = plt.figure()
+        if im.baseline is None:
+            raise Exception()
+        self.basefun = im.baseline.get_baseline_fun()
+        self.pos = []
+        self.basepos = []
+        self.rh = []
+        self.im = im
+        self.eps = .01*(self.im.axe_x[-1] - self.im.axe_x[0])
+        self.pts = plt.plot([], marker="o", ls=":", color='k',
+                            mec='w', mfc='k')[0]
+        self.texts = []
+        self.axplot = plt.gca()
+        # Display
+        self.im.display(cmap=plt.cm.binary_r)
+        plt.title("Click on the triple point positions.")
+        # Connect click event on graph
+        self.fig.canvas.mpl_connect('button_press_event', self.onclick)
+        # show the plot
+        plt.show(block=True)
+
+    def onclick(self, event):
+        # toolbar want the focus !
+        if self.fig.canvas.manager.toolbar._active is not None:
+            return None
+        # Do nothing if not above an axe
+        if event.inaxes != self.axplot:
+            return None
+        # get the position
+        xy = [event.xdata, event.ydata]
+        diffs = [(xy[0] - xyi[0])**2 + (xy[1] - xyi[1])**2
+                 for xyi in self.pos]
+        # check if close to an existing point
+        closes = diffs < self.eps**2
+        if np.any(closes):
+            for i in np.arange(len(self.pos) - 1, -1, -1):
+                if closes[i]:
+                    del self.pos[i]
+                    del self.rh[i]
+                    del self.basepos[i]
+                    self.texts[i].remove()
+                    del self.texts[i]
+        else:
+            self.pos.append(xy)
+            self.basepos.append(self.im.baseline.get_projection_to_baseline(xy))
+            self.rh.append(self.im.baseline.get_distance_to_baseline(xy))
+            if self.im.unit_y.strUnit() != "[]":
+                unit = self.im.unit_y.strUnit()[1:-1]
+            else:
+                unit = ""
+            self.texts.append(plt.text(self.pos[-1][0],
+                                       self.pos[-1][1] + self.eps,
+                                       f"h={self.rh[-1]:.2f}{unit}",
+                                       horizontalalignment='center',
+                                       verticalalignment='baseline'))
+        # redraw
+        if len(self.pos) != 0:
+            pos = np.concatenate([[self.pos[i],
+                                   self.basepos[i],
+                                   [np.nan, np.nan]]
+                                  for i in range(len(self.pos))])
+            self.pts.set_data(np.array(pos).transpose())
+        else:
+            self.pts.set_data(np.empty((2, 2)))
+        self.fig.canvas.draw()
