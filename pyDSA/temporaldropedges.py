@@ -447,16 +447,28 @@ class TemporalDropEdges(TemporalPoints):
                                      1000)
                     x1 = edge.edges_fits[0](y1)
                     x2 = edge.edges_fits[1](y2)
+                    if np.any(np.isnan(x2)):
+                        filt = np.logical_not(np.isnan(x2))
+                        x2 = x2[filt]
+                        y2 = y2[filt]
+                    if np.any(np.isnan(x1)):
+                        filt = np.logical_not(np.isnan(x1))
+                        x1 = x1[filt]
+                        y1 = y1[filt]
                     x1s.append(x1)
                     x2s.append(x2)
                     y1s.append(y1)
                     y2s.append(y2)
-            if len(x1s) != length or len(x2s) != length:
-                raise Exception()
-            db1 = pplt.Displayer(x1s, y1s, color=self[0].colors[1])
-            db2 = pplt.Displayer(x2s, y2s, color=self[0].colors[1])
-            displs.append(db1)
-            displs.append(db2)
+            x1s = np.asarray(x1s)
+            x2s = np.asarray(x2s)
+            y1s = np.asarray(y1s)
+            y2s = np.asarray(y2s)
+            if x1s.shape[1] != 0:
+                db1 = pplt.Displayer(x1s, y1s, color=self[0].colors[1])
+                displs.append(db1)
+            if x2s.shape[1] != 0:
+                db2 = pplt.Displayer(x2s, y2s, color=self[0].colors[1])
+                displs.append(db2)
         # Display triple points
         if displ_tp:
             xs = []
@@ -685,7 +697,6 @@ class TemporalDropEdges(TemporalPoints):
         plt.plot(radii, ts, label="Base radius")
         if (not np.all(np.isnan(triple_pts1)) and
             not np.all(np.isnan(triple_pts2))):
-            plt.plot(radiit, ts, label="Drop base length")
             plt.plot(triple_pts1[:, 0], ts, label="Triple point (left)")
             plt.plot(triple_pts2[:, 0], ts, label="Triple point (right)")
         plt.xlabel('x {}'.format(self.unit_x.strUnit()))
