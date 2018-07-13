@@ -83,6 +83,22 @@ class Baseline(object):
                 return a*x + b
         return fun
 
+    def get_projection_to_baseline(self, xy):
+        """
+        Return the projection of the given point on the baseline.
+        """
+        vec1 = np.array([self.pt2[0] - self.pt1[0], self.pt2[1] - self.pt1[1]])
+        vec2 = np.array([xy[0] - self.pt1[0], xy[1] - self.pt1[1]])
+        vec3 = np.dot(vec1, vec2)/np.dot(vec1, vec1)*vec1
+        return np.array([vec3[0] + self.pt1[0], vec3[1] + self.pt1[1]])
+
+    def get_distance_to_baseline(self, xy):
+        """
+        Return the distance between the given point and the baseline/
+        """
+        bspos = self.get_projection_to_baseline(xy)
+        return np.linalg.norm(xy - bspos)
+
     def scale(self, scalex=None, scaley=None):
         """
         Scale the baseline.

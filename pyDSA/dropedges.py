@@ -874,16 +874,11 @@ class DropEdges(Points):
             pts = self.triple_pts
         if pts is None:
             return np.nan, np.nan
-        heights = []
-        for pt in pts:
-            x = pt[0]
-            y = pt[1]
-            y0 = self.baseline.get_baseline_fun()(x)
-            y -= y0
-            heights.append(y)
-        return heights
-
     def get_base_diameter(self, from_circ_fit=False):
+        heights = [self.baseline.get_distance_to_baseline(pt)
+                   for pt in pts]
+        return np.array(heights)
+
         """
         Return the base diameter.
 
