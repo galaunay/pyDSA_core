@@ -825,6 +825,9 @@ class DropEdges(Points):
     def _get_inters_base_ellipse_fit(self):
         """
         """
+        if self.ellipse_fit is None:
+            raise Exception('You should compute the ellipse '
+                            'fitting beforehand')
         (h, k), a, b, theta = self.ellipse_fit
         # Rotate the baseline in the ellipse referential
         tmpbs = self.baseline.copy()
@@ -889,10 +892,16 @@ class DropEdges(Points):
             can be 'spline' (default), 'circ' or 'ellipse'.
         """
         if type == 'circ':
+            if self.circle_fits is None:
+                return np.nan
             pt1, pt2 = self._get_inters_base_circle_fit()
         elif type == 'spline':
+            if self.edges_fits is None:
+                return np.nan
             pt1, pt2 = self._get_inters_base_fit()
         elif type == 'ellipse':
+            if self.ellipse_fit is None:
+                return np.nan
             pt1, pt2 = self._get_inters_base_ellipse_fit()
         else:
             raise ValueError()

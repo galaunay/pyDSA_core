@@ -522,9 +522,11 @@ class Image(ScalarField):
             #                               cv2.THRESH_BINARY+cv2.THRESH_OTSU)
             # threshold1 = threshold2/2
             # DSA adapted method
-            hist = self.get_histogram(cum=True)
-            threshold1 = hist.get_value_position(hist.max/2)[0]
-            threshold2 = np.max(hist.x)
+            hist = self.get_histogram(cum=True,
+                                      bins=int((self.max - self.min)/10))
+            threshold1 = hist.get_value_position(
+                hist.min + (hist.max - hist.min)/2)[0]
+            threshold2 = np.max(hist.x)*.5
         # Remove useless part of the image
         tmp_im = self.crop(intervy=[np.min([self.baseline.pt2[1],
                                             self.baseline.pt1[1]]), np.inf],
@@ -625,28 +627,29 @@ class Image(ScalarField):
                 im.display()
                 plt.title('Removed small edges')
             # Remove if not touching the baseline
-            for i in range(nmb):
-                ys = Y[labels == i+1]
-                if len(ys) == 0:
-                    continue
-                min_y = np.min(ys)
-                mdist = base_max_dist*dy
-                if min_y > mdist + np.max([self.baseline.pt1[1],
-                                           self.baseline.pt2[1]]):
-                    if debug:
-                        print(f"Label {i+1} removed because not touching "
-                              "baseline")
-                    im_edges[labels == i+1] = 0
-                    labels[labels == i+1] = 0
-                    nmb_edge -= 1
-            if verbose:
-                plt.figure()
-                im = Image()
-                im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
-                                      im_edges, mask=tmp_im.mask,
-                                      unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
-                im.display()
-                plt.title('Removed edge not touching the baseline')
+            if nmb_edge > nmb_edges:
+                for i in range(nmb_edge):
+                    ys = Y[labels == i+1]
+                    if len(ys) == 0:
+                        continue
+                    min_y = np.min(ys)
+                    mdist = base_max_dist*dy
+                    if min_y > mdist + np.max([self.baseline.pt1[1],
+                                               self.baseline.pt2[1]]):
+                        if debug:
+                            print(f"Label {i+1} removed because not touching "
+                                  "baseline")
+                        im_edges[labels == i+1] = 0
+                        labels[labels == i+1] = 0
+                        nmb_edge -= 1
+                if verbose:
+                    plt.figure()
+                    im = Image()
+                    im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
+                                          im_edges, mask=tmp_im.mask,
+                                          unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
+                    im.display()
+                    plt.title('Removed edge not touching the baseline')
             # keep only the two exterior edges
             if nmb_edge > 2 and keep_exterior:
                 mean_xs = [np.mean(X[labels == label])
