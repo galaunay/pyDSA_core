@@ -369,9 +369,34 @@ class DropEdges(Points):
     def fit_ellipse(self, verbose=False):
         """
         Fit the drop edges with an ellipse.
+
+        Remove points under the triple points if possible.
         """
-        xs = self.xy[:, 0]
-        ys = self.xy[:, 1]
+        xs1 = self.drop_edges[0].y
+        xs2 = self.drop_edges[1].y
+        ys1 = self.drop_edges[0].x
+        ys2 = self.drop_edges[1].x
+        if self.triple_pts is not None:
+            tp1 = self.triple_pts[0]
+            tp2 = self.triple_pts[0]
+            if not np.isnan(tp1[1]):
+                filt1 = ys1 > tp1[1]
+                xs1 = xs1[filt1]
+                ys1 = ys1[filt1]
+            if not np.isnan(tp2[1]):
+                filt2 = ys2 > tp2[1]
+                xs2 = xs2[filt2]
+                ys2 = ys2[filt2]
+            if verbose:
+                plt.figure()
+                self.display()
+                plt.figure()
+                plt.plot(xs1, ys1)
+                plt.plot(xs2, ys2)
+                plt.axis('equal')
+                plt.show()
+        xs = np.concatenate((xs1, xs2))
+        ys = np.concatenate((ys1, ys2))
         (xc, yc), R1, R2, theta = fit_ellipse(xs, ys)
         self.ellipse_fit = (xc, yc), R1, R2, theta
         if verbose:
@@ -940,7 +965,7 @@ class DropEdges(Points):
             xy_tri = self.triple_pts
             self.thetas_triple = self._compute_fitting_angle_at_pts(xy_tri)
             # correct regardin baseline angle
-            self.theta_triple -= bs_angle
+            self.thetas_triple -= bs_angle
         # Compute ellipse fit contact angle
         if self.ellipse_fit is not None:
             xy_inter = self._get_inters_base_ellipse_fit()
