@@ -65,8 +65,8 @@ class Image(ScalarField):
         super().display(*args, **kwargs)
         if self.baseline is not None:
             bx, by = self.baseline.xy
-            plt.plot(bx, by, color='g', ls='none', marker='o')
-            plt.plot(bx, by, color='g', ls='-')
+            plt.plot(bx, by, color=self.colors[0], ls='none', marker='o')
+            plt.plot(bx, by, color=self.colors[0], ls='-')
 
     def set_baseline(self, pt1, pt2):
         """
@@ -98,10 +98,12 @@ class Image(ScalarField):
         dx, dy = self.dx, self.dy
         # get cursor position on click
         fig = plt.figure()
-        pts = plt.plot([], marker="o", ls="none", mec='w', mfc='k')[0]
-        hl_pt = plt.plot([], marker="o", ls="none", mec='k', mfc='none',
+        pts = plt.plot([], marker="o", ls="none", mfc=self.colors[0],
+                       mec='k')[0]
+        hl_pt = plt.plot([], marker="o", ls="none", mec=self.colors[0],
+                         mfc='none',
                          ms=10)[0]
-        baseline = plt.plot([], ls="-", color="k")[0]
+        baseline = plt.plot([], ls="-", color=self.colors[0])[0]
         bs = Baseline()
 
         def onclick(event):
@@ -573,8 +575,12 @@ class Image(ScalarField):
             im.display()
             plt.title('Removed points under baseline')
         # Dilatation / erosion to ensure line continuity
-        im_edges = spim.binary_dilation(im_edges, iterations=dilatation_steps,
-                                        structure=[[1, 1, 1], [1, 1, 1], [1, 1, 1]])
+        if dilatation_steps > 0:
+            im_edges = spim.binary_dilation(im_edges,
+                                            iterations=dilatation_steps,
+                                            structure=[[1, 1, 1],
+                                                       [1, 1, 1],
+                                                       [1, 1, 1]])
         # im_edges = spim.binary_erosion(im_edges, iterations=dilatation_steps,
         #                                structure=[[0, 1, 0], [1, 1, 1], [0, 1, 0]])
         if verbose:

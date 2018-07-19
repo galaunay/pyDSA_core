@@ -630,8 +630,9 @@ class TemporalDropEdges(TemporalPoints):
                 displs.append(db)
 
         # Add button manager
-        bm = pplt.ButtonManager(displs)
-        return bm
+        if len(displs) != 0:
+            bm = pplt.ButtonManager(displs)
+            return bm
 
     def display_ridge_evolution(self, tis=None, from_circ_fit=False):
         """
