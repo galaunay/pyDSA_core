@@ -24,7 +24,6 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.widgets import Button, TextBox
 import scipy.ndimage as spim
-import skimage.measure as skim
 import warnings
 from IMTreatment import ScalarField, Points
 from IMTreatment.utils import make_unit
@@ -727,6 +726,7 @@ class Image(ScalarField):
         # Get level
         level = self.min + level*(self.max - self.min)
         # Get contour
+        import skimage.measure as skim
         contour = skim.find_contours(self.values, level)
         # put in the right units
         for cont in contour:
