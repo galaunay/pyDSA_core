@@ -87,7 +87,7 @@ class TemporalDropEdges(TemporalPoints):
             if verbose:
                 pg.print_progress()
         # return
-        tf = TemporalSplineFits(fits=fits, baseline=self.baseline)
+        tf = TemporalSplineFits(fits=fits, temporaledges=self)
         return tf
 
     def fit_circle(self, verbose=False):
@@ -110,7 +110,7 @@ class TemporalDropEdges(TemporalPoints):
             if verbose:
                 pg.print_progress()
         # return
-        tf = TemporalCircleFits(fits=fits, baseline=self.baseline)
+        tf = TemporalCircleFits(fits=fits, temporaledges=self)
         return tf
 
     def fit_ellipse(self, verbose=False):
@@ -133,7 +133,7 @@ class TemporalDropEdges(TemporalPoints):
             if verbose:
                 pg.print_progress()
         # return
-        tf = TemporalEllipseFits(fits=fits, baseline=self.baseline)
+        tf = TemporalEllipseFits(fits=fits, temporaledges=self)
         return tf
 
     def fit_circles(self, triple_pts, sigma_max=None, verbose=False,
@@ -180,7 +180,7 @@ class TemporalDropEdges(TemporalPoints):
                     pass
                 if verbose:
                     pg.print_progress()
-            tf = TemporalCirclesFits(fits=fits, baseline=self.baseline)
+            tf = TemporalCirclesFits(fits=fits, temporaledges=self)
         # return
         return tf
 
@@ -257,45 +257,3 @@ class TemporalDropEdges(TemporalPoints):
         plt.ylim(ymin=0)
         bmgr.link_to_other_graph(bmgr2)
         return bmgr, bmgr2
-
-    def display_summary(self, type='spline', figsize=None):
-        """
-        Display a summary of the drop parameters evolution.
-        """
-        if type == 'spline':
-            bdp = self._get_inters_base_fit()
-        elif type == 'circ':
-            bdp = self._get_inters_base_circle_fit()
-        elif type == 'ellipse':
-            bdp = self._get_inters_base_ellipse_fit()
-        radii = self.get_drop_base_radius(type=type)
-        thetas, thetas_triple = self.get_contact_angles(type=type)
-        triple_pts1, triple_pts2 = self.get_triple_points()
-        ts = np.arange(0, len(self.point_sets)*self.dt, self.dt)[0: len(bdp)]
-        fig, axs = plt.subplots(2, 1, figsize=figsize)
-        # Drop dimensions
-        plt.sca(axs[0])
-        plt.plot(bdp[:, 0], ts, label="Contact (left)")
-        plt.plot(bdp[:, 1], ts, label="Contact (right)")
-        plt.plot(radii, ts, label="Base radius")
-        if (not np.all(np.isnan(triple_pts1)) and
-            not np.all(np.isnan(triple_pts2))):
-            plt.plot(triple_pts1[:, 0], ts, label="Triple point (left)")
-            plt.plot(triple_pts2[:, 0], ts, label="Triple point (right)")
-        plt.xlabel('x {}'.format(self.unit_x.strUnit()))
-        plt.ylabel('Time {}'.format(self.unit_times.strUnit()))
-        plt.legend(loc=0)
-        # Contact angles
-        plt.sca(axs[1])
-        plt.plot(-thetas[:, 0], ts, label="Angle (left)")
-        plt.plot(180 - thetas[:, 1], ts, label="Angle (right)")
-        if not np.all(np.isnan(thetas_triple)):
-            plt.plot(-thetas_triple[:, 0], ts,
-                     label="Angle at triple point (left)",
-                     marker=",", ls="-")
-            plt.plot(180 - thetas_triple[:, 1], ts,
-                     label="Angle at triple point (right)",
-                     marker=",", ls="-")
-        plt.ylabel('Time {}'.format(self.unit_times.strUnit()))
-        plt.xlabel('[Deg]')
-        plt.legend(loc=0)

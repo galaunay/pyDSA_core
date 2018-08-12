@@ -59,6 +59,7 @@ class DropFit(object):
         """
         """
         plt.axis('equal')
+        plt.gca().set_adjustable('box')
         # Display baseline
         if self.baseline is not None:
             x0 = self.x_bounds[0]

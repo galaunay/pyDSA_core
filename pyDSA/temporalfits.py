@@ -33,12 +33,17 @@ __status__ = "Development"
 
 
 class TemporalFits(object):
-    def __init__(self, fits, baseline):
+    def __init__(self, fits, temporaledges):
         """
 
         """
-        self.baseline = baseline
+        self.baseline = temporaledges.baseline
         self.fits = fits
+        self.times = temporaledges.times
+        self.unit_times = temporaledges.unit_times
+        self.dt = temporaledges.dt
+        self.unit_x = temporaledges.unit_x
+        self.unit_y = temporaledges.unit_y
 
     def __iter__(self):
         for i in range(len(self.fits)):
@@ -216,6 +221,12 @@ class TemporalFits(object):
             diams.append(fit.get_base_diameter())
         return np.asarray(diams)
 
+    def _get_inters_base_fit(self):
+        inter = []
+        for fit in self.fits:
+            inter.append(fit._get_inters_base_fit())
+        return np.asarray(inter)
+
     def display(self, displ_tp=True, displ_ca=True):
         displs = []
         length = len(self.fits)
@@ -270,6 +281,42 @@ class TemporalFits(object):
             bm = pplt.ButtonManager(displs)
             return bm
 
+    def display_summary(self, figsize=None):
+        """
+        Display a summary of the drop parameters evolution.
+        """
+        bdp = self._get_inters_base_fit()
+        radii = self.get_base_diameter()
+        thetas = self.get_contact_angles()
+        # triple_pts1, triple_pts2 = self.get_triple_points()
+        ts = np.arange(0, len(self.fits)*self.dt, self.dt)[0: len(bdp)]
+        fig, axs = plt.subplots(2, 1, figsize=figsize)
+        # Drop dimensions
+        plt.sca(axs[0])
+        plt.plot(bdp[:, 0, 0], ts, label="Contact (left)")
+        plt.plot(bdp[:, 1, 0], ts, label="Contact (right)")
+        plt.plot(radii, ts, label="Base radius")
+        # if (not np.all(np.isnan(triple_pts1)) and
+        #     not np.all(np.isnan(triple_pts2))):
+        #     plt.plot(triple_pts1[:, 0], ts, label="Triple point (left)")
+            # plt.plot(triple_pts2[:, 0], ts, label="Triple point (right)")
+        plt.xlabel('x {}'.format(self.unit_x.strUnit()))
+        plt.ylabel('Time {}'.format(self.unit_times.strUnit()))
+        plt.legend(loc=0)
+        # Contact angles
+        plt.sca(axs[1])
+        plt.plot(-thetas[:, 0], ts, label="Angle (left)")
+        plt.plot(180 - thetas[:, 1], ts, label="Angle (right)")
+        # if not np.all(np.isnan(thetas_triple)):
+        #     plt.plot(-thetas_triple[:, 0], ts,
+        #              label="Angle at triple point (left)",
+        #              marker=",", ls="-")
+        #     plt.plot(180 - thetas_triple[:, 1], ts,
+        #              label="Angle at triple point (right)",
+        #              marker=",", ls="-")
+        plt.ylabel('Time {}'.format(self.unit_times.strUnit()))
+        plt.xlabel('[Deg]')
+        plt.legend(loc=0)
 
 class TemporalSplineFits(TemporalFits):
     def detect_triple_points(self, smooth=None, use_x_minima=False,

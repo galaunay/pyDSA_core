@@ -182,13 +182,13 @@ class DropEdges(Points):
         if len(y2) == 0:
             spline2 = dummy_function
         # spline interpolation
-        max_smooth_carac_len = np.max([self.im_dx*len(self.im_axe_x),
-                                       self.im_dy*len(self.im_axe_y)])
         min_smooth_carac_len = np.max([self.im_dx, self.im_dy])/6
         max_smooth_carac_len = min_smooth_carac_len*2
         min_smooth_fact = np.max([len(x1), len(x2)])*min_smooth_carac_len**2
         max_smooth_fact = np.max([len(x1), len(x2)])*max_smooth_carac_len**2
         s = max_smooth_fact - (max_smooth_fact - min_smooth_fact)*s
+        max_smooth_carac_len = np.max([self.im_axe_x[-1] - self.im_axe_x[0],
+                                       self.im_axe_y[-1] - self.im_axe_y[0]])
         if verbose:
             print("Used 's={}'".format(s))
         if spline1 is None:
@@ -510,6 +510,7 @@ class DropEdges(Points):
         for edg in self.drop_edges:
             plt.plot(edg.y, edg.x, color='k', marker='o')
         plt.axis('equal')
+        plt.gca().set_adjustable('box')
         # Display baseline
         if self.baseline is not None:
             x0 = np.min(self.xy[:, 0])
