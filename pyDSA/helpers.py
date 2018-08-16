@@ -123,7 +123,7 @@ def import_from_images(path, dx=1, dy=1, dt=1, unit_x="", unit_y="",
 def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
                       frame_inds=None, incr=1, nmb_frame_to_import=None,
                       intervx=None, intervy=None,
-                      dtype=np.uint8, verbose=False):
+                      cache_infos=True, dtype=np.uint8, verbose=False):
     """
     Import a images from a video file.
 
@@ -145,6 +145,9 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
     nmb_frame_to_import: integer
         Number of evenly distributed frames to import
         Will overwrite any values of 'incr'
+    cache_infos: boolean
+        If True (default) an infofile is created alongside the video file
+        To keep track of scaling preoperties and baseline.
     intervx, intervy: 2x1 list of numbers
         Cropping dimensions applied on each frames.
     dtype: type
@@ -157,7 +160,6 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
     imgs: TemporalImages object
         Images
     """
-    frame_inds = frame_inds or [0, np.inf]
     # Check if file exist
     imtio.check_path(path)
     # open video
@@ -209,11 +211,12 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         if verbose:
             pg.print_progress()
 
-    # Try to import infos if the infofile exist
-    if os.path.isfile(ti.infofile_path):
-        ti._import_infos()
-    # cache axis
-    ti._dump_infos()
+    if cache_infos:
+        # Try to import infos if the infofile exist
+        if os.path.isfile(ti.infofile_path):
+            ti._import_infos()
+        # cache axis
+        ti._dump_infos()
     #
     if verbose and frame_inds[1] == np.inf:
         pg._print_end()

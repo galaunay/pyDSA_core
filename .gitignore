@@ -4,3 +4,5 @@ __pycache__
 build
 dist
 _build
+/.coverage
+.pytest_cache

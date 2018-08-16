@@ -43,6 +43,19 @@ class Baseline(object):
         if pts is not None:
             self.from_points(pts=pts, xmin=xmin, xmax=xmax)
 
+    def __eq__(self, other):
+        if not isinstance(other, Baseline):
+            return False
+        for arg in ['pt1', 'pt2', 'xy', 'coefs', 'tilt_angle']:
+            try:
+                getattr(self, arg)[0]
+                if not np.allclose(getattr(self, arg), getattr(other, arg)):
+                    return False
+            except (TypeError, IndexError):
+                if not np.isclose(getattr(self, arg), getattr(other, arg)):
+                    return False
+        return True
+
     def copy(self):
         return copy.deepcopy(self)
 

@@ -60,6 +60,15 @@ class Image(ScalarField):
             self.infofile_path = None
             self.cache_infos = False
 
+    def __eq__(self, other):
+        if not isinstance(other, Image):
+            return False
+        if not super().__eq__(other):
+            return False
+        if not self.baseline == other.baseline:
+            return False
+        return True
+
     def display(self, *args, **kwargs):
         super().display(*args, **kwargs)
         if self.baseline is not None:
@@ -378,7 +387,7 @@ class Image(ScalarField):
             raise ValueError
         if size % 2 != 1:
             size += 1
-            warnings.warn(f"size should be odd and has been set to {size}"
+            warnings.warn(f"size should be odd and has been set to {size}" +
                           f" instead of {size - 1}")
         #
         if inplace:
