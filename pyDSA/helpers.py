@@ -233,8 +233,16 @@ def circle_from_three_points(pt1, pt2, pt3):
     x1, y1 = pt1
     x2, y2 = pt2
     x3, y3 = pt3
-    ma = (y2 - y1)/(x2 - x1)
-    mb = (y3 - y2)/(x3 - x2)
+    # ensure no division by zero
+    if (x2 - x1) == 0:
+        ma = (y3 - y1)/(x3 - x1)
+        mb = (y3 - y2)/(x3 - x2)
+    elif (x3 - x2) == 0:
+        ma = (y2 - y1)/(x2 - x1)
+        mb = (y3 - y1)/(x3 - x1)
+    else:
+        ma = (y2 - y1)/(x2 - x1)
+        mb = (y3 - y2)/(x3 - x2)
     if (mb - ma) == 0:
         x = np.mean([x1, x2, x3])
     else:
@@ -443,8 +451,8 @@ def fit_ellipse(xs, ys):
 
     # Taken from: http://nicky.vanforeest.com/misc/fitEllipse/fitEllipse.html
     # Get a
-    xs = xs[:, np.newaxis]
-    ys = ys[:, np.newaxis]
+    xs = np.asarray(xs)[:, np.newaxis]
+    ys = np.asarray(ys)[:, np.newaxis]
     D = np.hstack((xs*xs, xs*ys, ys*ys, xs, ys, np.ones_like(xs)))
     S = np.dot(D.T, D)
     C = np.zeros([6, 6])

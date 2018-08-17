@@ -27,7 +27,7 @@ except:
 import numpy as np
 from helper import sane_parameters
 from pyDSA.helpers import import_from_image, import_from_images, \
-    import_from_video
+    import_from_video, circle_from_three_points, fit_circle, fit_ellipse
 from pyDSA import Image
 from IMTreatment.utils import make_unit
 
@@ -166,3 +166,28 @@ class TestImportFromImages(object):
         assert ims.fields[0].unit_y == make_unit('nm')
         assert ims.fields[0].values.dtype == np.uint8
         assert ims.fields[0].shape == (784, 592)
+
+class TestFittingFunctions(object):
+    def setup(self):
+        sane_parameters()
+
+    def test_circle_from_three_points(self):
+        pt1 = [0, 1]
+        pt2 = [1, 0]
+        pt3 = [0, -1]
+        cent = circle_from_three_points(pt1, pt2, pt3)
+        assert np.allclose(cent, [0, 0])
+
+    def test_fit_circle(self):
+        center, R = fit_circle([0, 0, 1], [1, -1, 0])
+        assert np.allclose(center, [0, 0])
+        assert np.isclose(R, 1)
+
+    def test_fit_ellipse(self):
+        xs = [0, 1, 2, -2, -1.5, 0]
+        ys = [-1, -0.5, 0, 0, 0.75, 1]
+        center, R1, R2, theta = fit_ellipse(xs, ys)
+        assert np.allclose(center, [-0.10407845,  0.05203922])
+        assert np.isclose(R1, 1.9760989377)
+        assert np.isclose(R2, 0.979127582)
+        assert np.isclose(theta, 0.0690882025)
