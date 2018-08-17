@@ -58,13 +58,13 @@ class TestDropEdges(object):
 
     def test_fit_spline(self):
         fit = self.edges.fit_spline()
-        assert np.isclose(fit.fits[0](30), 32.60263012)
-        assert np.isclose(fit.fits[1](30), 58.02943488)
+        assert np.isclose(fit.fits[0](30), 32.58882059)
+        assert np.isclose(fit.fits[1](30), 58.01826487)
 
     def test_fit_circle(self):
         fit = self.edges.fit_circle()
-        assert np.allclose(fit.fits[0], [45.31111377, 44.12578495])
-        assert np.isclose(fit.fits[1], 18.4417563803888)
+        assert np.allclose(fit.fits[0], [45.29394401, 20.86841674])
+        assert np.isclose(fit.fits[1], 15.55818820259)
 
     def test_fit_ellipse(self):
         fit = self.edges.fit_ellipse()

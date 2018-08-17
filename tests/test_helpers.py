@@ -167,6 +167,7 @@ class TestImportFromImages(object):
         assert ims.fields[0].values.dtype == np.uint8
         assert ims.fields[0].shape == (784, 592)
 
+
 class TestFittingFunctions(object):
     def setup(self):
         sane_parameters()
@@ -175,7 +176,7 @@ class TestFittingFunctions(object):
         pt1 = [0, 1]
         pt2 = [1, 0]
         pt3 = [0, -1]
-        cent = circle_from_three_points(pt1, pt2, pt3)
+        cent, R = circle_from_three_points(pt1, pt2, pt3)
         assert np.allclose(cent, [0, 0])
 
     def test_fit_circle(self):
