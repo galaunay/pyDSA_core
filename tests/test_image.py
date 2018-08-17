@@ -34,8 +34,7 @@ import json
 import pytest
 
 
-class TestImportFromImage(object):
-    """ Done """
+class TestImage(object):
 
     def setup(self):
         sane_parameters()

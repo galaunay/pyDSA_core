@@ -138,7 +138,6 @@ class Baseline(object):
         self.from_points([[new_x[0], new_y[0]],
                           [new_x[1], new_y[1]]])
 
-
     def rotate(self, angle):
         """
         Rotate the baseline.
