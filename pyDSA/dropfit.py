@@ -318,14 +318,11 @@ class DropSplineFit(DropFit):
                 y_inter = np.nan
             elif flat:
                 y_inter = self.baseline.pt1[1]
-                t_inter = spopt.fsolve(lambda t: y_inter - sfuny(t),
-                                       (self.baseline.pt1[1] +
-                                        self.baseline.pt2[1])/2)[0]
+                t_inter = spopt.fsolve(lambda t: y_inter - sfuny(t), 0.5)[0]
                 x_inter = sfunx(t_inter)
             else:
                 t_inter = spopt.fsolve(lambda t: bfun(sfunx(t)) - sfuny(t),
-                                       (self.baseline.pt1[1] +
-                                        self.baseline.pt2[1])/2)[0]
+                                       0.5)[0]
                 x_inter = sfunx(t_inter)
                 y_inter = sfuny(t_inter)
             xys.append([x_inter, y_inter])
@@ -372,11 +369,17 @@ class DropSplineFit(DropFit):
         thetas = []
         for i in range(2):
             x_inter, y_inter = pts[i]
-            sfun = self.fits[i]
+            sfunx, sfuny = self.fits[i]
+            t_inter = spopt.fsolve(lambda t: y_inter - sfuny(t), 0.5)
             # Get gradient
-            dy = (self.x_bounds[1] - self.x_bounds[0])/100
-            deriv = spmisc.derivative(sfun, y_inter, dx=dy)
-            theta = np.pi*1/2 - np.arctan(deriv)
+            dt = 0.01
+            derivx = spmisc.derivative(sfunx, t_inter, dx=dt)
+            derivy = spmisc.derivative(sfuny, t_inter, dx=dt)
+            # theta = np.pi*1/2 - np.arctan(derivy/derivx)
+            theta = np.arctan(derivy/derivx)
+            if i == 1:
+                theta -= np.pi
+            theta = theta % (2*np.pi)
             thetas.append(theta/np.pi*180)
         return np.array(thetas)
 
@@ -393,8 +396,8 @@ class DropSplineFit(DropFit):
             y1 = self.fits[0][1](t)
             x2 = self.fits[1][0](t)
             y2 = self.fits[1][1](t)
-            plt.plot(y1, x1, color=self.colors[1])
-            plt.plot(y2, x2, color=self.colors[1])
+            plt.plot(x1, y1, color=self.colors[1])
+            plt.plot(x2, y2, color=self.colors[1])
         # Display contact angles
         if displ_ca:
             lines = self._get_angle_display_lines()

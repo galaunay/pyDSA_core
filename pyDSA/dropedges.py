@@ -100,12 +100,12 @@ class DropEdges(Points):
         new_y2 = np.sort(list(set(ys2)))
         new_x2 = [np.mean(xs2[y == ys2]) for y in new_y2]
         # smooth to avoid stepping
-        de1 = Profile(new_y1, new_x1,
-                      unit_x=self.unit_y,
-                      unit_y=self.unit_x)
-        de2 = Profile(new_y2, new_x2,
-                      unit_x=self.unit_y,
-                      unit_y=self.unit_x)
+        de1 = Profile(new_x1, new_y1,
+                      unit_x=self.unit_x,
+                      unit_y=self.unit_y)
+        de2 = Profile(new_x2, new_y2,
+                      unit_x=self.unit_x,
+                      unit_y=self.unit_y)
         de1.smooth(tos='gaussian', size=1, inplace=True)
         de2.smooth(tos='gaussian', size=1, inplace=True)
         # parametrize
@@ -202,22 +202,19 @@ class DropEdges(Points):
         # Prepare drop edge for interpolation
         # TODO: Find a more efficient fitting
         dex1, dey1, dex2, dey2 = self.drop_edges
-        x1 = dey1.y
-        y1 = dex1.y
-        x2 = dey2.y
-        y2 = dex2.y
         spline1 = None
         spline2 = None
         # Don't fit if no edge
-        if len(y1) == 0:
+        if len(dex1) == 0:
             spline1 = dummy_function
-        if len(y2) == 0:
+        if len(dex2) == 0:
             spline2 = dummy_function
         # spline interpolation
         min_smooth_carac_len = np.max([self.im_dx, self.im_dy])/6
         max_smooth_carac_len = min_smooth_carac_len*2
-        min_smooth_fact = np.max([len(x1), len(x2)])*min_smooth_carac_len**2
-        max_smooth_fact = np.max([len(x1), len(x2)])*max_smooth_carac_len**2
+        max_len = np.max([len(dex1), len(dex2)])
+        min_smooth_fact = max_len*min_smooth_carac_len**2
+        max_smooth_fact = max_len*max_smooth_carac_len**2
         s = max_smooth_fact - (max_smooth_fact - min_smooth_fact)*s
         max_smooth_carac_len = np.max([self.im_axe_x[-1] - self.im_axe_x[0],
                                        self.im_axe_y[-1] - self.im_axe_y[0]])
@@ -225,29 +222,30 @@ class DropEdges(Points):
             print("Used 's={}'".format(s))
         if spline1 is None:
             try:
-                spline1 = spint.UnivariateSpline(y1, x1, k=k, s=s)
+                spx1 = spint.UnivariateSpline(dex1.x, dex1.y, k=k, s=s)
+                spy1 = spint.UnivariateSpline(dey1.x, dey1.y, k=k, s=s)
+                spline1 = [spx1, spy1]
             except:
-                spline1 = dummy_function
+                spline1 = (dummy_function, dummy_function)
                 if verbose:
                     print("Fitting failed for edge number one")
         if spline2 is None:
             try:
-                spline2 = spint.UnivariateSpline(y2, x2, k=k, s=s)
+                spx2 = spint.UnivariateSpline(dex2.x, dex2.y, k=k, s=s)
+                spy2 = spint.UnivariateSpline(dey2.x, dey2.y, k=k, s=s)
+                spline2 = [spx2, spy2]
             except:
-                spline2 = dummy_function
+                spline2 = (dummy_function, dummy_function)
                 if verbose:
                     print("Fitting failed for edge number one")
         # Verbose if necessary
         if verbose:
-            tmp_y1 = np.linspace(y1.min(), y1.max(), 1000)
-            tmp_y2 = np.linspace(y2.min(), y2.max(), 1000)
+            t = np.linspace(0, 1, 1000)
             plt.figure()
-            plt.plot(de1.y, de1.x, "o")
-            plt.plot(x1, y1, 'xb')
-            plt.plot(spline1(tmp_y1), tmp_y1, 'r')
-            plt.plot(de2.y, de2.x, "o")
-            plt.plot(x2, y2, 'xb')
-            plt.plot(spline2(tmp_y2), tmp_y2, 'r')
+            plt.plot(dex1.y, dey1.y, "o")
+            plt.plot(spline1[0](t), spline1[1](t), 'r')
+            plt.plot(dex2.y, dey2.y, "o")
+            plt.plot(spline2[0](t), spline2[1](t), 'r')
             plt.axis('equal')
             plt.show()
         # return
@@ -278,16 +276,12 @@ class DropEdges(Points):
         # Prepare drop edge for interpolation
         # TODO: Find a more efficient fitting
         dex1, dey1, dex2, dey2 = self.drop_edges
-        x1 = dex1.y
-        y1 = dey1.y
-        x2 = dex2.y
-        y2 = dey2.y
         polyline1 = None
         polyline2 = None
         # Don't fit if no edge
-        if len(y1) == 0:
+        if len(dey1) == 0:
             polyline1 = (dummy_function, dummy_function)
-        if len(y2) == 0:
+        if len(dey2) == 0:
             polyline2 = (dummy_function, dummy_function)
         # fit
         if polyline1 is None:
@@ -331,10 +325,10 @@ class DropEdges(Points):
             .
         """
         dex1, dey1, dex2, dey2 = self.drop_edges
-        xs1 = dey1.y
-        ys1 = dex1.y
-        xs2 = dey2.y
-        ys2 = dex2.y
+        xs1 = dex1.y
+        ys1 = dey1.y
+        xs2 = dex2.y
+        ys2 = dey2.y
         if triple_pts is not None:
             tp1 = triple_pts[0]
             tp2 = triple_pts[1]
@@ -510,8 +504,8 @@ class DropEdges(Points):
                 filt = ys2 > ytp
                 xs2 = xs2[filt]
                 ys2 = ys2[filt]
-        xs = np.concatenate((ys1, ys2))
-        ys = np.concatenate((xs1, xs2))
+        xs = np.concatenate((xs1, xs2))
+        ys = np.concatenate((ys1, ys2))
         # Fit circles
         c, R = fit_circle(xs, ys)
         self.circle_fits = [[c, R]]
@@ -554,10 +548,17 @@ class DropEdges(Points):
         tp1 = triple_pts[0]
         tp2 = triple_pts[1]
         dex1, dey1, dex2, dey2 = self.drop_edges
-        xs1 = dey1.y
-        ys1 = dex1.y
-        xs2 = dey2.y
-        ys2 = dex2.y
+        xs1 = dex1.y
+        ys1 = dey1.y
+        xs2 = dex2.y
+        ys2 = dey2.y
+        # reorder
+        if ys1[0] > ys1[-1]:
+            ys1 = ys1[::-1]
+            xs1 = xs1[::-1]
+        if ys2[0] > ys2[-1]:
+            ys2 = ys2[::-1]
+            xs2 = xs2[::-1]
         # separate at the triple point
         ind_sep1 = np.where(ys1 > tp1[1])[0][0]
         ind_sep2 = np.where(ys2 > tp2[1])[0][0]
@@ -607,8 +608,8 @@ class DropEdges(Points):
         ys1 = dey1.y
         xs2 = dex2.y
         ys2 = dey2.y
-        plt.plot(ys1, xs1, color='k', marker='o')
-        plt.plot(ys2, xs2, color='k', marker='o')
+        plt.plot(xs1, ys1, color='k', marker='o')
+        plt.plot(xs2, ys2, color='k', marker='o')
         plt.axis('equal')
         plt.gca().set_adjustable('box')
         # Display baseline
