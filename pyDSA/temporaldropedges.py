@@ -90,6 +90,28 @@ class TemporalDropEdges(TemporalPoints):
         tf = TemporalSplineFits(fits=fits, temporaledges=self)
         return tf
 
+    def fit_polyline(self, deg=5, verbose=False):
+        """
+        Compute a polyline fitting for the droplets shape.
+
+        Parameters
+        ----------
+        deg : integer
+            Degree of the polynomial fitting.
+        """
+        if verbose:
+            pg = ProgressCounter(init_mess="Fitting droplet interfaces",
+                                 nmb_max=len(self.point_sets),
+                                 name_things='edges', perc_interv=5)
+        fits = []
+        for edge in self.point_sets:
+            fits.append(edge.fit_polyline(deg=deg, verbose=False))
+            if verbose:
+                pg.print_progress()
+        # return
+        tf = TemporalSplineFits(fits=fits, temporaledges=self)
+        return tf
+
     def fit_circle(self, verbose=False):
         """
         Fit a circle to the edges.
