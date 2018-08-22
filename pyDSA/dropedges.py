@@ -278,34 +278,38 @@ class DropEdges(Points):
         # Prepare drop edge for interpolation
         # TODO: Find a more efficient fitting
         dex1, dey1, dex2, dey2 = self.drop_edges
-        x1 = dey1.y
-        y1 = dex1.y
-        x2 = dey2.y
-        y2 = dex2.y
+        x1 = dex1.y
+        y1 = dey1.y
+        x2 = dex2.y
+        y2 = dey2.y
         polyline1 = None
         polyline2 = None
         # Don't fit if no edge
         if len(y1) == 0:
-            polyline1 = dummy_function
+            polyline1 = (dummy_function, dummy_function)
         if len(y2) == 0:
-            polyline2 = dummy_function
+            polyline2 = (dummy_function, dummy_function)
         # fit
         if polyline1 is None:
             try:
-                ps = np.polyfit(y1, x1, deg)
-                polyline1 = poly_function_from_coefs(ps)
+                psx1 = np.polyfit(dex1.x, dex1.y, deg)
+                psy1 = np.polyfit(dey1.x, dey1.y, deg)
+                polyline1 = [poly_function_from_coefs(psx1),
+                             poly_function_from_coefs(psy1)]
             except:
-                polyline1 = dummy_function
+                polyline1 = (dummy_function, dummy_function)
                 if verbose:
                     print("Fitting failed for edge number one")
         if polyline2 is None:
             try:
-                ps = np.polyfit(y2, x2, deg)
-                polyline2 = poly_function_from_coefs(ps)
+                psx2 = np.polyfit(dex2.x, dex2.y, deg)
+                psy2 = np.polyfit(dey2.x, dey2.y, deg)
+                polyline2 = [poly_function_from_coefs(psx2),
+                             poly_function_from_coefs(psy2)]
             except:
-                polyline2 = dummy_function
+                polyline2 = (dummy_function, dummy_function)
                 if verbose:
-                    print("Fitting failed for edge number one")
+                    print("Fitting failed for edge number two")
         # Return
         x_bounds = [np.min(self.xy[:, 0]), np.max(self.xy[:, 0])]
         y_bounds = [np.min(self.xy[:, 1]), np.max(self.xy[:, 1])]
@@ -313,21 +317,7 @@ class DropEdges(Points):
                             y_bounds=y_bounds,
                             baseline=self.baseline,
                             fits=[polyline1, polyline2])
-        # TEMP
-        psx1 = np.polyfit(dex2.x, dex2.y, deg)
-        psy1 = np.polyfit(dey2.x, dey2.y, deg)
-        plx1 = poly_function_from_coefs(psx1)
-        ply1 = poly_function_from_coefs(psy1)
-        plt.figure()
-        self.display()
-        plt.plot([ply1(t) for t in np.linspace(0, dex1.x[-1], 100)],
-                 [plx1(t) for t in np.linspace(0, dex1.x[-1], 100)], "o")
-        dsf.display()
-        plt.show()
-        bug
-        # TEMP - End
         return dsf
-
 
     def fit_ellipse(self, triple_pts=None, verbose=False):
         """

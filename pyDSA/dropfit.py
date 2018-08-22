@@ -312,18 +312,22 @@ class DropSplineFit(DropFit):
             flat = True
         xys = []
         for i in range(2):
-            sfun = self.fits[i]
-            if np.isnan(sfun(0)):
+            sfunx, sfuny = self.fits[i]
+            if np.isnan(sfunx(0)):
                 x_inter = np.nan
                 y_inter = np.nan
             elif flat:
                 y_inter = self.baseline.pt1[1]
-                x_inter = sfun(y_inter)
-            else:
-                y_inter = spopt.fsolve(lambda y: bfun(y) - sfun(y),
+                t_inter = spopt.fsolve(lambda t: y_inter - sfuny(t),
                                        (self.baseline.pt1[1] +
                                         self.baseline.pt2[1])/2)[0]
-                x_inter = bfun(y_inter)
+                x_inter = sfunx(t_inter)
+            else:
+                t_inter = spopt.fsolve(lambda t: bfun(sfunx(t)) - sfuny(t),
+                                       (self.baseline.pt1[1] +
+                                        self.baseline.pt2[1])/2)[0]
+                x_inter = sfunx(t_inter)
+                y_inter = sfuny(t_inter)
             xys.append([x_inter, y_inter])
         if verbose:
             y = np.linspace(self.y_bounds[0], self.y_bounds[-1], 100)
@@ -333,7 +337,8 @@ class DropSplineFit(DropFit):
             plt.plot([xys[0][0], xys[1][0]], [xys[0][1], xys[1][1]], "ok",
                      label="intersection")
             plt.plot(x, bfun(x), label="base")
-            plt.plot(sfun(y), y, label="fit")
+            t = np.linspace(0, 1, 100)
+            plt.plot(sfunx(t), sfuny(t), label="fit")
             plt.legend()
             plt.show()
         return xys
@@ -383,16 +388,13 @@ class DropSplineFit(DropFit):
         # Display fits
         if self.fits is not None and displ_fits:
             xy_inter = self._get_inters_base_fit()
-            y1 = np.linspace(xy_inter[0][1],
-                             self.y_bounds[-1],
-                             1000)
-            y2 = np.linspace(xy_inter[1][1],
-                             self.y_bounds[-1],
-                             1000)
-            x1 = self.fits[0](y1)
-            x2 = self.fits[1](y2)
-            plt.plot(x1, y1, color=self.colors[1])
-            plt.plot(x2, y2, color=self.colors[1])
+            t = np.linspace(0, 1, 1000)
+            x1 = self.fits[0][0](t)
+            y1 = self.fits[0][1](t)
+            x2 = self.fits[1][0](t)
+            y2 = self.fits[1][1](t)
+            plt.plot(y1, x1, color=self.colors[1])
+            plt.plot(y2, x2, color=self.colors[1])
         # Display contact angles
         if displ_ca:
             lines = self._get_angle_display_lines()
