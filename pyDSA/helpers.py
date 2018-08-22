@@ -476,9 +476,9 @@ def fit_ellipse(xs, ys):
         (a - c)*(a - c))) - (c + a))
     down2 = (b*b - a*c)*((a - c)*np.sqrt(1 + 4*b*b / (
         (a - c)*(a - c))) - (c + a))
-    # Something wrong happen...
-    if down1 < 0 or down2 < 0:
-        raise Exception('Ellipse fitting failed...')
+    # # Something wrong happen...
+    # if down1 < 0 or down2 < 0:
+    #     raise Exception('Ellipse fitting failed...')
     R1 = np.sqrt(up / down1)
     R2 = np.sqrt(up / down2)
     # Return

@@ -259,6 +259,76 @@ class DropEdges(Points):
                             fits=[spline1, spline2])
         return dsf
 
+    def fit_polyline(self, deg=5, verbose=False):
+        """
+        Fit the drop edge with a poly line.
+
+        Parameters
+        ----------
+        deg: integer
+            Polynomial degree (default to 5).
+
+        Returns
+        -------
+        fit: DropFit object
+            .
+        """
+        if self.drop_edges[0] is None and self.drop_edges[2] is None:
+            return None, None
+        # Prepare drop edge for interpolation
+        # TODO: Find a more efficient fitting
+        dex1, dey1, dex2, dey2 = self.drop_edges
+        x1 = dey1.y
+        y1 = dex1.y
+        x2 = dey2.y
+        y2 = dex2.y
+        polyline1 = None
+        polyline2 = None
+        # Don't fit if no edge
+        if len(y1) == 0:
+            polyline1 = dummy_function
+        if len(y2) == 0:
+            polyline2 = dummy_function
+        # fit
+        if polyline1 is None:
+            try:
+                ps = np.polyfit(y1, x1, deg)
+                polyline1 = poly_function_from_coefs(ps)
+            except:
+                polyline1 = dummy_function
+                if verbose:
+                    print("Fitting failed for edge number one")
+        if polyline2 is None:
+            try:
+                ps = np.polyfit(y2, x2, deg)
+                polyline2 = poly_function_from_coefs(ps)
+            except:
+                polyline2 = dummy_function
+                if verbose:
+                    print("Fitting failed for edge number one")
+        # Return
+        x_bounds = [np.min(self.xy[:, 0]), np.max(self.xy[:, 0])]
+        y_bounds = [np.min(self.xy[:, 1]), np.max(self.xy[:, 1])]
+        dsf = DropSplineFit(x_bounds=x_bounds,
+                            y_bounds=y_bounds,
+                            baseline=self.baseline,
+                            fits=[polyline1, polyline2])
+        # TEMP
+        psx1 = np.polyfit(dex2.x, dex2.y, deg)
+        psy1 = np.polyfit(dey2.x, dey2.y, deg)
+        plx1 = poly_function_from_coefs(psx1)
+        ply1 = poly_function_from_coefs(psy1)
+        plt.figure()
+        self.display()
+        plt.plot([ply1(t) for t in np.linspace(0, dex1.x[-1], 100)],
+                 [plx1(t) for t in np.linspace(0, dex1.x[-1], 100)], "o")
+        dsf.display()
+        plt.show()
+        bug
+        # TEMP - End
+        return dsf
+
+
     def fit_ellipse(self, triple_pts=None, verbose=False):
         """
         Fit the drop edges with an ellipse.
