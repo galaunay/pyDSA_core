@@ -58,31 +58,35 @@ class TestDropEdges(object):
 
     def test_fit_spline(self):
         fit = self.edges.fit_spline()
-        assert np.isclose(fit.fits[0][0](0.5), 34.31274988)
-        assert np.isclose(fit.fits[0][1](0.5), 31.980125)
-        assert np.isclose(fit.fits[1][0](0.5), 55.56954598)
-        assert np.isclose(fit.fits[1][1](0.5), 32.6269985)
+        assert np.isclose(fit.fits[0][0](0.5), 34.33066782)
+        assert np.isclose(fit.fits[0][1](0.5), 31.99779506)
+        assert np.isclose(fit.fits[1][0](0.5), 55.55784286)
+        assert np.isclose(fit.fits[1][1](0.5), 32.63825691)
 
     def test_fit_circle(self):
         fit = self.edges.fit_circle()
-        assert np.allclose(fit.fits[0], [45.29168927, 20.71102873])
-        assert np.isclose(fit.fits[1], 15.637520870474857)
+        assert np.allclose(fit.fits[0], [45.29229029, 20.7177082])
+        assert np.isclose(fit.fits[1], 15.632425588460043)
 
     def test_fit_ellipse(self):
         fit = self.edges.fit_ellipse()
-        assert np.allclose(fit.fits[0], [45.29323007783934, 22.531376233580968])
-        assert np.isclose(fit.fits[1], 15.176520926201963)
-        assert np.isclose(fit.fits[2], 13.69615877921492)
-        assert np.isclose(fit.fits[3], 0.002431001542474775)
+        assert np.allclose(fit.fits[0], [45.29482370716114, 22.492606884654457])
+        assert np.isclose(fit.fits[1], 15.186512415884058)
+        assert np.isclose(fit.fits[2], 13.737885470721212)
+        assert np.isclose(fit.fits[3], 0.0008047328743570523)
 
     def test_fit_circles(self):
         fit = self.edges.fit_circles([[0, 30], [0, 31]])
+        print(fit.fits)
         assert np.allclose(fit.fits[0][0],
-                           [45.30486171, 20.00029723])
+                           [45.30343097, 20.01766113])
         assert np.allclose(fit.fits[1][0],
-                           [24.603718004843614, 30.13988575468891])
+                           [24.7037305265706, 29.990566677882825])
         assert np.allclose(fit.fits[2][0],
-                           [67.15249900266305, 31.61664272423973])
-        assert np.isclose(fit.fits[0][1], 16.252178998805576)
-        assert np.isclose(fit.fits[1][1], 6.798821117200337)
-        assert np.isclose(fit.fits[2][1], 8.491683628686477)
+                           [67.18009092332332, 31.678309466667272])
+        assert np.isclose(fit.fits[0][1],
+                          16.23680941556352)
+        assert np.isclose(fit.fits[1][1],
+                          6.650010004658293)
+        assert np.isclose(fit.fits[2][1],
+                          8.553490510623169)
