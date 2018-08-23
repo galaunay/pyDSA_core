@@ -137,8 +137,6 @@ class TemporalImages(TemporalScalarFields):
         # return
         return stab
 
-
-
     def display(self, *args, **kwargs):
         super().display(*args, **kwargs)
         if isinstance(self.baseline, baseline.Baseline):
