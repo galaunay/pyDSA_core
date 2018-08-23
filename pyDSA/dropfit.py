@@ -17,10 +17,8 @@
 import numpy as np
 import warnings
 import matplotlib.pyplot as plt
-import scipy.interpolate as spint
 import scipy.optimize as spopt
 import scipy.misc as spmisc
-from IMTreatment import Points, Profile
 import IMTreatment.plotlib as pplt
 from .helpers import fit_circle, fit_ellipse, get_ellipse_points
 
@@ -290,8 +288,9 @@ class DropSplineFit(DropFit):
                     tripl_pts[i] = tp
                     continue
             # Try the curvature change method
-            tp = self._detect_triple_points_as_curvature_change(edge_number=i,
-                                                                verbose=verbose)
+            tp = self._detect_triple_points_as_curvature_change(
+                edge_number=i,
+                verbose=verbose)
             if tp is None:
                 tripl_pts[i] = [np.nan, np.nan]
                 if verbose:
@@ -321,13 +320,12 @@ class DropSplineFit(DropFit):
                 t_inter = spopt.fsolve(lambda t: y_inter - sfuny(t), 0.5)[0]
                 x_inter = sfunx(t_inter)
             else:
-                t_inter = spopt.fsolve(lambda t: bfun(sfunx(t)) - sfuny(t),
+                t_inter = spopt.fsolve(lambda t: bfun(sfuny(t)) - sfunx(t),
                                        0.5)[0]
                 x_inter = sfunx(t_inter)
                 y_inter = sfuny(t_inter)
             xys.append([x_inter, y_inter])
         if verbose:
-            y = np.linspace(self.y_bounds[0], self.y_bounds[-1], 100)
             x = np.linspace(self.baseline.pt1[0], self.baseline.pt2[0], 100)
             bfun = self.baseline.get_baseline_fun()
             plt.figure()
@@ -353,7 +351,7 @@ class DropSplineFit(DropFit):
         # Compute base contact angle
         xy_inter = self._get_inters_base_fit()
         self.thetas = self._compute_fitting_angle_at_pts(xy_inter)
-        # correct regardin baseline angle
+        # correct regarding baseline angle
         self.thetas -= bs_angle
         # Compute triple point contact angle
         if self.triple_pts is not None:
@@ -375,10 +373,7 @@ class DropSplineFit(DropFit):
             dt = 0.01
             derivx = spmisc.derivative(sfunx, t_inter, dx=dt)
             derivy = spmisc.derivative(sfuny, t_inter, dx=dt)
-            # theta = np.pi*1/2 - np.arctan(derivy/derivx)
-            theta = np.arctan(derivy/derivx)
-            if i == 1:
-                theta -= np.pi
+            theta = np.arctan2(derivy, derivx)[0]
             theta = theta % (2*np.pi)
             thetas.append(theta/np.pi*180)
         return np.array(thetas)
@@ -390,7 +385,6 @@ class DropSplineFit(DropFit):
         super().display()
         # Display fits
         if self.fits is not None and displ_fits:
-            xy_inter = self._get_inters_base_fit()
             t = np.linspace(0, 1, 1000)
             x1 = self.fits[0][0](t)
             y1 = self.fits[0][1](t)

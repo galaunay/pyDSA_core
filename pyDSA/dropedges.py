@@ -15,11 +15,9 @@
 # GNU General Public License for more details.
 
 import numpy as np
-import warnings
 import matplotlib.pyplot as plt
 import scipy.interpolate as spint
 import scipy.optimize as spopt
-import scipy.misc as spmisc
 from IMTreatment import Points, Profile
 import IMTreatment.plotlib as pplt
 from .helpers import fit_circle, fit_ellipse, get_ellipse_points
@@ -62,7 +60,7 @@ class DropEdges(Points):
                          unit_x=im.unit_x,
                          unit_y=im.unit_y)
         self._type = type
-        self.drop_edges = self._separate_drop_edges()
+        self.drop_edges = None
         self.baseline = im.baseline
         self.im_axe_x = im.axe_x
         self.im_axe_y = im.axe_y
@@ -87,25 +85,26 @@ class DropEdges(Points):
         if dxs_sorted[-1] > 10*dxs_sorted[-2]:
             # ind of the needle center (needle)
             ind_cut = np.argmax(dxs) + 1
+            x_cut = xs[ind_cut]
         else:
             # ind of the higher point (no needle)
             ind_cut = np.argmax(ys)
-        xs1 = xs[0:ind_cut]
-        ys1 = ys[0:ind_cut]
-        xs2 = xs[ind_cut::]
-        ys2 = ys[ind_cut::]
+            x_cut = xs[ind_cut]
+        xs = self.xy[:, 0]
+        ys = self.xy[:, 1]
+        xs1 = xs[xs < x_cut]
+        xs2 = xs[xs > x_cut]
+        ys1 = ys[xs < x_cut]
+        ys2 = ys[xs > x_cut]
         # ensure only one y per x
         new_y1 = np.sort(list(set(ys1)))
         new_x1 = [np.mean(xs1[y == ys1]) for y in new_y1]
         new_y2 = np.sort(list(set(ys2)))
         new_x2 = [np.mean(xs2[y == ys2]) for y in new_y2]
         # smooth to avoid stepping
-        de1 = Profile(new_x1, new_y1,
-                      unit_x=self.unit_x,
-                      unit_y=self.unit_y)
-        de2 = Profile(new_x2, new_y2,
-                      unit_x=self.unit_x,
-                      unit_y=self.unit_y)
+        # Profile also automatically sort along y
+        de1 = Profile(new_y1, new_x1)
+        de2 = Profile(new_y2, new_x2)
         de1.smooth(tos='gaussian', size=1, inplace=True)
         de2.smooth(tos='gaussian', size=1, inplace=True)
         # parametrize
@@ -119,18 +118,23 @@ class DropEdges(Points):
                           + (de2.y[i] - de2.y[i-1])**2)**.5
                         for i in np.arange(1, len(de2))])
         t2s /= t2s[-1]
-        dex1 = Profile(t1s, de1.x, unit_x="", unit_y=de1.unit_x)
-        dex2 = Profile(t2s, de2.x, unit_x="", unit_y=de2.unit_x)
-        dey1 = Profile(t1s, de1.y, unit_x="", unit_y=de1.unit_y)
-        dey2 = Profile(t2s, de2.y, unit_x="", unit_y=de2.unit_y)
+        dex1 = Profile(t1s, de1.y, unit_x="", unit_y=self.unit_x)
+        dex2 = Profile(t2s, de2.y, unit_x="", unit_y=self.unit_x)
+        dey1 = Profile(t1s, de1.x, unit_x="", unit_y=self.unit_y)
+        dey2 = Profile(t2s, de2.x, unit_x="", unit_y=self.unit_y)
         # evenlify
-        mindt1 = np.min(t1s[1:] - t1s[0:-1])
-        mindt2 = np.min(t1s[1:] - t1s[0:-1])
-        mindt = np.min([mindt1, mindt2])
-        dex1 = dex1.evenly_space(dx=mindt)
-        dey1 = dey1.evenly_space(dx=mindt)
-        dex2 = dex2.evenly_space(dx=mindt)
-        dey2 = dey2.evenly_space(dx=mindt)
+        dtx1 = self.im_dx/abs(dex1.y[-1] - dex1.y[0])
+        dty1 = self.im_dy/abs(dey1.y[-1] - dey1.y[0])
+        dt1 = np.min([dtx1, dty1])
+        dtx2 = self.im_dx/abs(dex2.y[-1] - dex2.y[0])
+        dty2 = self.im_dy/abs(dey2.y[-1] - dey2.y[0])
+        dt2 = np.min([dtx2, dty2])
+        dex1 = dex1.evenly_space(dx=dt1)
+        dey1 = dey1.evenly_space(dx=dt1)
+        dex2 = dex2.evenly_space(dx=dt2)
+        dey2 = dey2.evenly_space(dx=dt2)
+        # store
+        self.drop_edges = (dex1, dey1, dex2, dey2)
         return (dex1, dey1, dex2, dey2)
 
     def rotate(self, angle, inplace=False):
@@ -148,8 +152,9 @@ class DropEdges(Points):
         else:
             tmpp = self.copy()
         super(DropEdges, tmpp).rotate(angle, inplace=True)
-        for de in tmpp.drop_edges:
-            de.rotate(angle=angle, inplace=True)
+        if tmpp.drop_edges is not None:
+            for de in tmpp.drop_edges:
+                de.rotate(angle=angle, inplace=True)
         if tmpp.baseline is not None:
             tmpp.baseline.rotate(angle=angle)
         tmpp.edges_fits = None
@@ -197,6 +202,8 @@ class DropEdges(Points):
             .
         """
         # Chec if edges are present
+        if self.drop_edges is None:
+            self._separate_drop_edges()
         if self.drop_edges[0] is None and self.drop_edges[2] is None:
             return None, None
         # Prepare drop edge for interpolation
@@ -271,6 +278,8 @@ class DropEdges(Points):
         fit: DropFit object
             .
         """
+        if self.drop_edges is None:
+            self._separate_drop_edges()
         if self.drop_edges[0] is None and self.drop_edges[2] is None:
             return None, None
         # Prepare drop edge for interpolation
@@ -324,6 +333,8 @@ class DropEdges(Points):
         fit: DropFit object
             .
         """
+        if self.drop_edges is None:
+            self._separate_drop_edges()
         dex1, dey1, dex2, dey2 = self.drop_edges
         xs1 = dex1.y
         ys1 = dey1.y
@@ -488,6 +499,8 @@ class DropEdges(Points):
         Ignore the lower part of the drop if triple points are presents.
         """
         # get data
+        if self.drop_edges is None:
+            self._separate_drop_edges()
         dex1, dey1, dex2, dey2 = self.drop_edges
         xs1 = dex1.y
         ys1 = dey1.y
@@ -547,6 +560,8 @@ class DropEdges(Points):
         # get data
         tp1 = triple_pts[0]
         tp2 = triple_pts[1]
+        if self.drop_edges is None:
+            self._separate_drop_edges()
         dex1, dey1, dex2, dey2 = self.drop_edges
         xs1 = dex1.y
         ys1 = dey1.y
@@ -603,13 +618,16 @@ class DropEdges(Points):
     def display(self, *args, **kwargs):
         """
         """
-        dex1, dey1, dex2, dey2 = self.drop_edges
-        xs1 = dex1.y
-        ys1 = dey1.y
-        xs2 = dex2.y
-        ys2 = dey2.y
-        plt.plot(xs1, ys1, color='k', marker='o')
-        plt.plot(xs2, ys2, color='k', marker='o')
+        if self.drop_edges is not None:
+            dex1, dey1, dex2, dey2 = self.drop_edges
+            xs1 = dex1.y
+            ys1 = dey1.y
+            xs2 = dex2.y
+            ys2 = dey2.y
+            plt.plot(xs1, ys1, color='k', marker='o')
+            plt.plot(xs2, ys2, color='k', marker='o')
+        else:
+            plt.plot(self.xy[:, 0], self.xy[:, 1], color='k', marker='o')
         plt.axis('equal')
         plt.gca().set_adjustable('box')
         # Display baseline

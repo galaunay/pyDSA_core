@@ -17,8 +17,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from IMTreatment.utils import ProgressCounter
-from IMTreatment import TemporalPoints, Profile, plotlib as pplt
-from . import helpers as hlp
+from IMTreatment import TemporalPoints, plotlib as pplt
 from .temporalfits import TemporalCircleFits, TemporalSplineFits, \
     TemporalEllipseFits, TemporalCirclesFits
 
@@ -210,7 +209,11 @@ class TemporalDropEdges(TemporalPoints):
         #
         length = len(self.point_sets)
         displs = []
+
         # Display points
+        for edge in self.point_sets:
+            if edge.drop_edges is None:
+                edge._separate_drop_edges()
         if self[0].drop_edges is not None:
             x1s = []
             y1s = []
@@ -224,9 +227,9 @@ class TemporalDropEdges(TemporalPoints):
                     y2s.append([])
                 else:
                     x1s.append(edge.drop_edges[0].y)
-                    x2s.append(edge.drop_edges[1].y)
-                    y1s.append(edge.drop_edges[0].x)
-                    y2s.append(edge.drop_edges[1].x)
+                    y1s.append(edge.drop_edges[1].y)
+                    x2s.append(edge.drop_edges[2].y)
+                    y2s.append(edge.drop_edges[3].y)
             if len(x1s) != length or len(x2s) != length:
                 raise Exception()
             db1 = pplt.Displayer(x1s, y1s, color='k', marker="o")

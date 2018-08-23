@@ -17,7 +17,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from IMTreatment.utils import ProgressCounter
-from IMTreatment import TemporalPoints, Profile, plotlib as pplt
+from IMTreatment import Profile, plotlib as pplt
 from . import helpers as hlp
 
 
@@ -296,10 +296,6 @@ class TemporalFits(object):
         plt.plot(bdp[:, 0, 0], ts, label="Contact (left)")
         plt.plot(bdp[:, 1, 0], ts, label="Contact (right)")
         plt.plot(radii, ts, label="Base radius")
-        # if (not np.all(np.isnan(triple_pts1)) and
-        #     not np.all(np.isnan(triple_pts2))):
-        #     plt.plot(triple_pts1[:, 0], ts, label="Triple point (left)")
-            # plt.plot(triple_pts2[:, 0], ts, label="Triple point (right)")
         plt.xlabel('x {}'.format(self.unit_x.strUnit()))
         plt.ylabel('Time {}'.format(self.unit_times.strUnit()))
         plt.legend(loc=0)
@@ -307,16 +303,10 @@ class TemporalFits(object):
         plt.sca(axs[1])
         plt.plot(-thetas[:, 0], ts, label="Angle (left)")
         plt.plot(180 - thetas[:, 1], ts, label="Angle (right)")
-        # if not np.all(np.isnan(thetas_triple)):
-        #     plt.plot(-thetas_triple[:, 0], ts,
-        #              label="Angle at triple point (left)",
-        #              marker=",", ls="-")
-        #     plt.plot(180 - thetas_triple[:, 1], ts,
-        #              label="Angle at triple point (right)",
-        #              marker=",", ls="-")
         plt.ylabel('Time {}'.format(self.unit_times.strUnit()))
         plt.xlabel('[Deg]')
         plt.legend(loc=0)
+
 
 class TemporalSplineFits(TemporalFits):
     def detect_triple_points(self, smooth=None, use_x_minima=False,
@@ -362,15 +352,11 @@ class TemporalSplineFits(TemporalFits):
         x2s = []
         y2s = []
         for fit in self.fits:
-            xy_inter = fit._get_inters_base_fit()
-            y1 = np.linspace(xy_inter[0][1],
-                             fit.y_bounds[1],
-                             1000)
-            y2 = np.linspace(xy_inter[1][1],
-                             fit.y_bounds[1],
-                             1000)
-            x1 = fit.fits[0](y1)
-            x2 = fit.fits[1](y2)
+            t = np.linspace(0, 1, 1000)
+            x1 = fit.fits[0][0](t)
+            y1 = fit.fits[0][1](t)
+            x2 = fit.fits[1][0](t)
+            y2 = fit.fits[1][1](t)
             if np.any(np.isnan(x2)):
                 filt = np.logical_not(np.isnan(x2))
                 x2 = x2[filt]
