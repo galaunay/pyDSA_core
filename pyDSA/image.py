@@ -20,8 +20,9 @@ import json
 import re
 import unum
 import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
 from matplotlib.widgets import Button, TextBox
 import scipy.ndimage as spim
 import warnings

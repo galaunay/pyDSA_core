@@ -25,6 +25,8 @@ try:
 except:
     pass
 
+import matplotlib as mpl
+mpl.use('Agg')
 import numpy as np
 from helper import sane_parameters
 from pyDSA.helpers import import_from_image, import_from_images, \
