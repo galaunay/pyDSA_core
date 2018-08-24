@@ -28,10 +28,7 @@ import numpy as np
 from helper import sane_parameters
 from pyDSA.helpers import import_from_image, import_from_images, \
     import_from_video
-from pyDSA import import_from_image
-from IMTreatment.utils import make_unit
-import json
-import pytest
+import mock
 
 
 class TestDropFit(object):
@@ -65,3 +62,12 @@ class TestDropFit(object):
         assert np.allclose(self.csfit.thetas, [78.56794776, 101.43205224])
         self.pfit.compute_contact_angle()
         assert np.allclose(self.pfit.thetas, [85.12249622, 94.08458956])
+
+    @mock.patch('matplotlib.pyplot.show')
+    def test_display(self, mocked):
+        # Just check that it is not raising an error...
+        self.sfit.display()
+        self.cfit.display()
+        self.efit.display()
+        self.csfit.display()
+        self.pfit.display()

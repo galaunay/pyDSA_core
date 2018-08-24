@@ -15,6 +15,7 @@
 # GNU General Public License for more details.
 
 import os
+import mock
 import sys
 try:
     dirname = os.path.dirname(os.path.realpath(__file__))
@@ -29,7 +30,6 @@ from helper import sane_parameters
 from pyDSA.helpers import import_from_image, import_from_images, \
     import_from_video
 from pyDSA import import_from_image
-from IMTreatment.utils import make_unit
 import json
 import pytest
 
@@ -144,3 +144,11 @@ class TestImage(object):
             level=0.25,
             size_ratio=0.5)
         assert np.isclose(np.max(edge2.xy[:, 1]), 36.211499999)
+
+    @mock.patch('matplotlib.pyplot.show')
+    def test_display(self, mocked):
+        # Just check that it is not raising an error...
+        self.im.display()
+        self.im.choose_baseline()
+        self.im.scale_interactive()
+        self.im.choose_tp_interactive()

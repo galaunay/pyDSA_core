@@ -29,9 +29,7 @@ from helper import sane_parameters
 from pyDSA.helpers import import_from_image, import_from_images, \
     import_from_video
 from pyDSA import import_from_image
-from IMTreatment.utils import make_unit
-import json
-import pytest
+import mock
 
 
 class TestTemporalImages(object):
@@ -64,3 +62,8 @@ class TestTemporalImages(object):
         self.edges2 = self.ims.edge_detection_contour(nmb_edges=1)
         assert np.isclose(np.max(self.edges2.point_sets[0].xy), 70.92)
         assert np.isclose(np.min(self.edges2.point_sets[10].xy), 7.199999)
+
+    @mock.patch('matplotlib.pyplot.show')
+    def test_display(self, mocked):
+        # Just check that it is not raising an error...
+        self.ims.display()

@@ -28,10 +28,7 @@ import numpy as np
 from helper import sane_parameters
 from pyDSA.helpers import import_from_image, import_from_images, \
     import_from_video
-from pyDSA import import_from_image
-from IMTreatment.utils import make_unit
-import json
-import pytest
+import mock
 
 
 class TestDropEdges(object):
@@ -68,12 +65,24 @@ class TestDropEdges(object):
         assert np.allclose(fit.fits[0], [45.29229029, 20.7177082])
         assert np.isclose(fit.fits[1], 15.632425588460043)
 
+    def test_fit_circle_with_tp(self):
+        fit = self.edges.fit_circle([[0, 30], [0, 30]])
+        assert np.allclose(fit.fits[0], [45.29702127, 20.05322552])
+        assert np.isclose(fit.fits[1], 16.204308562817413)
+
     def test_fit_ellipse(self):
         fit = self.edges.fit_ellipse()
         assert np.allclose(fit.fits[0], [45.29482370716114, 22.492606884654457])
         assert np.isclose(fit.fits[1], 15.186512415884058)
         assert np.isclose(fit.fits[2], 13.737885470721212)
         assert np.isclose(fit.fits[3], 0.0008047328743570523)
+
+    def test_fit_ellipse_with_tp(self):
+        fit = self.edges.fit_ellipse(triple_pts=[[0, 30], [0, 30]])
+        assert np.allclose(fit.fits[0], [45.36841082948874, 22.82189945252258])
+        assert np.isclose(fit.fits[1], 15.04754519152597)
+        assert np.isclose(fit.fits[2], 13.40293764551634)
+        assert np.isclose(fit.fits[3], -0.028131229179985305)
 
     def test_fit_circles(self):
         fit = self.edges.fit_circles([[0, 30], [0, 31]])
@@ -90,3 +99,8 @@ class TestDropEdges(object):
                           6.650010004658293)
         assert np.isclose(fit.fits[2][1],
                           8.553490510623169)
+
+    @mock.patch('matplotlib.pyplot.show')
+    def test_display(self, mocked):
+        # Just check that it is not raising an error...
+        self.edges.display()
