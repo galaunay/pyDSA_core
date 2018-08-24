@@ -18,8 +18,6 @@ import cv2
 import os
 from glob import glob
 import numpy as np
-import matplotlib as mpl
-mpl.use('Agg')
 from . import temporalimages as tis
 from . import image
 from IMTreatment.utils import ProgressCounter
