@@ -14,5 +14,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
+import matplotlib as mpl
+mpl.use('Agg')
+
 def sane_parameters():
     pass

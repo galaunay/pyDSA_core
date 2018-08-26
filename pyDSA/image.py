@@ -18,15 +18,13 @@ import cv2
 import os
 import json
 import re
-import unum
 import numpy as np
 import matplotlib as mpl
-mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button, TextBox
 import scipy.ndimage as spim
 import warnings
-from IMTreatment import ScalarField, Points
+from IMTreatment import ScalarField
 from IMTreatment.utils import make_unit
 import IMTreatment.plotlib as pplt
 from .dropedges import DropEdges
