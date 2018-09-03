@@ -168,6 +168,8 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
     ti = tis.TemporalImages(filepath=path)
     i = 0
     max_frame = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
+    if max_frame == 0:
+        raise ImportError("Couldn't get the number of frame from the video file")
     if frame_inds is None:
         frame_inds = [0, max_frame - 1]
     if frame_inds[1] > max_frame - 1:
