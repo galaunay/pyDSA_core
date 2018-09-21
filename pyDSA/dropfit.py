@@ -127,6 +127,18 @@ class DropFit(object):
         diam = ((pt1[0] - pt2[0])**2 + (pt1[1] - pt2[1])**2)**0.5
         return diam
 
+    def get_drop_center(self):
+        raise NotImplementedError("Not implemented yet")
+
+    def get_drop_height(self):
+        xyc = self.get_drop_center()
+        hb = self.baseline.get_projection_to_baseline(xyc)[1]
+        hmax = np.max(self.y_bounds)
+        return hmax - hb
+
+    def get_drop_volume(self):
+        raise NotImplementedError("Not implemented yet")
+
 
 class DropSplineFit(DropFit):
     def __init__(self, fits, x_bounds, y_bounds, baseline):
@@ -466,6 +478,29 @@ class DropCircleFit(DropFit):
         if verbose:
             self.display()
 
+    def get_drop_center(self):
+        """
+        Return the center of the drop.
+        """
+        return self.fits[0]
+
+    def get_drop_height(self):
+        """
+        Return the drop height.
+        """
+        hb = self.baseline.get_projection_to_baseline(self.fits[0])[1]
+        return (self.fits[0][1] - hb) + self.fits[1]
+
+    def get_drop_volume(self):
+        """
+        Return the drop volume.
+        """
+        # From worlfram alpha on spehrical caps
+        xyc, R = self.fits
+        h = self.get_drop_height()
+        V = 1/3*np.pi*h**2*(3*R - h)
+        return V
+
     def display(self, displ_fits=True, displ_ca=True,
                 *args, **kwargs):
         """
@@ -547,6 +582,19 @@ class DropCirclesFit(DropFit):
         # display if asked
         if verbose:
             self.display()
+
+    def get_drop_center(self):
+        """
+        Return the center of the drop.
+        """
+        return self.fits[0][0]
+
+    def get_drop_height(self):
+        """
+        Return the drop height.
+        """
+        hb = self.baseline.get_projection_to_baseline(self.fits[0][0])[1]
+        return (self.fits[0][0][1] - hb) + self.fits[0][1]
 
     def display(self, displ_fits=True, displ_ca=True,
                 displ_tp=True, *args, **kwargs):
@@ -646,6 +694,21 @@ class DropEllipseFit(DropFit):
         # display if asked
         if verbose:
             self.display()
+
+    def get_drop_center(self):
+        """
+        Return the center of the drop.
+        """
+        return self.fits[0]
+
+    def get_drop_height(self):
+        """
+        Return the drop height.
+        """
+        hb = self.baseline.get_projection_to_baseline(self.fits[0])[1]
+        xyc, R1, R2, theta = self.fits
+        R = ((R1*np.sin(theta))**2 + (R2*np.cos(theta))**2)**.5
+        return (xyc[1] - hb) + R
 
     def display(self, displ_fits=True, displ_ca=True,
                 *args, **kwargs):
