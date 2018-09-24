@@ -148,7 +148,8 @@ class Image(ScalarField):
             if len(pos) != 0:
                 pts.set_data(np.array(pos).transpose())
                 if len(pos) > 1:
-                    bs.from_points(pos)
+                    bs.from_points(pos, xmin=self.axe_x[0],
+                                   xmax=self.axe_x[-1])
                     baseline.set_data(bs.xy)
                 fig.canvas.draw()
 
