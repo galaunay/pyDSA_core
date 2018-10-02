@@ -355,8 +355,8 @@ class Image(ScalarField):
         if threshold2 is None or threshold1 is None:
             # hist = self.get_histogram(cum=True,
             #                           bins=int((self.max - self.min)/10))
-            mini = int(self.min)
-            maxi = int(self.max)
+            mini = 0
+            maxi = 255
             hist = cv2.calcHist([self.values], [0], None,
                                 [maxi - mini], [mini, maxi])
             hist = np.cumsum(hist[:, 0])
@@ -435,7 +435,8 @@ class Image(ScalarField):
         #======================================================================
         # Keep only the bigger edges
         #======================================================================
-        labels, nmb = spim.label(im_edges, np.ones((3, 3)))
+        nmb, labels = cv2.connectedComponents(im_edges)
+        # labels, nmb = spim.label(im_edges, np.ones((3, 3)))
         nmb_edge = nmb
         dy = self.axe_y[1] - self.axe_y[0]
         # Let only the maximum allowed number of edges
