@@ -60,7 +60,8 @@ class Baseline(object):
         return copy.deepcopy(self)
 
     def from_points(self, pts, xmin=None, xmax=None):
-        if len(pts) == 2 and xmin is None and xmax is None:
+        if len(pts) == 2 and ((xmin is None and xmax is None)
+                              or (xmin == pts[0][0] and xmax == pts[1][0])):
             self.pt1 = np.array(pts[0], dtype=float)
             self.pt2 = np.array(pts[1], dtype=float)
         else:
@@ -69,7 +70,9 @@ class Baseline(object):
                                                                xmax=xmax)
         # get coefs
         self.xy = [[self.pt1[0], self.pt2[0]], [self.pt1[1], self.pt2[1]]]
-        self.coefs = np.polyfit(self.xy[0], self.xy[1], 1)
+        slope = (self.pt2[1] - self.pt1[1])/(self.pt2[0] - self.pt1[0])
+        intercept = self.pt2[1] - slope*self.pt2[0]
+        self.coefs = [slope, intercept]
         self.tilt_angle = np.arctan(self.coefs[0])
 
     def get_baseline_from_points(self, pts, xmin=None, xmax=None):

@@ -20,7 +20,7 @@ from glob import glob
 import numpy as np
 from . import temporalimages as tis
 from . import image
-from IMTreatment.utils import ProgressCounter
+from IMTreatment.utils import ProgressCounter, make_unit
 import IMTreatment.file_operation as imtio
 import warnings
 import scipy.optimize as spopt
@@ -162,6 +162,10 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
     """
     # Check if file exist
     imtio.check_path(path)
+    # convert units (upfront for optimization purpose)
+    unit_t = make_unit(unit_t)
+    unit_x = make_unit(unit_x)
+    unit_y = make_unit(unit_y)
     # open video
     vid = cv2.VideoCapture()
     vid.open(path)
@@ -206,6 +210,8 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         sf = image.Image()
         sf.import_from_arrays(axe_x, axe_y, im, mask=False,
                               unit_x=unit_x, unit_y=unit_y,
+                              dontchecknans=True,
+                              dontcheckunits=True,
                               dtype=dtype)
         sf.crop(intervx=intervx, intervy=intervy, inplace=True)
         ti.add_field(sf, time=t, unit_times=unit_t, copy=False)

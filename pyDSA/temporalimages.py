@@ -241,8 +241,10 @@ class TemporalImages(TemporalScalarFields):
         self.scale(scalex=dx/(self.axe_x[1] - self.axe_x[0]),
                    scaley=dy/(self.axe_y[1] - self.axe_y[0]),
                    inplace=True)
-        self.unit_x = dic['unit_x']
-        self.unit_y = dic['unit_y']
+        if self.unit_x.strUnit()[1:-1] != dic['unit_x']:
+            self.unit_x = dic['unit_x']
+        if self.unit_y.strUnit()[1:-1] != dic['unit_y']:
+            self.unit_y = dic['unit_y']
         base1 = dic['baseline_pt1']
         base2 = dic['baseline_pt2']
         if base1 is not None and base2 is not None:
