@@ -437,7 +437,6 @@ class Image(ScalarField):
         #======================================================================
         labels, nmb = spim.label(im_edges, np.ones((3, 3)))
         nmb_edge = nmb
-        X, Y = np.meshgrid(tmp_im.axe_x, tmp_im.axe_y, indexing="ij")
         dy = self.axe_y[1] - self.axe_y[0]
         # Let only the maximum allowed number of edges
         if np.max(labels) > nmb_edges and not keep_exterior:
@@ -481,7 +480,8 @@ class Image(ScalarField):
             #==================================================================
             if nmb_edge > nmb_edges:
                 for i in range(np.max(labels)):
-                    ys = Y[labels == i+1]
+                    # Untested ! (next line)
+                    ys = tmp_im.axe_y[np.sum(labels == i, axis=0) > 0]
                     if len(ys) == 0:
                         continue
                     min_y = np.min(ys)
@@ -506,8 +506,9 @@ class Image(ScalarField):
             # Keep only the exterior edges
             #==================================================================
             if nmb_edge > 2 and keep_exterior:
-                mean_xs = [np.mean(X[labels == label])
-                           for label in np.arange(1, nmb + 1)]
+                mean_xs = [np.mean(tmp_im.axe_x[np.sum(labels == i, axis=1)
+                                                > 0])
+                           for i in np.arange(1, nmb + 1)]
                 mean_xs = np.asarray(mean_xs)
                 mean_xs[np.isnan(mean_xs)] = np.mean(mean_xs[~np.isnan(mean_xs)])
                 mean_xs_indsort = np.argsort(mean_xs)
@@ -531,8 +532,10 @@ class Image(ScalarField):
         #======================================================================
         # Get points coordinates
         xs, ys = np.where(im_edges)
-        xs = [tmp_im.axe_x[x] for x in xs]
-        ys = [tmp_im.axe_y[y] for y in ys]
+        axx = tmp_im.axe_x
+        axy = tmp_im.axe_y
+        xs = [axx[x] for x in xs]
+        ys = [axy[y] for y in ys]
         xys = list(zip(xs, ys))
         # Check if there is something remaining
         if len(xys) < 10:
