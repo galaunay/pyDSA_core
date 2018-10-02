@@ -417,11 +417,11 @@ class Image(ScalarField):
         # Dilatation / erosion to ensure line continuity
         #======================================================================
         if dilatation_steps > 0:
-            im_edges = spim.binary_dilation(im_edges,
-                                            iterations=dilatation_steps,
-                                            structure=[[1, 1, 1],
-                                                       [1, 1, 1],
-                                                       [1, 1, 1]])
+            im_edges = cv2.dilate(im_edges,
+                                  iterations=dilatation_steps,
+                                  kernel=np.array([[1, 1, 1],
+                                                   [1, 1, 1],
+                                                   [1, 1, 1]]))
         # im_edges = spim.binary_erosion(im_edges, iterations=dilatation_steps,
         #                                structure=[[0, 1, 0], [1, 1, 1], [0, 1, 0]])
         if verbose:
