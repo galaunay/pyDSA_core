@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Button, TextBox
 import scipy.ndimage as spim
 import warnings
-from IMTreatment import ScalarField
+from IMTreatment import ScalarField, Profile
 from IMTreatment.utils import make_unit
 import IMTreatment.plotlib as pplt
 from .dropedges import DropEdges
@@ -351,17 +351,16 @@ class Image(ScalarField):
             raise Exception('You should set the baseline first.')
         if self.dx != self.dy:
             warnings.warn('dx is different than dy, results can be weird...')
-        # Get thresholds from histograms (Otsu method)
+        # Get adapted thresholds
         if threshold2 is None or threshold1 is None:
-            # # Otsu method
-            # threshold2, _ = cv2.threshold(np.array(self.values,
-            #                                        dtype=np.uint8),
-            #                               0, 255,
-            #                               cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-            # threshold1 = threshold2/2
-            # DSA adapted method
-            hist = self.get_histogram(cum=True,
-                                      bins=int((self.max - self.min)/10))
+            # hist = self.get_histogram(cum=True,
+            #                           bins=int((self.max - self.min)/10))
+            mini = int(self.min)
+            maxi = int(self.max)
+            hist = cv2.calcHist([self.values], [0], None,
+                                [maxi - mini], [mini, maxi])
+            hist = np.cumsum(hist[:, 0])
+            hist = Profile(np.arange(mini, maxi), hist)
             threshold1 = hist.get_value_position(
                 hist.min + (hist.max - hist.min)/2)[0]
             threshold2 = np.max(hist.x)*.5
@@ -376,7 +375,9 @@ class Image(ScalarField):
             plt.figure()
             tmp_im.display()
             plt.title('Initial image')
+        #======================================================================
         # Perform Canny detection
+        #======================================================================
         im = np.array(tmp_im.values, dtype=np.uint8)
         im_edges = cv2.Canny(image=im, threshold1=threshold1,
                              threshold2=threshold2)
@@ -389,7 +390,9 @@ class Image(ScalarField):
             im.display()
             plt.title('Canny edge detection \nwith th1={} and th2={}'
                       .format(threshold1, threshold2))
-        # remove points behind the baseline (and too close to)
+        #======================================================================
+        # Remove points behind the baseline (and too close to)
+        #======================================================================
         fun = self.baseline.get_baseline_fun()
         ign_dy = ignored_pixels*self.dy
         max_y = np.max([self.baseline.pt2[1] + ign_dy,
@@ -410,7 +413,9 @@ class Image(ScalarField):
                                   unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
             im.display()
             plt.title('Removed points under baseline')
+        #======================================================================
         # Dilatation / erosion to ensure line continuity
+        #======================================================================
         if dilatation_steps > 0:
             im_edges = spim.binary_dilation(im_edges,
                                             iterations=dilatation_steps,
@@ -427,7 +432,9 @@ class Image(ScalarField):
                                   unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
             im.display()
             plt.title('Dilatation / erosion step')
+        #======================================================================
         # Keep only the bigger edges
+        #======================================================================
         labels, nmb = spim.label(im_edges, np.ones((3, 3)))
         nmb_edge = nmb
         X, Y = np.meshgrid(tmp_im.axe_x, tmp_im.axe_y, indexing="ij")
@@ -450,7 +457,9 @@ class Image(ScalarField):
                 im.display()
                 plt.title('Removed small edges because too numerous')
         if nmb_edge > 1:
+            #==================================================================
             # Remove small patches
+            #==================================================================
             sizes = [np.sum(labels == label)
                      for label in np.arange(1, nmb + 1)]
             crit_size = np.sort(sizes)[-1]*size_ratio
@@ -459,7 +468,6 @@ class Image(ScalarField):
                     im_edges[labels == i+1] = 0
                     labels[labels == i+1] = 0
                     nmb_edge -= 1
-
             if verbose:
                 plt.figure()
                 im = Image()
@@ -468,7 +476,9 @@ class Image(ScalarField):
                                       unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
                 im.display()
                 plt.title('Removed small edges')
-            # Remove if not touching the baseline
+            #==================================================================
+            # Remove lines not touching the baseline
+            #==================================================================
             if nmb_edge > nmb_edges:
                 for i in range(np.max(labels)):
                     ys = Y[labels == i+1]
@@ -492,7 +502,9 @@ class Image(ScalarField):
                                           unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
                     im.display()
                     plt.title('Removed edge not touching the baseline')
-            # keep only the two exterior edges
+            #==================================================================
+            # Keep only the exterior edges
+            #==================================================================
             if nmb_edge > 2 and keep_exterior:
                 mean_xs = [np.mean(X[labels == label])
                            for label in np.arange(1, nmb + 1)]
@@ -514,6 +526,9 @@ class Image(ScalarField):
                                       unit_y=tmp_im.unit_y)
                 im.display()
                 plt.title('Removed the interior edged')
+        #======================================================================
+        # Check and Return
+        #======================================================================
         # Get points coordinates
         xs, ys = np.where(im_edges)
         xs = [tmp_im.axe_x[x] for x in xs]
