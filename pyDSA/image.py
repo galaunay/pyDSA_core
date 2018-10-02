@@ -482,7 +482,7 @@ class Image(ScalarField):
             if nmb_edge > nmb_edges:
                 for i in range(np.max(labels)):
                     # Untested ! (next line)
-                    ys = tmp_im.axe_y[np.sum(labels == i, axis=0) > 0]
+                    ys = tmp_im.axe_y[np.sum(labels == i+1, axis=0) > 0]
                     if len(ys) == 0:
                         continue
                     min_y = np.min(ys)
