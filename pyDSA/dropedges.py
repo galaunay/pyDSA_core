@@ -77,6 +77,7 @@ class DropEdges(Points):
         # check if edges are present...
         if len(self.xy) == 0:
             return None, None
+        # Get cut position
         ind_sort = np.argsort(self.xy[:, 0])
         xs = self.xy[:, 0][ind_sort]
         ys = self.xy[:, 1][ind_sort]
@@ -90,17 +91,26 @@ class DropEdges(Points):
             # ind of the higher point (no needle)
             ind_cut = np.argmax(ys)
             x_cut = xs[ind_cut]
-        xs = self.xy[:, 0]
-        ys = self.xy[:, 1]
+        # Separate according to cut position
         xs1 = xs[xs < x_cut]
         xs2 = xs[xs > x_cut]
         ys1 = ys[xs < x_cut]
         ys2 = ys[xs > x_cut]
-        # ensure only one y per x
+        # # Ensure only one y per x (Use hash table for optimization)
         new_y1 = np.sort(list(set(ys1)))
-        new_x1 = [np.mean(xs1[y == ys1]) for y in new_y1]
+        dic = {y1: 0 for y1 in new_y1}
+        nmb = {y1: 0 for y1 in new_y1}
+        for i in range(len(ys1)):
+            dic[ys1[i]] += xs1[i]
+            nmb[ys1[i]] += 1
+        new_x1 = [dic[y1]/nmb[y1] for y1 in new_y1]
         new_y2 = np.sort(list(set(ys2)))
-        new_x2 = [np.mean(xs2[y == ys2]) for y in new_y2]
+        dic = {y2: 0 for y2 in new_y2}
+        nmb = {y2: 0 for y2 in new_y2}
+        for i in range(len(ys2)):
+            dic[ys2[i]] += xs2[i]
+            nmb[ys2[i]] += 1
+        new_x2 = [dic[y2]/nmb[y2] for y2 in new_y2]
         # smooth to avoid stepping
         # Profile also automatically sort along y
         de1 = Profile(new_y1, new_x1)
@@ -108,15 +118,13 @@ class DropEdges(Points):
         de1.smooth(tos='gaussian', size=1, inplace=True)
         de2.smooth(tos='gaussian', size=1, inplace=True)
         # parametrize
-        t1s = np.cumsum([0] +
-                        [((de1.x[i] - de1.x[i-1])**2
-                          + (de1.y[i] - de1.y[i-1])**2)**.5
-                        for i in np.arange(1, len(de1))])
+        t1s = np.cumsum(((de1.x[1:] - de1.x[0:-1])**2
+                         + (de1.y[1:] - de1.y[0:-1])**2)**.5)
+        t1s = np.concatenate(([0], t1s))
         t1s /= t1s[-1]
-        t2s = np.cumsum([0] +
-                        [((de2.x[i] - de2.x[i-1])**2
-                          + (de2.y[i] - de2.y[i-1])**2)**.5
-                        for i in np.arange(1, len(de2))])
+        t2s = np.cumsum(((de2.x[1:] - de2.x[0:-1])**2
+                         + (de2.y[1:] - de2.y[0:-1])**2)**.5)
+        t2s = np.concatenate(([0], t2s))
         t2s /= t2s[-1]
         dex1 = Profile(t1s, de1.y, unit_x="", unit_y=self.unit_x)
         dex2 = Profile(t2s, de2.y, unit_x="", unit_y=self.unit_x)
