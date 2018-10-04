@@ -6,3 +6,4 @@ dist
 _build
 /.coverage
 .pytest_cache
+htmlcov

@@ -1,4 +1,4 @@
 echo "=== Running tests ==="
 cd ..
-pytest --cov=PyDSA --cov-report=html
+pytest --cov=pyDSA --cov-report=html
 $BROWSER htmlcov/index.html &

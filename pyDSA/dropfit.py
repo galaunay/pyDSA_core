@@ -159,21 +159,24 @@ class DropSplineFit(DropFit):
 
     def _detect_triple_points_as_x_minima(self, edge_number, verbose):
         fit = self.fits[edge_number]
-        y = np.linspace(self.x_bounds[0], self.x_bounds[1], 100)
-        dy = (y[-1] - y[0])/100
-        def zerofun(y):
-            return spmisc.derivative(fit, y, dx=dy, n=1, order=3)
-        def dzerofun(y):
-            return spmisc.derivative(zerofun, y, dx=dy, n=1, order=3)
-        y0 = y[0]
-        deriv = zerofun(y)
+        t = np.linspace(0, 1, 100)
+        dt = 1/100
+        def zerofun(t):
+            dxdt = spmisc.derivative(fit[0], t, dx=dt, n=1, order=3)
+            dydt = spmisc.derivative(fit[1], t, dx=dt, n=1, order=3)
+            dxdy = dxdt*(1/dydt)
+            return dxdy
+        def dzerofun(t):
+            return spmisc.derivative(zerofun, t, dx=dt, n=1, order=5)
+        t0 = t[0]
+        deriv = zerofun(t)
         deriv_sign = deriv[1:]*deriv[:-1]
         inds = np.where(deriv_sign < 0)[0] + 1
         # If no x minima
         if len(inds) == 0:
             if verbose:
                 plt.figure()
-                plt.plot(y, zerofun(y), 'o-')
+                plt.plot(t, zerofun(t), 'o-')
                 plt.xlabel('y')
                 plt.xlabel('dy/dx')
                 plt.title('x-minima method failed: no minima')
@@ -181,85 +184,89 @@ class DropSplineFit(DropFit):
             return None
         # Choose first point with right curvature sign
         for indi in inds:
-            curv = dzerofun(y[indi])
+            curv = dzerofun(t[indi])
             if ((edge_number == 0 and curv < 0) or
                 (edge_number == 1 and curv > 0)):
                 ind = indi
                 break
         # Find the accurate position
-        y0 = spopt.brentq(zerofun, y[ind-1], y[ind])
+        t0 = spopt.brentq(zerofun, t[ind-1], t[ind])
         # verbose
         if verbose:
             plt.figure()
-            plt.plot(y, zerofun(y), 'o-')
+            plt.plot(t, zerofun(t), 'o-')
             plt.xlabel('y')
             plt.xlabel('dy/dx')
-            plt.axvline(y[ind - 1], ls='--', color='k')
-            plt.axvline(y[ind], ls='--', color='k')
+            plt.axvline(t[ind - 1], ls='--', color='k')
+            plt.axvline(t[ind], ls='--', color='k')
             plt.title('x-minima method')
             plt.grid()
-        return [fit(y0), y0]
+        return [fit[0](t0), fit[1](t0)]
 
     def _detect_triple_points_as_curvature_change(self, edge_number, verbose):
         fit = self.fits[edge_number]
-        y = np.linspace(self.x_bounds[0], self.x_bounds[1], 100)
-        dy = (y[-1] - y[0])/100
-        def zerofun(y):
-            dxdy = spmisc.derivative(fit, y, dx=dy, n=1, order=3)
-            dxdy2 = spmisc.derivative(fit, y, dx=dy, n=2, order=3)
+        t = np.linspace(0, 1, 100)
+        dt = 1/100
+        def zerofun(t):
+            dxdt = spmisc.derivative(fit[0], t, dx=dt, n=1, order=3)
+            dydt = spmisc.derivative(fit[1], t, dx=dt, n=1, order=3)
+            dxdy = dxdt*(1/dydt)
+            dxdt2 = spmisc.derivative(fit[0], t, dx=dt, n=2, order=3)
+            dydt2 = spmisc.derivative(fit[1], t, dx=dt, n=2, order=3)
+            dxdy2 = dxdt2*(1/dydt2)
             return dxdy2/(1 + dxdy**2)**(3/2)
-        def dzerofun(y):
-            return spmisc.derivative(zerofun, y, dx=dy, n=1, order=5)
+        def dzerofun(t):
+            return spmisc.derivative(zerofun, t, dx=dt, n=1, order=5)
         if verbose:
             plt.figure()
-            plt.plot(y, zerofun(y), 'o-')
+            plt.plot(t, zerofun(t), 'o-')
             plt.xlabel('y')
             plt.ylabel('d^2y/dx^2')
             plt.title('curvature method')
             plt.grid()
         # Get the triple point iteratively
         while True:
-            y0 = self._get_curvature_root(y=y, zerofun=zerofun,
+            t0 = self._get_curvature_root(t=t, zerofun=zerofun,
                                           verbose=verbose)
-            if y0 is None:
+            if t0 is None:
                 return None
             # check if the triple point is curvature coherent,
             # else, find the next one
-            deriv = dzerofun(y0)
+            deriv = dzerofun(t0)
             if (edge_number == 0 and deriv < 0) or (edge_number == 1
                                                     and deriv > 0):
-                y = y[y > y0]
+                t = t[t > t0]
             else:
                 break
             # sanity check
-            if len(y) == 0:
+            if len(t) == 0:
                 if verbose:
                     warnings.warn('Cannot find a decent triple point')
                 return None
         # Ok, good to go
         if verbose:
             plt.figure()
-            plt.plot(y, zerofun(y), 'o-')
-            plt.plot(y0, 0, "ok")
+            plt.plot(t, zerofun(t), 'o-')
+            plt.plot(t0, 0, "ok")
             plt.xlabel('y')
             plt.xlabel('d^2y/dx^2')
             plt.grid()
-        return [fit(y0), y0]
+        return [fit[0](t0), fit[1](t0)]
 
-    def _get_curvature_root(self, y, zerofun, verbose):
+    def _get_curvature_root(self, t, zerofun, verbose):
         try:
             # get last point with opposite sign
-            y0 = y[0]
-            yf = y[-1]
+            t0 = t[0]
+            tf = t[-1]
             while True:
-                if zerofun(y0)*zerofun(yf) > 0 and \
-                    abs(y0 - yf)/((y0 + yf)/2) > 0.01:
-                    yf -= (yf - y0)*1/10
+                if zerofun(t0)*zerofun(tf) > 0 and \
+                    abs(t0 - tf)/((t0 + tf)/2) > 0.01:
+                    tf -= (tf - t0)*1/10
                 else:
                     break
             # get exact position
-            y0 = spopt.brentq(zerofun, y0, yf)
-            return y0
+            t0 = spopt.brentq(zerofun, t0, tf)
+            return t0
         except (RuntimeError, ValueError) as m:
             if verbose:
                 warnings.warn('Cannot find a triple point here.'

@@ -69,8 +69,11 @@ class Image(ScalarField):
         return True
 
     def display(self, *args, **kwargs):
+        displ_baseline = True
+        if 'displ_baseline' in kwargs.keys():
+            displ_baseline = kwargs.pop('displ_baseline')
         super().display(*args, **kwargs)
-        if self.baseline is not None:
+        if self.baseline is not None and displ_baseline:
             bx, by = self.baseline.xy
             plt.plot(bx, by, color=self.colors[0], ls='none', marker='o')
             plt.plot(bx, by, color=self.colors[0], ls='-')
