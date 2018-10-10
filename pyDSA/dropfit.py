@@ -508,16 +508,18 @@ class DropCircleFit(DropFit):
         V = 1/3*np.pi*h**2*(3*R - h)
         return V
 
-    def display(self, displ_fits=True, displ_ca=True,
+    def display(self, displ_fits=True, displ_ca=True, displ_center=True,
                 *args, **kwargs):
         """
         """
         super().display()
         # Display fits
-        if self.fits is not None and displ_fits:
+        if self.fits is not None and displ_center:
             xyc, R = self.fits
             plt.plot(xyc[0], xyc[1], marker='o',
                      color=self.colors[5])
+        if self.fits is not None and displ_fits:
+            xyc, R = self.fits
             circ = plt.Circle((xyc[0], xyc[1]), radius=R,
                               color=self.colors[5],
                               fill=False)

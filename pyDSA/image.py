@@ -253,6 +253,25 @@ class Image(ScalarField):
             tmpim._dump_infos()
         return tmpim
 
+    def set_origin(self, x, y):
+        """
+        Modify the axis in order to place the origin at the given point (x, y)
+
+        Parameters
+        ----------
+        x : number
+        y : number
+        """
+        super().set_origin(x, y)
+        bpt1 = self.baseline.pt1
+        bpt2 = self.baseline.pt2
+        bpt1[0] -= x
+        bpt2[0] -= x
+        bpt1[1] -= y
+        bpt2[1] -= y
+        self.baseline.from_points([bpt1, bpt2])
+
+
     def _dump_infos(self):
         # Gather old information if necessary
         if os.path.isfile(self.infofile_path):
