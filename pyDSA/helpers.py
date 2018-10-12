@@ -121,7 +121,8 @@ def import_from_images(path, dx=1, dy=1, dt=1, unit_x="", unit_y="",
 
 
 def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
-                      frame_inds=None, incr=1, nmb_frame_to_import=None,
+                      frame_inds=None, frame_range=None,
+                      incr=1, nmb_frame_to_import=None,
                       intervx=None, intervy=None,
                       cache_infos=True, dtype=np.uint8, verbose=False):
     """
@@ -137,8 +138,10 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         Time interval between two frames.
     unit_x, unit_y, unit_y: strings
         Unities of dx, dy and dt.
-    frame_inds: 2x1 array of integers
+    frame_range: 2x1 array of integers
         Range of frame to import (default to all).
+    frame_inds: array of integers
+        Indices of frames to import (default to all).
     incr: integer
         Number of frame to import.
         (ex: with a value of 2, only 1/2 frames will be imported).
@@ -160,6 +163,15 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
     imgs: TemporalImages object
         Images
     """
+    # check
+    if frame_inds is not None and frame_range is not None:
+        raise Exception()
+    if frame_inds is not None and incr != 1:
+        raise Exception("You cannot specify both the 'frame_inds' and an "
+                        "'incr' value")
+    if frame_inds is not None and nmb_frame_to_import is not None:
+        raise Exception("You cannot specify both the 'frame_inds' and an "
+                        "'nmb_frame_to_import' value")
     # Check if file exist
     imtio.check_path(path)
     # convert units (upfront for optimization purpose)
@@ -171,29 +183,43 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
     vid.open(path)
     ti = tis.TemporalImages(filepath=path)
     i = 0
+    # Get indices to import
     max_frame = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
     if max_frame == 0:
         raise ImportError("Couldn't get the number of frame from the video file")
-    if frame_inds is None:
-        frame_inds = [0, max_frame - 1]
-    if frame_inds[1] > max_frame - 1:
-        frame_inds[1] = max_frame - 1
-    if nmb_frame_to_import is not None:
-        incr = int((frame_inds[-1] - frame_inds[0])/nmb_frame_to_import)
-        if incr == 0:
-            incr = 1
+    if frame_inds is not None:
+        if frame_inds[-1] > max_frame:
+            raise Exception()
+    else:
+        if frame_range is None:
+            frame_max = max_frame - 1
+            frame_min = 0
+        else:
+            if frame_range[0] < 0:
+                frame_min = 0
+            else:
+                frame_min = frame_range[0]
+            if frame_range[1] > max_frame:
+                frame_max = max_frame
+            else:
+                frame_max = frame_range[1]
+        if nmb_frame_to_import is not None:
+            incr = int((frame_inds[-1] - frame_inds[0])/nmb_frame_to_import)
+            if incr == 0:
+                incr = 1
+        frame_inds = np.arange(frame_min, frame_max, incr, dtype=int)
     # logs
     if verbose:
-        nmb_frames = int((frame_inds[1] - frame_inds[0])/incr + 0.99999)
+        nmb_frames = len(frame_inds)
         if nmb_frames <= 1:
-            raise Exception("No frames selected, maybe 'incr' is to high ?")
+            raise Exception("No frames selected")
         pg = ProgressCounter(init_mess="Decoding video",
                              nmb_max=nmb_frames,
                              name_things='frames',
                              perc_interv=5)
     t = 0
-    for i in np.arange(0, frame_inds[1], 1):
-        if i < frame_inds[0] or (i - frame_inds[0]) % incr != 0:
+    for i in np.arange(0, frame_inds[-1] + 1, 1):
+        if i not in frame_inds:
             t += dt
             vid.grab()
             continue
