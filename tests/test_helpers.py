@@ -107,10 +107,10 @@ class TestImportFromVideo(object):
 
     def test_import_from_video_should_import_only_certain_frames(self):
         ims = import_from_video("./tests/res/video.mp4",
-                                frame_inds=[0, 20],
+                                frame_range=[0, 20],
                                 cache_infos=False)
         ims2 = import_from_video("./tests/res/video.mp4",
-                                 frame_inds=[10, 14],
+                                 frame_range=[10, 14],
                                  cache_infos=False)
         assert ims[10] == ims2[0]
 
@@ -119,26 +119,26 @@ class TestImportFromVideo(object):
                                 incr=10,
                                 cache_infos=False)
         ims2 = import_from_video("./tests/res/video.mp4",
-                                 frame_inds=[0, 20],
+                                 frame_range=[0, 20],
                                  cache_infos=False)
         assert ims[1] == ims2[10]
 
     def test_import_from_video_should_use_nmb_frame_to_import(self):
         ims = import_from_video("./tests/res/video.mp4",
                                 nmb_frame_to_import=10,
-                                frame_inds=[0, 100],
-                                 cache_infos=False)
+                                frame_range=[0, 100],
+                                cache_infos=False)
         ims2 = import_from_video("./tests/res/video.mp4",
-                                 frame_inds=[0, 20],
+                                 frame_range=[0, 20],
                                  cache_infos=False)
         assert ims[1] == ims2[10]
 
     def test_import_from_video_should_crop_images(self):
         ims = import_from_video("./tests/res/video.mp4",
-                                frame_inds=[0, 10],
+                                frame_range=[0, 10],
                                 cache_infos=False)
         ims2 = import_from_video("./tests/res/video.mp4",
-                                 frame_inds=[0, 10],
+                                 frame_range=[0, 10],
                                  intervx=[100, 200],
                                  intervy=[100, 200],
                                  cache_infos=False)

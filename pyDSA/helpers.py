@@ -204,7 +204,7 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
             else:
                 frame_max = frame_range[1]
         if nmb_frame_to_import is not None:
-            incr = int((frame_inds[-1] - frame_inds[0])/nmb_frame_to_import)
+            incr = int((frame_max - frame_min)/nmb_frame_to_import)
             if incr == 0:
                 incr = 1
         frame_inds = np.arange(frame_min, frame_max, incr, dtype=int)
