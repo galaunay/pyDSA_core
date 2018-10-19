@@ -263,13 +263,14 @@ class Image(ScalarField):
         y : number
         """
         super().set_origin(x, y)
-        bpt1 = self.baseline.pt1
-        bpt2 = self.baseline.pt2
-        bpt1[0] -= x
-        bpt2[0] -= x
-        bpt1[1] -= y
-        bpt2[1] -= y
-        self.baseline.from_points([bpt1, bpt2])
+        if self.baseline is not None:
+            bpt1 = self.baseline.pt1
+            bpt2 = self.baseline.pt2
+            bpt1[0] -= x
+            bpt2[0] -= x
+            bpt1[1] -= y
+            bpt2[1] -= y
+            self.baseline.from_points([bpt1, bpt2])
 
 
     def _dump_infos(self):
@@ -371,7 +372,7 @@ class Image(ScalarField):
         # check for baseline
         if self.baseline is None:
             raise Exception('You should set the baseline first.')
-        if self.dx != self.dy:
+        if not np.isclose(self.dx, self.dy):
             warnings.warn('dx is different than dy, results can be weird...')
         # Get adapted thresholds
         if threshold2 is None or threshold1 is None:

@@ -76,7 +76,8 @@ class DropEdges(Points):
         """
         # check if edges are present...
         if len(self.xy) == 0:
-            return None, None
+            self.drop_edges = [None]*4
+            return [None]*4
         # Get cut position
         ind_sort = np.argsort(self.xy[:, 0])
         xs = self.xy[:, 0][ind_sort]
@@ -289,7 +290,7 @@ class DropEdges(Points):
         if self.drop_edges is None:
             self._separate_drop_edges()
         if self.drop_edges[0] is None and self.drop_edges[2] is None:
-            return None, None
+            return None
         # Prepare drop edge for interpolation
         # TODO: Find a more efficient fitting
         dex1, dey1, dex2, dey2 = self.drop_edges

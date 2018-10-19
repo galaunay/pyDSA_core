@@ -235,7 +235,10 @@ class TemporalFits(object):
             xs = []
             ys = []
             for fit in self.fits:
-                if fit.triple_pts is None:
+                if fit is None:
+                    xs.append([np.nan, np.nan])
+                    ys.append([np.nan, np.nan])
+                elif fit.triple_pts is None:
                     xs.append([np.nan, np.nan])
                     ys.append([np.nan, np.nan])
                 else:
@@ -251,10 +254,13 @@ class TemporalFits(object):
                                     color=self[0].colors[2])
                 displs.append(db)
         # Display contact angles
-        if np.any([fit.thetas for fit in self.fits] is not None) \
+        if np.any([fit.thetas
+                   for fit in self.fits
+                   if fit is not None] is not None) \
            and displ_ca:
             lines = [fit._get_angle_display_lines()
-                     for fit in self.fits]
+                     for fit in self.fits
+                     if fit is not None]
             lines1 = []
             lines2 = []
             lines3 = []
@@ -352,6 +358,8 @@ class TemporalSplineFits(TemporalFits):
         x2s = []
         y2s = []
         for fit in self.fits:
+            if fit is None:
+                continue
             t = np.linspace(0, 1, 1000)
             x1 = fit.fits[0][0](t)
             y1 = fit.fits[0][1](t)
