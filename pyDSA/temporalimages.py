@@ -95,6 +95,21 @@ class TemporalImages(TemporalScalarFields):
         if self.cache_infos:
             self._dump_infos()
 
+    def set_origin(self, x, y):
+        """
+        Modify the axis in order to place the origin at the given point (x, y)
+
+        Parameters
+        ----------
+        x : number
+        y : number
+        """
+        for im in self.fields:
+            im.set_origin(x, y)
+        self.axe_x = self.fields[0].axe_x
+        self.axe_y = self.fields[0].axe_y
+        self.baseline = self.fields[0].baseline
+
     def choose_baseline(self, ind_image=None):
         """
         Choose baseline position interactively.
