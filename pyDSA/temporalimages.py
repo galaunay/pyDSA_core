@@ -109,6 +109,8 @@ class TemporalImages(TemporalScalarFields):
         self.axe_x = self.fields[0].axe_x
         self.axe_y = self.fields[0].axe_y
         self.baseline = self.fields[0].baseline
+        if self.cache_infos:
+            self._dump_infos()
 
     def choose_baseline(self, ind_image=None):
         """
@@ -231,6 +233,8 @@ class TemporalImages(TemporalScalarFields):
             pt2 = None
         new_dic = {"dx": self.dx,
                    "dy": self.dy,
+                   "x0": self.axe_x[0],
+                   "y0": self.axe_y[0],
                    "baseline_pt1": pt1,
                    "baseline_pt2": pt2,
                    "unit_x": unit_x,
@@ -260,6 +264,13 @@ class TemporalImages(TemporalScalarFields):
             self.unit_x = dic['unit_x']
         if self.unit_y.strUnit()[1:-1] != dic['unit_y']:
             self.unit_y = dic['unit_y']
+        try:  # Compatibility
+            x0 = dic['x0']
+            y0 = dic['y0']
+            self.axe_x += (x0 - self.axe_x[0])
+            self.axe_y += (y0 - self.axe_y[0])
+        except KeyError:
+            pass
         base1 = dic['baseline_pt1']
         base2 = dic['baseline_pt2']
         if base1 is not None and base2 is not None:

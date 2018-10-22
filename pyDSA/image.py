@@ -271,7 +271,8 @@ class Image(ScalarField):
             bpt1[1] -= y
             bpt2[1] -= y
             self.baseline.from_points([bpt1, bpt2])
-
+        if self.cache_infos:
+            self._dump_infos()
 
     def _dump_infos(self):
         # Gather old information if necessary
@@ -291,6 +292,8 @@ class Image(ScalarField):
             pt2 = None
         new_dic = {"dx": self.dx,
                    "dy": self.dy,
+                   "x0": self.axe_x[0],
+                   "y0": self.axe_y[0],
                    "baseline_pt1": pt1,
                    "baseline_pt2": pt2,
                    "unit_x": unit_x,
@@ -316,6 +319,13 @@ class Image(ScalarField):
         self.scale(scalex=dx/(self.axe_x[1] - self.axe_x[0]),
                    scaley=dy/(self.axe_y[1] - self.axe_y[0]),
                    inplace=True)
+        try:  # Compatibility
+            x0 = dic['x0']
+            y0 = dic['y0']
+            self.axe_x += (x0 - self.axe_x[0])
+            self.axe_y += (y0 - self.axe_y[0])
+        except KeyError:
+            pass
         self.unit_x = dic['unit_x']
         self.unit_y = dic['unit_y']
         base1 = dic['baseline_pt1']
