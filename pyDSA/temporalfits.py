@@ -221,6 +221,15 @@ class TemporalFits(object):
             diams.append(fit.get_base_diameter())
         return np.asarray(diams)
 
+    def get_drop_volume(self):
+        """
+        Return the drop volume with time.
+        """
+        vols = []
+        for fit in self.fits:
+            vols.append(fit.get_drop_volume())
+        return np.asarray(vols)
+
     def _get_inters_base_fit(self):
         inter = []
         for fit in self.fits:
