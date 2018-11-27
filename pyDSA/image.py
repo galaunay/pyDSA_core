@@ -340,6 +340,13 @@ class Image(ScalarField):
         sc = TriplePointChooser(self)
         return sc.rh
 
+    def take_measure(self):
+        """
+        Allow to interactively take a measure on the image.
+        """
+        mt = MeasuringTool(self)
+        return mt.pts_couples
+
     def edge_detection_canny(self, threshold1=None, threshold2=None,
                              base_max_dist=15, size_ratio=.5,
                              nmb_edges=2, ignored_pixels=2,
@@ -809,4 +816,62 @@ class TriplePointChooser(object):
             self.pts.set_data(np.array(pos).transpose())
         else:
             self.pts.set_data(np.empty((2, 2)))
+        self.fig.canvas.draw()
+
+
+class MeasuringTool(object):
+    def __init__(self, im):
+        """
+        """
+        self.im = im
+        #
+        self.fig = plt.figure()
+        self.im.display(cmap=plt.cm.binary_r)
+        self.axplot = plt.gca()
+        #
+        self.pts_couples = [[]]
+        self.plots = []
+        self.texts = []
+        self.plot_args = {'marker': 'o', 'ls': '-'}
+        #
+        self.eps = .01*(self.im.axe_x[-1] - self.im.axe_x[0])
+        # Connect click event on graph
+        self.fig.canvas.mpl_connect('button_press_event', self.onclick)
+        # show the plot
+        plt.show(block=True)
+
+    def onclick(self, event):
+        # toolbar want the focus !
+        if self.fig.canvas.manager.toolbar._active is not None:
+            return None
+        # Do nothing if not above an axe
+        if event.inaxes != self.axplot:
+            return None
+        # get the position
+        xy = [event.xdata, event.ydata]
+        # if fist point of a couple
+        if len(self.pts_couples[-1]) == 0:
+            self.pts_couples[-1].append(xy)
+            plot = plt.plot([xy[0]], [xy[1]], **self.plot_args)[0]
+            self.plots.append(plot)
+        # if second point of a couple
+        else:
+            self.pts_couples[-1].append(xy)
+            xs = [self.pts_couples[-1][0][0], xy[0]]
+            ys = [self.pts_couples[-1][0][1], xy[1]]
+            self.plots[-1].set_data([xs, ys])
+            self.pts_couples.append([])
+            # add text
+            dx = xs[1] - xs[0]
+            dy = ys[1] - ys[0]
+            dl = (dx**2 + dy**2)**.5
+            self.texts.append(plt.text(np.mean(xs),
+                                       np.mean(ys),
+                                       f"dx={dx:.2f}\ndy={dy:.2f}\ndl={dl:.2f}",
+                                       horizontalalignment='center',
+                                       verticalalignment='baseline'))
+            print(f"Points {len(self.pts_couples)}:")
+            print(f"dx={dx}")
+            print(f"dy={dy}")
+            print(f"dl={dl}")
         self.fig.canvas.draw()
