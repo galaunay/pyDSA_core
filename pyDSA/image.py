@@ -340,11 +340,17 @@ class Image(ScalarField):
         sc = TriplePointChooser(self)
         return sc.rh
 
-    def take_measure(self):
+    def take_measure(self, kind='all'):
         """
         Allow to interactively take a measure on the image.
+
+        Parameters
+        ----------
+        kind: string
+           Kind of measurement to make.
+           Can be 'dx', 'dy', 'dl' ot 'all'.
         """
-        mt = MeasuringTool(self)
+        mt = MeasuringTool(self, kind=kind)
         return mt.pts_couples
 
     def edge_detection_canny(self, threshold1=None, threshold2=None,
@@ -820,10 +826,11 @@ class TriplePointChooser(object):
 
 
 class MeasuringTool(object):
-    def __init__(self, im):
+    def __init__(self, im, kind='all'):
         """
         """
         self.im = im
+        self.kind = kind
         #
         self.fig = plt.figure()
         self.im.display(cmap=plt.cm.binary_r)
@@ -862,16 +869,31 @@ class MeasuringTool(object):
             self.plots[-1].set_data([xs, ys])
             self.pts_couples.append([])
             # add text
-            dx = xs[1] - xs[0]
-            dy = ys[1] - ys[0]
-            dl = (dx**2 + dy**2)**.5
+            if self.im.unit_x != self.im.unit_y:
+                unit = ""
+            else:
+                unit = self.im.unit_x.strUnit()
+            text = ""
+            print(f"Points {len(self.pts_couples)-1}:")
+            if self.kind in ['dx', 'all']:
+                dx = xs[1] - xs[0]
+                print(f"dx={dx} {unit}")
+                text += f'dx={dx:.2f} {unit}\n'
+            if self.kind in ['dy', 'all']:
+                dy = ys[1] - ys[0]
+                print(f"dy={dy} {unit}")
+                text += f'dy={dy:.2f} {unit}\n'
+            if self.kind in ['dl', 'all']:
+                dx = xs[1] - xs[0]
+                dy = ys[1] - ys[0]
+                dl = (dx**2 + dy**2)**.5
+                print(f"dl={dl} {unit}")
+                text += f'dl={dl:.2f} {unit}\n'
+            text = text.rstrip('\n')
             self.texts.append(plt.text(np.mean(xs),
                                        np.mean(ys),
-                                       f"dx={dx:.2f}\ndy={dy:.2f}\ndl={dl:.2f}",
+                                       text,
                                        horizontalalignment='center',
-                                       verticalalignment='baseline'))
-            print(f"Points {len(self.pts_couples)}:")
-            print(f"dx={dx}")
-            print(f"dy={dy}")
-            print(f"dl={dl}")
+                                       verticalalignment='baseline',
+                                       bbox=dict(facecolor='white', alpha=0.5)))
         self.fig.canvas.draw()
