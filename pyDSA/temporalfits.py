@@ -212,6 +212,15 @@ class TemporalFits(object):
         return (np.array(height1, dtype=float),
                 np.array(height2, dtype=float))
 
+    def get_drop_center(self):
+        """
+        Return the positions of the drop center
+        """
+        centers = []
+        for fit in self.fits:
+            centers.append(fit.get_drop_center())
+        return np.asarray(centers)
+
     def get_base_diameter(self):
         """
         Return the base diameters.

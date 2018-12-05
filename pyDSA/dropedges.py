@@ -119,29 +119,37 @@ class DropEdges(Points):
         de1.smooth(tos='gaussian', size=1, inplace=True)
         de2.smooth(tos='gaussian', size=1, inplace=True)
         # parametrize
-        t1s = np.cumsum(((de1.x[1:] - de1.x[0:-1])**2
-                         + (de1.y[1:] - de1.y[0:-1])**2)**.5)
-        t1s = np.concatenate(([0], t1s))
-        t1s /= t1s[-1]
-        t2s = np.cumsum(((de2.x[1:] - de2.x[0:-1])**2
-                         + (de2.y[1:] - de2.y[0:-1])**2)**.5)
-        t2s = np.concatenate(([0], t2s))
-        t2s /= t2s[-1]
+        if len(de1) != 0:
+            t1s = np.cumsum(((de1.x[1:] - de1.x[0:-1])**2
+                             + (de1.y[1:] - de1.y[0:-1])**2)**.5)
+            t1s = np.concatenate(([0], t1s))
+            t1s /= t1s[-1]
+        else:
+            t1s = []
+        if len(de2) != 0:
+            t2s = np.cumsum(((de2.x[1:] - de2.x[0:-1])**2
+                             + (de2.y[1:] - de2.y[0:-1])**2)**.5)
+            t2s = np.concatenate(([0], t2s))
+            t2s /= t2s[-1]
+        else:
+            t2s = []
         dex1 = Profile(t1s, de1.y, unit_x="", unit_y=self.unit_x)
         dex2 = Profile(t2s, de2.y, unit_x="", unit_y=self.unit_x)
         dey1 = Profile(t1s, de1.x, unit_x="", unit_y=self.unit_y)
         dey2 = Profile(t2s, de2.x, unit_x="", unit_y=self.unit_y)
         # evenlify
-        dtx1 = self.im_dx/abs(dex1.y[-1] - dex1.y[0])
-        dty1 = self.im_dy/abs(dey1.y[-1] - dey1.y[0])
-        dt1 = np.min([dtx1, dty1])
-        dtx2 = self.im_dx/abs(dex2.y[-1] - dex2.y[0])
-        dty2 = self.im_dy/abs(dey2.y[-1] - dey2.y[0])
-        dt2 = np.min([dtx2, dty2])
-        dex1 = dex1.evenly_space(dx=dt1)
-        dey1 = dey1.evenly_space(dx=dt1)
-        dex2 = dex2.evenly_space(dx=dt2)
-        dey2 = dey2.evenly_space(dx=dt2)
+        if len(dex1) != 0:
+            dtx1 = self.im_dx/abs(dex1.y[-1] - dex1.y[0])
+            dty1 = self.im_dy/abs(dey1.y[-1] - dey1.y[0])
+            dt1 = np.min([dtx1, dty1])
+            dex1 = dex1.evenly_space(dx=dt1)
+            dey1 = dey1.evenly_space(dx=dt1)
+        if len(dex2) != 0:
+            dtx2 = self.im_dx/abs(dex2.y[-1] - dex2.y[0])
+            dty2 = self.im_dy/abs(dey2.y[-1] - dey2.y[0])
+            dt2 = np.min([dtx2, dty2])
+            dex2 = dex2.evenly_space(dx=dt2)
+            dey2 = dey2.evenly_space(dx=dt2)
         # store
         self.drop_edges = (dex1, dey1, dex2, dey2)
         return (dex1, dey1, dex2, dey2)
