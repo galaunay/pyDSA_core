@@ -351,7 +351,7 @@ class Image(ScalarField):
            Can be 'dx', 'dy', 'dl' ot 'all'.
         """
         mt = MeasuringTool(self, kind=kind)
-        return mt.pts_couples
+        return mt.measures
 
     def edge_detection_canny(self, threshold1=None, threshold2=None,
                              base_max_dist=15, size_ratio=.5,
@@ -837,6 +837,7 @@ class MeasuringTool(object):
         self.axplot = plt.gca()
         #
         self.pts_couples = [[]]
+        self.measures = {'dx': [], 'dy': [], 'dl': []}
         self.plots = []
         self.texts = []
         self.plot_args = {'marker': 'o', 'ls': '-'}
@@ -875,18 +876,16 @@ class MeasuringTool(object):
                 unit = self.im.unit_x.strUnit()
             text = ""
             print(f"Points {len(self.pts_couples)-1}:")
+            dx = xs[1] - xs[0]
+            dy = ys[1] - ys[0]
+            dl = (dx**2 + dy**2)**.5
             if self.kind in ['dx', 'all']:
-                dx = xs[1] - xs[0]
                 print(f"dx={dx} {unit}")
                 text += f'dx={dx:.2f} {unit}\n'
             if self.kind in ['dy', 'all']:
-                dy = ys[1] - ys[0]
                 print(f"dy={dy} {unit}")
                 text += f'dy={dy:.2f} {unit}\n'
             if self.kind in ['dl', 'all']:
-                dx = xs[1] - xs[0]
-                dy = ys[1] - ys[0]
-                dl = (dx**2 + dy**2)**.5
                 print(f"dl={dl} {unit}")
                 text += f'dl={dl:.2f} {unit}\n'
             text = text.rstrip('\n')
@@ -896,4 +895,8 @@ class MeasuringTool(object):
                                        horizontalalignment='center',
                                        verticalalignment='baseline',
                                        bbox=dict(facecolor='white', alpha=0.5)))
+            # record
+            self.measures['dx'].append(dx)
+            self.measures['dy'].append(dy)
+            self.measures['dl'].append(dl)
         self.fig.canvas.draw()
