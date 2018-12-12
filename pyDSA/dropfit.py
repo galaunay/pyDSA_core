@@ -107,6 +107,30 @@ class DropFit(object):
                           [np.nan, np.nan]])
         return lines
 
+    def get_drop_center(self):
+        raise NotImplementedError("Not implemented yet")
+
+    def get_base_diameter(self):
+        """
+        Return the base diameter.
+        """
+        pt1, pt2 = self._get_inters_base_fit()
+        diam = ((pt1[0] - pt2[0])**2 + (pt1[1] - pt2[1])**2)**0.5
+        return diam
+
+    def get_drop_height(self):
+        """ Return the height of the droplet center. """
+        xyc = self.get_drop_center()
+        hb = self.baseline.get_projection_to_baseline(xyc)[1]
+        hmax = np.max(self.y_bounds)
+        return hmax - hb
+
+    def get_drop_area(self):
+        raise NotImplementedError("Not implemented yet")
+
+    def get_drop_volume(self):
+        raise NotImplementedError("Not implemented yet")
+
     def get_ridge_height(self):
 
         """
@@ -118,26 +142,6 @@ class DropFit(object):
         heights = [self.baseline.get_distance_to_baseline(pt)
                    for pt in pts]
         return np.array(heights)
-
-    def get_base_diameter(self):
-        """
-        Return the base diameter.
-        """
-        pt1, pt2 = self._get_inters_base_fit()
-        diam = ((pt1[0] - pt2[0])**2 + (pt1[1] - pt2[1])**2)**0.5
-        return diam
-
-    def get_drop_center(self):
-        raise NotImplementedError("Not implemented yet")
-
-    def get_drop_height(self):
-        xyc = self.get_drop_center()
-        hb = self.baseline.get_projection_to_baseline(xyc)[1]
-        hmax = np.max(self.y_bounds)
-        return hmax - hb
-
-    def get_drop_volume(self):
-        raise NotImplementedError("Not implemented yet")
 
 
 class DropSplineFit(DropFit):
@@ -427,6 +431,33 @@ class DropSplineFit(DropFit):
                          marker="o",
                          color=self.colors[4])
 
+    def get_drop_center(self):
+        """ Return the center of the droplet 2D projection. """
+        t = np.linspace(0, 1, 1000)
+        xs = np.concatenate((self.fits[0][0](t), self.fits[1][0](t)[::-1]))
+        ys = np.concatenate((self.fits[0][1](t), self.fits[1][1](t)[::-1]))
+        # shoelace
+        # Credit to Elfego Ruiz-Gutierrez
+        A = self.get_drop_area()
+        z = xs * np.roll(ys, 1) - ys * np.roll(xs, 1)
+        xx = xs + np.roll(xs, 1)
+        yy = ys + np.roll(ys, 1)
+        center = np.r_[np.dot(xx, z), np.dot(yy, z)]/A/6.0
+        return center
+
+    def get_drop_area(self):
+        """ Return the droplet 2D projection area. """
+        t = np.linspace(0, 1, 1000)
+        xs = np.concatenate((self.fits[0][0](t), self.fits[1][0](t)[::-1]))
+        ys = np.concatenate((self.fits[0][1](t), self.fits[1][1](t)[::-1]))
+        # Shoelace method
+        area = 0.5*np.abs(np.dot(xs, np.roll(ys, 1))
+                          - np.dot(ys, np.roll(xs, 1)))
+        return area
+
+    def get_drop_volume(self):
+        raise Exception('Cannot get the drop volume from a spline fit')
+
 
 class DropCircleFit(DropFit):
     def __init__(self, xyc, R, baseline, x_bounds, y_bounds):
@@ -489,14 +520,24 @@ class DropCircleFit(DropFit):
         """
         Return the center of the drop.
         """
-        return self.fits[0]
+        r = self.fits[1]
+        xc, yc = self.fits[0]
+        h = yc - self.baseline.get_projection_to_baseline([xc, yc])[1]
+        # Need to be in the baseline referential...
+        raise Exception('Not implemented yet')
 
-    def get_drop_height(self):
+
+    def get_drop_area(self):
         """
-        Return the drop height.
+        Return the area of the 2D drop projection.
         """
-        hb = self.baseline.get_projection_to_baseline(self.fits[0])[1]
-        return (self.fits[0][1] - hb) + self.fits[1]
+        r = self.fits[1]
+        xc, yc = self.fits[0]
+        h = yc - self.baseline.get_projection_to_baseline([xc, yc])[1]
+        theta = 2*(np.pi - np.arccos(h/r))
+        # from wikipedia: circular segments
+        area = r**2/2*(theta - np.sin(theta))
+        return area
 
     def get_drop_volume(self):
         """
