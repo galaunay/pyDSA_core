@@ -401,6 +401,21 @@ class DropSplineFit(DropFit):
             thetas.append(theta/np.pi*180)
         return np.array(thetas)
 
+    def get_fit_as_points(self, resolution=100):
+        """
+        Return a representation of the fit as point coordinates.
+        """
+        fit1x, fit1y, fit2x, fit2y = self.fits
+        t = np.linspace(0, 1, resolution)
+        x1 = fit1x(t)
+        y1 = fit1y(t)
+        x2 = fit2x(t)
+        y2 = fit2y(t)
+        xs = np.concatenate((x1, [np.nan], x2))
+        ys = np.concatenate((y1, [np.nan], y2))
+        pts = [xs, ys]
+        return pts
+
     def display(self, displ_fits=True, displ_ca=True,
                 displ_tp=True, *args, **kwargs):
         """
@@ -526,7 +541,6 @@ class DropCircleFit(DropFit):
         # Need to be in the baseline referential...
         raise Exception('Not implemented yet')
 
-
     def get_drop_area(self):
         """
         Return the area of the 2D drop projection.
@@ -548,6 +562,18 @@ class DropCircleFit(DropFit):
         h = self.get_drop_height()
         V = 1/3*np.pi*h**2*(3*R - h)
         return V
+
+    def get_fit_as_points(self, resolution=100):
+        """
+        Return a representation of the fit as point coordinates.
+        """
+        (xc, yc) = self.fits[0]
+        radius = self.fits[1]
+        theta = np.linspace(0, np.pi*2, resolution)
+        x = xc + radius*np.cos(theta)
+        y = yc + radius*np.sin(theta)
+        pts = [x, y]
+        return pts
 
     def display(self, displ_fits=True, displ_ca=True, displ_center=True,
                 *args, **kwargs):
@@ -759,6 +785,15 @@ class DropEllipseFit(DropFit):
         xyc, R1, R2, theta = self.fits
         R = ((R1*np.sin(theta))**2 + (R2*np.cos(theta))**2)**.5
         return (xyc[1] - hb) + R
+
+    def get_fit_as_points(self, resolution=100):
+        """
+        Return a representation of the fit as point coordinates.
+        """
+        (xc, yc), R1, R2, theta = self.fits
+        xs, ys = get_ellipse_points(xc, yc, R1, R2, theta, res=resolution)
+        pts = [xs, ys]
+        return pts
 
     def display(self, displ_fits=True, displ_ca=True,
                 *args, **kwargs):

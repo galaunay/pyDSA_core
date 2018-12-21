@@ -75,7 +75,8 @@ class Baseline(object):
         self.coefs = [slope, intercept]
         self.tilt_angle = np.arctan(self.coefs[0])
 
-    def get_baseline_from_points(self, pts, xmin=None, xmax=None):
+    @staticmethod
+    def get_baseline_from_points(pts, xmin=None, xmax=None):
         pos = np.array(pts)
         a, b = np.polyfit(pos[:, 0], pos[:, 1], 1)
         if xmin is None:
