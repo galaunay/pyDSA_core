@@ -405,7 +405,7 @@ class DropSplineFit(DropFit):
         """
         Return a representation of the fit as point coordinates.
         """
-        fit1x, fit1y, fit2x, fit2y = self.fits
+        (fit1x, fit1y), (fit2x, fit2y) = self.fits
         t = np.linspace(0, 1, resolution)
         x1 = fit1x(t)
         y1 = fit1y(t)
