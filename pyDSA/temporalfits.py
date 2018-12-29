@@ -182,6 +182,26 @@ class TemporalFits(object):
         thetas = np.asarray(thetas)
         return thetas
 
+    def get_base_diameters(self):
+        """ Return the drop base diameter. """
+        return np.array([fld.get_base_diameter() for fld in self.fits])
+
+    def get_drop_centers(self):
+        """ Return the drop center position. """
+        return np.array([fld.get_drop_center() for fld in self.fits])
+
+    def get_drop_heights(self):
+        """ Return the height of the droplet center. """
+        return np.array([fld.get_drop_height() for fld in self.fits])
+
+    def get_drop_areas(self):
+        """ Return the area of the 2D projection of the droplet. """
+        return np.array([fld.get_drop_area() for fld in self.fits])
+
+    def get_drop_volumes(self):
+        """ Return the estiated volume of the droplet. """
+        return np.array([fld.get_drop_volume() for fld in self.fits])
+
     def get_triple_points(self):
         """
         Return the drop triple points.
@@ -211,33 +231,6 @@ class TemporalFits(object):
             height2.append(h2)
         return (np.array(height1, dtype=float),
                 np.array(height2, dtype=float))
-
-    def get_drop_center(self):
-        """
-        Return the positions of the drop center
-        """
-        centers = []
-        for fit in self.fits:
-            centers.append(fit.get_drop_center())
-        return np.asarray(centers)
-
-    def get_base_diameter(self):
-        """
-        Return the base diameters.
-        """
-        diams = []
-        for fit in self.fits:
-            diams.append(fit.get_base_diameter())
-        return np.asarray(diams)
-
-    def get_drop_volume(self):
-        """
-        Return the drop volume with time.
-        """
-        vols = []
-        for fit in self.fits:
-            vols.append(fit.get_drop_volume())
-        return np.asarray(vols)
 
     def _get_inters_base_fit(self):
         inter = []

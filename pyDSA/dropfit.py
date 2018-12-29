@@ -132,7 +132,6 @@ class DropFit(object):
         raise NotImplementedError("Not implemented yet")
 
     def get_ridge_height(self):
-
         """
         Return the ridge height.
         """

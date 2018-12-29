@@ -111,7 +111,7 @@ class TemporalDropEdges(TemporalPoints):
         tf = TemporalSplineFits(fits=fits, temporaledges=self)
         return tf
 
-    def fit_circle(self, verbose=False):
+    def fit_circle(self, triple_pts=None, verbose=False):
         """
         Fit a circle to the edges.
 
@@ -125,7 +125,7 @@ class TemporalDropEdges(TemporalPoints):
         fits = []
         for edge in self.point_sets:
             try:
-                fits.append(edge.fit_circle())
+                fits.append(edge.fit_circle(triple_pts=triple_pts))
             except Exception:
                 pass
             if verbose:
@@ -134,7 +134,7 @@ class TemporalDropEdges(TemporalPoints):
         tf = TemporalCircleFits(fits=fits, temporaledges=self)
         return tf
 
-    def fit_ellipse(self, verbose=False):
+    def fit_ellipse(self, triple_pts=None, verbose=False):
         """
         Fit an ellipse to the edges.
 
@@ -148,7 +148,7 @@ class TemporalDropEdges(TemporalPoints):
         fits = []
         for edge in self.point_sets:
             try:
-                fits.append(edge.fit_ellipse())
+                fits.append(edge.fit_ellipse(triple_pts=triple_pts))
             except Exception:
                 pass
             if verbose:
