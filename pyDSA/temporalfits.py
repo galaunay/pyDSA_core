@@ -49,6 +49,9 @@ class TemporalFits(object):
         for i in range(len(self.fits)):
             yield self.fits[i]
 
+    def __len__(self):
+        return len(self.fits)
+
     def __getitem__(self, i):
         return self.fits[i]
 
@@ -189,6 +192,16 @@ class TemporalFits(object):
     def get_drop_centers(self):
         """ Return the drop center position. """
         return np.array([fld.get_drop_center() for fld in self.fits])
+
+    def get_drop_positions(self):
+        """ Return the position of the droplet edges. """
+        pt1s = []
+        pt2s = []
+        for fit in self.fits:
+            pt1, pt2 = fit._get_inters_base_fit()
+            pt1s.append(pt1)
+            pt2s.append(pt2)
+        return np.array(pt1s), np.array(pt2s)
 
     def get_drop_heights(self):
         """ Return the height of the droplet center. """
