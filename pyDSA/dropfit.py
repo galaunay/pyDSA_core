@@ -495,8 +495,12 @@ class DropCircleFit(DropFit):
         dr = (dx**2 + dy**2)**.5
         D = xbas1*ybas2 - xbas2*ybas1
         #
-        x1 = (D*dy + np.sign(dy)*dx*(r**2*dr**2 - D**2)**.5)/dr**2
-        x2 = (D*dy - np.sign(dy)*dx*(r**2*dr**2 - D**2)**.5)/dr**2
+        if dy == 0:
+            sign_dy = 1
+        else:
+            sign_dy = np.sign(dy)
+        x1 = (D*dy + sign_dy*dx*(r**2*dr**2 - D**2)**.5)/dr**2
+        x2 = (D*dy - sign_dy*dx*(r**2*dr**2 - D**2)**.5)/dr**2
         y1 = (-D*dx + abs(dy)*(r**2*dr**2 - D**2)**.5)/dr**2
         y2 = (-D*dx - abs(dy)*(r**2*dr**2 - D**2)**.5)/dr**2
         #
@@ -518,11 +522,9 @@ class DropCircleFit(DropFit):
         bs_angle = self.baseline.tilt_angle*180/np.pi
         # Compute circle fits contact angles
         (xc, yc), R = self.fits
-        pts = self._get_inters_base_fit()
-        thetas = []
-        for pt in pts:
-            theta = np.pi/2 + np.arctan((yc - pt[1])/(xc - pt[0]))
-            thetas.append(theta)
+        pt1, pt2 = self._get_inters_base_fit()
+        thetas = [- np.pi/2 + np.arctan2((yc - pt1[1]), (xc - pt1[0])),
+                  np.pi/2 + np.arctan2((yc - pt2[1]), (xc - pt2[0]))]
         self.thetas = np.array(thetas)*180/np.pi
         # correct regarding the baseline angle
         self.thetas -= bs_angle
