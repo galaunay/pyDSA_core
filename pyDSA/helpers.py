@@ -77,7 +77,8 @@ def import_from_image(path, dx=1, dy=1, unit_x="", unit_y="",
 
 
 def import_from_images(path, dx=1, dy=1, dt=1, unit_x="", unit_y="",
-                       unit_times="", dtype=np.uint8, verbose=False):
+                       unit_times="", dtype=np.uint8,
+                       iteration_hook=None, verbose=False):
     """
     Import a set of images into an TemporalImages object.
 
@@ -115,6 +116,8 @@ def import_from_images(path, dx=1, dy=1, dt=1, unit_x="", unit_y="",
         t += dt
         if verbose:
             pg.print_progress()
+        if iteration_hook is not None:
+            iteration_hook(i, len(paths))
     # load saved things if necessary
     ims._import_infos()
     return ims
@@ -124,7 +127,9 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
                       frame_inds=None, frame_range=None,
                       incr=1, nmb_frame_to_import=None,
                       intervx=None, intervy=None,
-                      cache_infos=True, dtype=np.uint8, verbose=False):
+                      cache_infos=True, dtype=np.uint8,
+                      iteration_hook=None,
+                      verbose=False):
     """
     Import a images from a video file.
 
@@ -244,6 +249,8 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         t += dt
         if verbose:
             pg.print_progress()
+        if iteration_hook is not None:
+            iteration_hook(i, frame_inds[-1])
 
     if cache_infos:
         # Try to import infos if the infofile exist

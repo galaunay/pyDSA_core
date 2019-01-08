@@ -63,7 +63,7 @@ class TemporalDropEdges(TemporalPoints):
         """
         return self.fit_spline(k=k, s=s, verbose=verbose)
 
-    def fit_spline(self, k=5, s=0.75, verbose=False):
+    def fit_spline(self, k=5, s=0.75, iteration_hook=None, verbose=False):
         """
         Compute a spline fitting for the droplets shape.
 
@@ -75,21 +75,26 @@ class TemporalDropEdges(TemporalPoints):
         s : float, optional
             Smoothing factor between 0 (not smoothed) and 1 (very smoothed)
             Default to 0.75
+        iteration_hook: function
+            Hook run at each iterations with the iteration number
+            and the total number of iterations planned.
         """
         if verbose:
             pg = ProgressCounter(init_mess="Fitting droplet interfaces",
                                  nmb_max=len(self.point_sets),
                                  name_things='edges', perc_interv=5)
         fits = []
-        for edge in self.point_sets:
+        for i, edge in enumerate(self.point_sets):
             fits.append(edge.fit_spline(k=k, s=s, verbose=False))
             if verbose:
                 pg.print_progress()
+            if iteration_hook is not None:
+                iteration_hook(i, len(self.point_sets))
         # return
         tf = TemporalSplineFits(fits=fits, temporaledges=self)
         return tf
 
-    def fit_polyline(self, deg=5, verbose=False):
+    def fit_polyline(self, deg=5, iteration_hook=None, verbose=False):
         """
         Compute a polyline fitting for the droplets shape.
 
@@ -97,25 +102,36 @@ class TemporalDropEdges(TemporalPoints):
         ----------
         deg : integer
             Degree of the polynomial fitting.
+        iteration_hook: function
+            Hook run at each iterations with the iteration number
+            and the total number of iterations planned.
         """
         if verbose:
             pg = ProgressCounter(init_mess="Fitting droplet interfaces",
                                  nmb_max=len(self.point_sets),
                                  name_things='edges', perc_interv=5)
         fits = []
-        for edge in self.point_sets:
+        for i, edge in enumerate(self.point_sets):
             fits.append(edge.fit_polyline(deg=deg, verbose=False))
             if verbose:
                 pg.print_progress()
+            if iteration_hook is not None:
+                iteration_hook(i, len(self.point_sets))
         # return
         tf = TemporalSplineFits(fits=fits, temporaledges=self)
         return tf
 
-    def fit_circle(self, triple_pts=None, verbose=False):
+    def fit_circle(self, triple_pts=None, iteration_hook=None, verbose=False):
         """
         Fit a circle to the edges.
 
         Ignore the lower part of the drop if triple points are presents.
+
+        Parameters
+        ----------
+        iteration_hook: function
+            Hook run at each iterations with the iteration number
+            and the total number of iterations planned.
         """
         if verbose:
             pg = ProgressCounter(init_mess="Fitting circles to edges",
@@ -123,22 +139,30 @@ class TemporalDropEdges(TemporalPoints):
                                  name_things='edges',
                                  perc_interv=5)
         fits = []
-        for edge in self.point_sets:
+        for i, edge in enumerate(self.point_sets):
             try:
                 fits.append(edge.fit_circle(triple_pts=triple_pts))
             except Exception:
                 pass
             if verbose:
                 pg.print_progress()
+            if iteration_hook is not None:
+                iteration_hook(i, len(self.point_sets))
         # return
         tf = TemporalCircleFits(fits=fits, temporaledges=self)
         return tf
 
-    def fit_ellipse(self, triple_pts=None, verbose=False):
+    def fit_ellipse(self, triple_pts=None, iteration_hook=None, verbose=False):
         """
         Fit an ellipse to the edges.
 
         Ignore the lower part of the drop if triple points are presents.
+
+        Parameters
+        ----------
+        iteration_hook: function
+            Hook run at each iterations with the iteration number
+            and the total number of iterations planned.
         """
         if verbose:
             pg = ProgressCounter(init_mess="Fitting ellipses to edges",
@@ -146,19 +170,22 @@ class TemporalDropEdges(TemporalPoints):
                                  name_things='edges',
                                  perc_interv=5)
         fits = []
-        for edge in self.point_sets:
+        for i, edge in enumerate(self.point_sets):
             try:
                 fits.append(edge.fit_ellipse(triple_pts=triple_pts))
             except Exception:
                 pass
             if verbose:
                 pg.print_progress()
+            if iteration_hook is not None:
+                iteration_hook(i, len(self.point_sets))
         # return
         tf = TemporalEllipseFits(fits=fits, temporaledges=self)
         return tf
 
     def fit_circles(self, triple_pts, sigma_max=None, verbose=False,
-                    nmb_pass=1, soft_constr=False):
+                    nmb_pass=1, soft_constr=False,
+                    iteration_hook=None):
         """
         Fit circles to the edges, cutting them if a triple point is
         present.
@@ -174,6 +201,9 @@ class TemporalDropEdges(TemporalPoints):
             If superior to 1, specify the number of pass to make.
             Addintional passes use the previously triple points detected by
             circle fits to more accurately detect the next ones.
+        iteration_hook: function
+            Hook run at each iterations with the iteration number
+            and the total number of iterations planned.
         """
         if verbose:
             pg = ProgressCounter(init_mess="Fitting circles to edges",
@@ -190,7 +220,6 @@ class TemporalDropEdges(TemporalPoints):
             if tf is not None:
                 tf.smooth_triple_points('gaussian', size=10)
                 triple_pts = tf.get_triple_points()
-            print(triple_pts)
             fits = []
             for tp, edge in zip(triple_pts, self.point_sets):
                 try:
@@ -201,6 +230,8 @@ class TemporalDropEdges(TemporalPoints):
                     pass
                 if verbose:
                     pg.print_progress()
+                if iteration_hook is not None:
+                    iteration_hook(i, len(self.point_sets)*nmb_pass)
             tf = TemporalCirclesFits(fits=fits, temporaledges=self)
         # return
         return tf

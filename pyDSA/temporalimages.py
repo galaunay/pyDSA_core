@@ -282,6 +282,7 @@ class TemporalImages(TemporalScalarFields):
                              keep_exterior=True,
                              dilatation_steps=1,
                              smooth_size=None,
+                             iteration_hook=None,
                              verbose=False):
         """
         Perform edge detection.
@@ -309,6 +310,9 @@ class TemporalImages(TemporalScalarFields):
         dilatation_steps: positive integer
             Number of dilatation/erosion steps.
             Increase this if the drop edges are discontinuous.
+        iteration_hook: function
+            Hook run at each iterations with the iteration number
+            and the total number of iterations planned.
         """
         # check
         if self.baseline is None:
@@ -338,6 +342,8 @@ class TemporalImages(TemporalScalarFields):
             except Exception:
                 pt = dropedges.DropEdges(xy=[], im=self, type='canny')
             pts.add_pts(pt, time=self.times[i], unit_times=self.unit_times)
+            if iteration_hook is not None:
+                iteration_hook(i, len(self.fields))
             if verbose:
                 pg.print_progress()
         # check if edges has been detected
