@@ -222,7 +222,11 @@ class DropEdges(Points):
         if self.drop_edges is None:
             self._separate_drop_edges()
         if self.drop_edges[0] is None and self.drop_edges[2] is None:
-            return None, None
+            dsf = DropSplineFit(x_bounds=np.nan,
+                                y_bounds=np.nan,
+                                baseline=self.baseline,
+                                fits=[dummy_function, dummy_function])
+            return dsf
         # Prepare drop edge for interpolation
         # TODO: Find a more efficient fitting
         dex1, dey1, dex2, dey2 = self.drop_edges
@@ -298,7 +302,11 @@ class DropEdges(Points):
         if self.drop_edges is None:
             self._separate_drop_edges()
         if self.drop_edges[0] is None and self.drop_edges[2] is None:
-            return None
+            dsf = DropSplineFit(x_bounds=np.nan,
+                                y_bounds=np.nan,
+                                baseline=self.baseline,
+                                fits=[dummy_function, dummy_function])
+            return dsf
         # Prepare drop edge for interpolation
         # TODO: Find a more efficient fitting
         dex1, dey1, dex2, dey2 = self.drop_edges
@@ -353,6 +361,13 @@ class DropEdges(Points):
         if self.drop_edges is None:
             self._separate_drop_edges()
         dex1, dey1, dex2, dey2 = self.drop_edges
+        if dex1 is None or dex2 is None:
+            des = DropEllipseFit(xyc=[np.nan, np.nan], R1=np.nan,
+                                 R2=np.nan, theta=np.nan,
+                                 baseline=self.baseline,
+                                 x_bounds=np.nan,
+                                 y_bounds=np.nan)
+            return des
         xs1 = dex1.y
         ys1 = dey1.y
         xs2 = dex2.y
@@ -519,6 +534,11 @@ class DropEdges(Points):
         if self.drop_edges is None:
             self._separate_drop_edges()
         dex1, dey1, dex2, dey2 = self.drop_edges
+        if dex1 is None or dex2 is None:
+            dcf = DropCircleFit(xyc=[np.nan, np.nan], R=np.nan,
+                                baseline=self.baseline,
+                                x_bounds=np.nan, y_bounds=np.nan)
+            return dcf
         xs1 = dex1.y
         ys1 = dey1.y
         xs2 = dex2.y

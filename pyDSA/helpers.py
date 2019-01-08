@@ -250,7 +250,7 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         if verbose:
             pg.print_progress()
         if iteration_hook is not None:
-            iteration_hook(i, frame_inds[-1])
+            iteration_hook(i, frame_inds[-1] + 1)
 
     if cache_infos:
         # Try to import infos if the infofile exist
