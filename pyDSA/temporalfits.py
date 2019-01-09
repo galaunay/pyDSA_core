@@ -55,7 +55,7 @@ class TemporalFits(object):
     def __getitem__(self, i):
         return self.fits[i]
 
-    def compute_contact_angle(self, verbose=False):
+    def compute_contact_angle(self, iteration_hook=None, verbose=False):
         """
         Compute the drop contact angles.
         """
@@ -64,13 +64,15 @@ class TemporalFits(object):
                                  nmb_max=len(self.fits),
                                  name_things='images',
                                  perc_interv=5)
-        for fit in self.fits:
+        for i, fit in enumerate(self.fits):
             try:
                 fit.compute_contact_angle()
             except Exception:
                 pass
             if verbose:
                 pg.print_progress()
+            if iteration_hook is not None:
+                iteration_hook(i, len(self.fits))
 
     def smooth_triple_points(self, tos='gaussian', size=None):
         """
