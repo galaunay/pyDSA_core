@@ -207,12 +207,19 @@ class TemporalImages(TemporalScalarFields):
             tmp_f = self
         else:
             tmp_f = self.copy()
+        old_dx = self.dx
+        old_dy = self.dy
         # scale the scalarfields
         super(TemporalImages, tmp_f).scale(scalex=scalex, scaley=scaley,
                                            scalev=scalev, scalet=scalet,
                                            inplace=True)
+        new_dx = self.dx
+        new_dy = self.dy
         if self.baseline is not None:
-            tmp_f.baseline.scale(scalex=scalex, scaley=scaley)
+            tmp_f.baseline.scale(scalex=new_dx/old_dx,
+                                 scaley=new_dy/old_dy)
+            for f in self.fields:
+                f.baseline = tmp_f.baseline
         return tmp_f
 
     def _dump_infos(self):
