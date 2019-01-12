@@ -361,6 +361,7 @@ class TemporalImages(TemporalScalarFields):
 
     def edge_detection_contour(self, size_ratio=.5, nmb_edges=2,
                                level=0.5, ignored_pixels=2,
+                               iteration_hook=None,
                                verbose=False):
         """
         Perform edge detection.
@@ -398,6 +399,8 @@ class TemporalImages(TemporalScalarFields):
             pts.add_pts(pt, time=self.times[i], unit_times=self.unit_times)
             if verbose:
                 pg.print_progress()
+            if iteration_hook is not None:
+                iteration_hook(i, len(self.fields))
         return pts
 
     edge_detection = edge_detection_canny
