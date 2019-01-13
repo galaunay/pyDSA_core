@@ -525,6 +525,15 @@ class DropCircleFit(DropFit):
         pt1, pt2 = self._get_inters_base_fit()
         thetas = [- np.pi/2 + np.arctan2((yc - pt1[1]), (xc - pt1[0])),
                   np.pi/2 + np.arctan2((yc - pt2[1]), (xc - pt2[0]))]
+        # Be sure to be in the right side of the baseline
+        thetas[0] = thetas[0]
+        thetas[1] = thetas[1]
+        beta = self.baseline.tilt_angle
+        if (beta - thetas[0]) % (2*np.pi) < np.pi:
+            thetas[0] = (thetas[0] + np.pi) % (2*np.pi)
+        if (beta - thetas[1]) % (2*np.pi) < np.pi:
+            thetas[1] = (thetas[1] + np.pi) % (2*np.pi)
+        # Convert to degree
         self.thetas = np.array(thetas)*180/np.pi
         # correct regarding the baseline angle
         self.thetas -= bs_angle
