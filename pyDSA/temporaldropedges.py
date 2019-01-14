@@ -20,6 +20,7 @@ from IMTreatment.utils import ProgressCounter
 from IMTreatment import TemporalPoints, plotlib as pplt
 from .temporalfits import TemporalCircleFits, TemporalSplineFits, \
     TemporalEllipseFits, TemporalCirclesFits
+from . import dropedges
 
 
 """  """
@@ -85,7 +86,10 @@ class TemporalDropEdges(TemporalPoints):
                                  name_things='edges', perc_interv=5)
         fits = []
         for i, edge in enumerate(self.point_sets):
-            fits.append(edge.fit_spline(k=k, s=s, verbose=False))
+            try:
+                fits.append(edge.fit_spline(k=k, s=s, verbose=False))
+            except Exception:
+                fits.append(dropedges.DropEdges([[]]))
             if verbose:
                 pg.print_progress()
             if iteration_hook is not None:
@@ -112,7 +116,10 @@ class TemporalDropEdges(TemporalPoints):
                                  name_things='edges', perc_interv=5)
         fits = []
         for i, edge in enumerate(self.point_sets):
-            fits.append(edge.fit_polyline(deg=deg, verbose=False))
+            try:
+                fits.append(edge.fit_polyline(deg=deg, verbose=False))
+            except Exception:
+                fits.append(DropEdges([[]]))
             if verbose:
                 pg.print_progress()
             if iteration_hook is not None:
@@ -143,7 +150,7 @@ class TemporalDropEdges(TemporalPoints):
             try:
                 fits.append(edge.fit_circle(triple_pts=triple_pts))
             except Exception:
-                pass
+                fits.append(DropEdges([[]]))
             if verbose:
                 pg.print_progress()
             if iteration_hook is not None:
@@ -174,7 +181,7 @@ class TemporalDropEdges(TemporalPoints):
             try:
                 fits.append(edge.fit_ellipse(triple_pts=triple_pts))
             except Exception:
-                pass
+                fits.append(DropEdges([[]]))
             if verbose:
                 pg.print_progress()
             if iteration_hook is not None:
@@ -215,7 +222,6 @@ class TemporalDropEdges(TemporalPoints):
             raise Exception('Not the right ner of triple points')
         #  passes
         tf = None
-        print(triple_pts)
         for i in range(nmb_pass):
             if tf is not None:
                 tf.smooth_triple_points('gaussian', size=10)
@@ -227,7 +233,7 @@ class TemporalDropEdges(TemporalPoints):
                                                  sigma_max=sigma_max,
                                                  soft_constr=soft_constr))
                 except Exception:
-                    pass
+                    fits.append(DropEdges([[]]))
                 if verbose:
                     pg.print_progress()
                 if iteration_hook is not None:
