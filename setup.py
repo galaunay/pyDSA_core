@@ -18,7 +18,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='pyDSA',
-    version='0.1',
+    version='1.0',
     description='Python Drop Shape Analyzer',
     author='Gaby Launay',
     author_email='gaby.launay@tutanota.com',
@@ -33,7 +33,7 @@ setup(
     keywords='DSA drop shape contact angle hysteresis',
     packages=find_packages(exclude=['contrib', 'docs', 'tests', 'samples']),
     install_requires=['numpy', 'matplotlib', 'opencv-python', 'scipy',
-                      'imageio', 'scikit-image', 'IMTreatment'],
+                      'imageio', 'scikit-image', 'IMTreatment==1.0'],
     extras_require={},
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
