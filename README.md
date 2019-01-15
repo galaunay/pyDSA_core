@@ -1,6 +1,6 @@
 # pyDSA
-[![Build Status](https://travis-ci.org/gabylaunay/pyDSA.svg?branch=master)](https://travis-ci.org/gabylaunay/pyDSA)
-[![Coverage Status](https://coveralls.io/repos/github/gabylaunay/pyDSA/badge.svg?branch=master)](https://coveralls.io/github/gabylaunay/pyDSA?branch=master)
+[![pipeline status](https://framagit.org/gabylaunay/pyDSA/badges/master/pipeline.svg)](https://framagit.org/gabylaunay/pyDSA/commits/master)
+[![coverage report](https://framagit.org/gabylaunay/pyDSA/badges/master/coverage.svg)](https://framagit.org/gabylaunay/pyDSA/commits/master)
 
 PyDSA is a python3 package for drop shape analysis.
 
