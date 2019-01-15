@@ -10,6 +10,10 @@ pyDSA relies on matplotlib, numpy, scipy, IMTreatment and OpenCV.
 
 ## Installation
 
+### Linux
+
+You will need git to be installed.
+
 To install IMTreatment (not on pipy), run:
 
 ``pip install 'git+https://framagit.org/gabylaunay/IMTreatment.git#egg=IMTreatment'``.
@@ -17,6 +21,20 @@ To install IMTreatment (not on pipy), run:
 Then install pyDSA with:
 
 ``pip install 'git+https://framagit.org/gabylaunay/pyDSA.git#egg=pyDSA'``.
+
+### Anaconda
+
+Install git with:
+
+``conda install git``
+
+Install the dependencies:
+
+``pip install git+https://framagit.org/gabylaunay/IMTreatment.git#egg=IMTreatment``.
+
+And finally install pyDSA:
+
+``pip install git+https://framagit.org/gabylaunay/pyDSA.git#egg=pyDSA``.
 
 ## Features
 
