@@ -3,7 +3,7 @@ image: "python:3.7"
 before_script:
   # - apt-get update
   # - apt-get install python-tk
-  - pip install pytest-cov pytest==3.6 coveralls
+  - pip install pytest-cov pytest==3.6 coveralls mock
   - pip install -r requirements.txt
   - git clone https://framagit.org/gabylaunay/IMTreatment.git
   - cd IMTreatment
