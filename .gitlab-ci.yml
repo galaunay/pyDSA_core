@@ -1,0 +1,39 @@
+image: "python:3.7"
+
+before_script:
+  # - apt-get update
+  # - apt-get install python-tk
+  - pip install pytest-cov pytest==3.6 coveralls
+  - pip install -r requirements.txt
+  - git clone https://framagit.org/gabylaunay/IMTreatment.git
+  - cd IMTreatment
+  - python setup.py install
+  - cd ..
+  - rm -rf IMTreatment
+
+pytest:
+  stage: test
+  script:
+    - pytest
+
+coverage:
+  stage: test
+  script:
+    - coverage run --source=pyDSA setup.py pytest
+    - coveralls
+  artifacts:
+    paths:
+      - coverage/
+
+# pages:
+#   stage: deploy
+#   dependencies:
+#     - coverage
+#   script:
+#     - mv coverage/ public/
+#   artifacts:
+#     paths:
+#       - public
+#     expire_in: 30 days
+#   only:
+#     - master
