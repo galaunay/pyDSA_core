@@ -119,7 +119,7 @@ class TemporalDropEdges(TemporalPoints):
             try:
                 fits.append(edge.fit_polyline(deg=deg, verbose=False))
             except Exception:
-                fits.append(DropEdges([[]]))
+                fits.append(dropedges.DropEdges([[]]))
             if verbose:
                 pg.print_progress()
             if iteration_hook is not None:
@@ -150,7 +150,7 @@ class TemporalDropEdges(TemporalPoints):
             try:
                 fits.append(edge.fit_circle(triple_pts=triple_pts))
             except Exception:
-                fits.append(DropEdges([[]]))
+                fits.append(dropedges.DropEdges([[]]))
             if verbose:
                 pg.print_progress()
             if iteration_hook is not None:
@@ -181,7 +181,7 @@ class TemporalDropEdges(TemporalPoints):
             try:
                 fits.append(edge.fit_ellipse(triple_pts=triple_pts))
             except Exception:
-                fits.append(DropEdges([[]]))
+                fits.append(dropedges.DropEdges([[]]))
             if verbose:
                 pg.print_progress()
             if iteration_hook is not None:
@@ -233,7 +233,7 @@ class TemporalDropEdges(TemporalPoints):
                                                  sigma_max=sigma_max,
                                                  soft_constr=soft_constr))
                 except Exception:
-                    fits.append(DropEdges([[]]))
+                    fits.append(dropedges.DropEdges([[]]))
                 if verbose:
                     pg.print_progress()
                 if iteration_hook is not None:

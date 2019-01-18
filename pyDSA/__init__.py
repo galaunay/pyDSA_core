@@ -16,6 +16,8 @@
 from .image import Image
 from .temporalimages import TemporalImages
 from .dropedges import DropEdges
+from .dropfit import DropFit, DropCircleFit, DropCirclesFit, DropEllipseFit, \
+    DropSplineFit
 from .helpers import import_from_video, import_from_image, import_from_images
 
 name = "pyDSA"
