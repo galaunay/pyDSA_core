@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import scipy.optimize as spopt
 import scipy.misc as spmisc
 import IMTreatment.plotlib as pplt
-from .helpers import fit_circle, fit_ellipse, get_ellipse_points
+from . import helpers
 
 
 __author__ = "Gaby Launay"
@@ -801,7 +801,7 @@ class DropEllipseFit(DropFit):
         Return a representation of the fit as point coordinates.
         """
         (xc, yc), R1, R2, theta = self.fits
-        xs, ys = get_ellipse_points(xc, yc, R1, R2, theta, res=resolution)
+        xs, ys = helpers.get_ellipse_points(xc, yc, R1, R2, theta, res=resolution)
         pts = [xs, ys]
         return pts
 
@@ -813,7 +813,7 @@ class DropEllipseFit(DropFit):
         # Display fits
         if displ_fits:
             (xc, yc), R1, R2, theta = self.fits
-            elxs, elys = get_ellipse_points(xc, yc, R1, R2, theta, res=100)
+            elxs, elys = helpers.get_ellipse_points(xc, yc, R1, R2, theta, res=100)
             rxs = [xc + R1*np.cos(theta),
                    xc,
                    xc + R2*np.cos(theta + np.pi/2)]
