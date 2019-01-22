@@ -721,6 +721,8 @@ class DropEllipseFit(DropFit):
         """
         """
         (h, k), a, b, theta = self.fits
+        if np.any(np.isnan([h, k, a, b, theta])):
+            return [[np.nan, np.nan], [np.nan, np.nan]]
         # Rotate the baseline in the ellipse referential
         tmpbs = self.baseline.copy()
         tmpbs.set_origin(h, k)
