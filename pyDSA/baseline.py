@@ -16,6 +16,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import unum
 import copy
 
 
@@ -120,6 +121,12 @@ class Baseline(object):
         """
         Scale the baseline.
         """
+        if isinstance(scalex, unum.Unum):
+            scalex = float(scalex.asNumber())
+        if isinstance(scaley, unum.Unum):
+            scaley = float(scaley.asNumber())
+        # print(scalex)
+        # print(scaley)
         pt1 = self.pt1
         pt2 = self.pt2
         if scalex is not None:
