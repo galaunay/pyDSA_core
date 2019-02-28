@@ -545,11 +545,12 @@ class DropCircleFit(DropFit):
         """
         Return the center of the drop.
         """
-        r = self.fits[1]
         xc, yc = self.fits[0]
-        h = yc - self.baseline.get_projection_to_baseline([xc, yc])[1]
+        # r = self.fits[1]
+        # h = yc - self.baseline.get_projection_to_baseline([xc, yc])[1]
         # Need to be in the baseline referential...
-        raise Exception('Not implemented yet')
+        print("Warning: not in the baseline referential")
+        return xc, yc
 
     def get_drop_area(self):
         """
