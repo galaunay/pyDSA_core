@@ -123,7 +123,8 @@ def import_from_images(path, dx=1, dy=1, dt=1, unit_x="", unit_y="",
     return ims
 
 
-def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
+def import_from_video(path, dx=1, dy=1, dt=None,
+                      unit_x="", unit_y="", unit_t="",
                       frame_inds=None, frame_range=None,
                       incr=1, nmb_frame_to_import=None,
                       intervx=None, intervy=None,
@@ -139,8 +140,9 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
         Path to the video file.
     dx, dy: numbers
         Real distance between two pixels.
-    dt: number
+    dt: number, optional
         Time interval between two frames.
+        If not specified, the time interval is taken from the video metadata
     unit_x, unit_y, unit_y: strings
         Unities of dx, dy and dt.
     frame_range: 2x1 array of integers
@@ -213,6 +215,12 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
             if incr == 0:
                 incr = 1
         frame_inds = np.arange(frame_min, frame_max, incr, dtype=int)
+    # Get fps
+    if dt is None:
+        fps = float(vid.get(cv2.CAP_PROP_FPS))
+        if fps == 0:
+            fps = 1
+        dt = 1/fps
     # logs
     if verbose:
         nmb_frames = len(frame_inds)
@@ -226,8 +234,8 @@ def import_from_video(path, dx=1, dy=1, dt=1, unit_x="", unit_y="", unit_t="",
     for i in np.arange(0, frame_inds[-1] + 1, 1):
         if i not in frame_inds:
             t += dt
-            vid.grab()
             continue
+        vid.set(cv2.CAP_PROP_POS_FRAMES, i)
         success, im = vid.read()
         if not success:
             if frame_inds[1] != np.inf:
