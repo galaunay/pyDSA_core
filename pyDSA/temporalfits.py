@@ -214,13 +214,9 @@ class TemporalFits(object):
         pt1s = []
         pt2s = []
         for fit in self.fits:
-            try:
-                pt1, pt2 = fit._get_inters_base_fit()
-                pt1s.append(pt1)
-                pt2s.append(pt2)
-            except:
-                pt1s.append([np.nan, np.nan])
-                pt2s.append([np.nan, np.nan])
+            pt1, pt2 = fit.get_drop_position()
+            pt1s.append(pt1)
+            pt2s.append(pt2)
         return np.array(pt1s), np.array(pt2s)
 
     def get_drop_heights(self):

@@ -110,6 +110,13 @@ class DropFit(object):
     def get_drop_center(self):
         raise NotImplementedError("Not implemented yet")
 
+    def get_drop_position(self):
+        """ Return the position of the droplet edges. """
+        try:
+            return self._get_inters_base_fit()
+        except:
+            return np.array([[np.nan, np.nan], [np.nan, np.nan]])
+
     def get_base_diameter(self):
         """
         Return the base diameter.

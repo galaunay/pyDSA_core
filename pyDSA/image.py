@@ -416,7 +416,8 @@ class Image(ScalarField):
                            inplace=False)
         # Smooth if asked
         if smooth_size is not None:
-            tmp_im.smooth(tos='gaussian', size=smooth_size, inplace=True)
+            if smooth_size != 0:
+                tmp_im.smooth(tos='gaussian', size=smooth_size, inplace=True)
         if verbose:
             plt.figure()
             tmp_im.display()
