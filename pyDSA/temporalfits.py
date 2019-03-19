@@ -533,6 +533,70 @@ class TemporalEllipseFits(TemporalFits):
             return bm
 
 
+class TemporalEllipsesFits(TemporalFits):
+    def display(self, displ_tp=True, displ_ca=True):
+        super().display(displ_tp=displ_tp, displ_ca=displ_ca)
+        displs = []
+        # Display ellipse fits
+        res = 100
+        xs, ys = [], []
+        xps, yps = [], []
+        xs2, ys2 = [], []
+        xps2, yps2 = [], []
+        # Loop on times
+        for fit in self.fits:
+            if fit.fits is None:
+                for l in [xs, ys]:
+                    l.append([np.nan]*res)
+                for l in [xps, yps]:
+                    l.append([np.nan])
+                continue
+            # First ellipse
+            (xc, yc), R1, R2, theta = fit.fits[0]
+            elxs, elys = hlp.get_ellipse_points(xc, yc, R1, R2, theta)
+            filt = elxs > xc
+            elxs[filt] = np.nan
+            elys[filt] = np.nan
+            xs.append(elxs)
+            ys.append(elys)
+            xps.append([xc])
+            yps.append([yc])
+            # Second ellipse
+            (xc, yc), R1, R2, theta = fit.fits[1]
+            elxs, elys = hlp.get_ellipse_points(xc, yc, R1, R2, theta)
+            filt = elxs < xc
+            elxs[filt] = np.nan
+            elys[filt] = np.nan
+            xs2.append(elxs)
+            ys2.append(elys)
+            xps2.append([xc])
+            yps2.append([yc])
+        # First ellipse
+        if not np.all(np.isnan(ys)):
+            db = pplt.Displayer(xs, ys, kind='plot',
+                                color=self[0].colors[5])
+            displs.append(db)
+        if not np.all(np.isnan(yps)):
+            dbp = pplt.Displayer(xps, yps, kind='plot',
+                                 marker='o',
+                                 color=self[0].colors[5])
+            displs.append(dbp)
+        # Second ellipse
+        if not np.all(np.isnan(ys2)):
+            db = pplt.Displayer(xs2, ys2, kind='plot',
+                                color=self[0].colors[5])
+            displs.append(db)
+        if not np.all(np.isnan(yps2)):
+            dbp = pplt.Displayer(xps2, yps2, kind='plot',
+                                 marker='o',
+                                 color=self[0].colors[5])
+            displs.append(dbp)
+        # Add button manager
+        if len(displs) != 0:
+            bm = pplt.ButtonManager(displs)
+            return bm
+
+
 class TemporalCirclesFits(TemporalFits):
     def display(self, displ_tp=True, displ_ca=True):
         super().display(displ_tp=displ_tp, displ_ca=displ_ca)

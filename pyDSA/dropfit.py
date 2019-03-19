@@ -932,6 +932,7 @@ class DropEllipsesFit(DropFit):
         """
         Return a representation of the fit as point coordinates.
         """
+        inters = self._get_inters_base_fit()
         xs = []
         ys = []
         for i in range(2):
@@ -940,18 +941,34 @@ class DropEllipsesFit(DropFit):
                                                   res=resolution)
             # remove useless part
             if i == 0:
-                txs[xs > xc] = []
-                tys[xs > xc] = []
+                filt = np.logical_and(txs < xc,
+                                      tys > inters[i][1])
             else:
-                txs[xs < xc] = []
-                tys[xs < xc] = []
-            # concatenate
-            if i == 0:
-                xs += txs
-                ys += tys
-            else:
-                xs += txs[::-1]
-                ys += tys[::-1]
+                filt = np.logical_and(txs > xc,
+                                      tys > inters[i][1])
+            txs = txs[filt]
+            tys = tys[filt]
+            # Nothing remaining
+            if len(txs) == 0:
+                txs = [np.nan]
+                tys = [np.nan]
+                xs.append(txs)
+                ys.append(tys)
+                continue
+            # Make sure it starts at the intersection point
+            ind = np.argmax(abs(tys - np.roll(tys, 1)))
+            txs = np.roll(txs, -ind)
+            tys = np.roll(tys, -ind)
+            #
+            xs.append(txs)
+            ys.append(tys)
+        # concatenate
+        if i == 0:
+            xs = np.concatenate((xs[0], [np.nan], xs[1], [np.nan]))
+            ys = np.concatenate((ys[0], [np.nan], ys[1], [np.nan]))
+        else:
+            xs = np.concatenate((xs[0], [np.nan], xs[1][::-1], [np.nan]))
+            ys = np.concatenate((ys[0], [np.nan], ys[1][::-1], [np.nan]))
         pts = [xs, ys]
         return pts
 
@@ -966,12 +983,26 @@ class DropEllipsesFit(DropFit):
                 (xc, yc), R1, R2, theta = self.fits[i]
                 elxs, elys = helpers.get_ellipse_points(xc, yc, R1, R2, theta,
                                                         res=100)
-                rxs = [xc + R1*np.cos(theta),
+                # Filter out wrong sides
+                if i == 0:
+                    filt = elxs < xc
+                else:
+                    filt = elxs > xc
+                elxs = elxs[filt]
+                elys = elys[filt]
+                # be sure to display ellipse radius on the right side
+                coef = 1
+                if np.cos(theta) > 0 and i == 0:
+                    coef = -1
+                if np.cos(theta) < 0 and i == 1:
+                    coef = -1
+                # plot
+                rxs = [xc + coef*abs(R1*np.cos(theta)),
                        xc,
-                       xc + R2*np.cos(theta + np.pi/2)]
-                rys = [yc + R1*np.sin(theta),
+                       xc + coef*R2*np.cos(theta + np.pi/2)]
+                rys = [yc + coef*R1*np.sin(theta),
                        yc,
-                       yc + R2*np.sin(theta + np.pi/2)]
+                       yc + coef*R2*np.sin(theta + np.pi/2)]
                 plt.plot(rxs, rys, color=self.colors[3], ls=":")
                 plt.plot(elxs, elys, color=self.colors[3])
                 plt.plot(xc, yc, color=self.colors[3], marker='o', ls='none')

@@ -508,7 +508,7 @@ def fit_ellipse(xs, ys):
     C[0, 2] = C[2, 0] = 2
     C[1, 1] = -1
     E, V = np.linalg.eig(np.dot(np.linalg.inv(S), C))
-    n = np.argmax(np.abs(E))
+    n = np.argmax(E)
     lambd = V[:, n]
     b, c, d, f, g, a = (lambd[1]/2, lambd[2], lambd[3]/2,
                         lambd[4]/2, lambd[5], lambd[0])
@@ -525,9 +525,6 @@ def fit_ellipse(xs, ys):
         (a - c)*(a - c))) - (c + a))
     down2 = (b*b - a*c)*((a - c)*np.sqrt(1 + 4*b*b / (
         (a - c)*(a - c))) - (c + a))
-    # # Something wrong happen...
-    # if down1 < 0 or down2 < 0:
-    #     raise Exception('Ellipse fitting failed...')
     R1 = np.sqrt(up / down1)
     R2 = np.sqrt(up / down2)
     # Return

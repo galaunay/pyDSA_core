@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from IMTreatment.utils import ProgressCounter
 from IMTreatment import TemporalPoints, plotlib as pplt
 from .temporalfits import TemporalCircleFits, TemporalSplineFits, \
-    TemporalEllipseFits, TemporalCirclesFits
+    TemporalEllipseFits, TemporalCirclesFits, TemporalEllipsesFits
 from . import dropedges, dropfit
 
 
@@ -196,6 +196,39 @@ class TemporalDropEdges(TemporalPoints):
                 iteration_hook(i, len(self.point_sets))
         # return
         tf = TemporalEllipseFits(fits=fits, temporaledges=self)
+        return tf
+
+    def fit_ellipses(self, triple_pts=None, iteration_hook=None, verbose=False):
+        """
+        Fit two ellipses (one on each side) to the edges.
+
+        Ignore the lower part of the drop if triple points are presents.
+
+        Parameters
+        ----------
+        iteration_hook: function
+            Hook run at each iterations with the iteration number
+            and the total number of iterations planned.
+        """
+        if verbose:
+            pg = ProgressCounter(init_mess="Fitting ellipses to edges",
+                                 nmb_max=len(self.point_sets),
+                                 name_things='edges',
+                                 perc_interv=5)
+        fits = []
+        for i, edge in enumerate(self.point_sets):
+            try:
+                fits.append(edge.fit_ellipses(triple_pts=triple_pts))
+            except Exception:
+                fits.append(dropfit.DropFit(baseline=edge.baseline,
+                                            x_bounds=edge.x_bounds,
+                                            y_bounds=edge.y_bounds))
+            if verbose:
+                pg.print_progress()
+            if iteration_hook is not None:
+                iteration_hook(i, len(self.point_sets))
+        # return
+        tf = TemporalEllipsesFits(fits=fits, temporaledges=self)
         return tf
 
     def fit_circles(self, triple_pts, sigma_max=None, verbose=False,
