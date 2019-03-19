@@ -841,3 +841,145 @@ class DropEllipseFit(DropFit):
                          color=self.colors[0])
                 plt.plot(line[0][0], line[0][1],
                          color=self.colors[0])
+
+
+class DropEllipsesFit(DropFit):
+    def __init__(self, xyc1, R1a, R1b, theta1, xyc2, R2a, R2b, theta2,
+                 baseline, x_bounds, y_bounds):
+        super().__init__(baseline, x_bounds, y_bounds)
+        self.fits = [[xyc1, R1a, R1b, theta1],
+                     [xyc2, R2a, R2b, theta2]]
+
+    def _get_inters_base_ellipse(self, fit):
+        """
+        """
+        (h, k), a, b, theta = fit
+        if np.any(np.isnan([h, k, a, b, theta])):
+            return [[np.nan, np.nan], [np.nan, np.nan]]
+        # Rotate the baseline in the ellipse referential
+        tmpbs = self.baseline.copy()
+        tmpbs.set_origin(h, k)
+        tmpbs.rotate(-theta)
+        tmpbs.set_origin(-h, -k)
+        m, c = tmpbs.coefs
+        # from: http://ambrsoft.com/TrigoCalc/Circles2/Ellipse/EllipseLine.htm
+        eps = c - k
+        delta = c + m*h
+        # x
+        A = h*b**2 - m*a**2*eps
+        B = a*b*(a**2*m**2 + b**2 - delta**2 - k**2 + 2*delta*k)**.5
+        C = a**2*m**2 + b**2
+        x1 = (A + B)/C
+        x2 = (A - B)/C
+        # y
+        D = b**2*delta + k*a**2*m**2
+        E = a*b*m*(a**2*m**2 + b**2 - delta**2 - k**2 + 2*delta*k)**.5
+        F = C
+        y1 = (D + E)/F
+        y2 = (D - E)/F
+        # Rotate back the point in the base referential
+        xs = [x1, x2]
+        ys = [y1, y2]
+        x1, x2 = h + np.cos(theta)*(xs - h) - np.sin(theta)*(ys - k)
+        y1, y2 = k + np.sin(theta)*(xs - h) + np.cos(theta)*(ys - k)
+        if x1 < x2:
+            return [[x1, y1], [x2, y2]]
+        else:
+            return [[x2, y2], [x1, y1]]
+
+    def _get_inters_base_fit(self):
+        inter1 = self._get_inters_base_ellipse(self.fits[0])
+        inter2 = self._get_inters_base_ellipse(self.fits[1])
+        return [inter1[0], inter2[1]]
+
+    def compute_contact_angle(self, verbose=False):
+        """
+        Compute the contact angles.
+
+        Returns
+        =======
+        thetas : 2x1 array of numbers
+           Contact angles in °
+        """
+        bs_angle = self.baseline.tilt_angle*180/np.pi
+        # Compute ellipse fit contact angle
+        xy_inter = self._get_inters_base_fit()
+        bs_angle = self.baseline.tilt_angle
+        thetas = []
+        for i, xy in enumerate(xy_inter):
+            (xc, yc), R1, R2, theta = self.fits[i]
+            x_ref = (xy[0] - xc)*np.cos(theta) + (xy[1] - yc)*np.sin(theta)
+            y_ref = (xy[1] - yc)*np.cos(theta) - (xy[0] - xc)*np.sin(theta)
+            slope = -(R2**2*x_ref)/(R1**2*y_ref)
+            thet = np.arctan(slope)
+            if np.sin(thet) < 0:
+                thet += np.pi
+            thet += (theta - bs_angle)
+            thetas.append(thet)
+        self.thetas = np.array(thetas)*180/np.pi
+        # display if asked
+        if verbose:
+            self.display()
+
+    def get_drop_center(self):
+        """
+        Return the center of the drop.
+        """
+        return [(self.fits[0][0] + self.fits[1][0])/2,
+                (self.fits[0][1] + self.fits[1][1])/2]
+
+    def get_fit_as_points(self, resolution=100):
+        """
+        Return a representation of the fit as point coordinates.
+        """
+        xs = []
+        ys = []
+        for i in range(2):
+            (xc, yc), R1, R2, theta = self.fits[i]
+            txs, tys = helpers.get_ellipse_points(xc, yc, R1, R2, theta,
+                                                  res=resolution)
+            # remove useless part
+            if i == 0:
+                txs[xs > xc] = []
+                tys[xs > xc] = []
+            else:
+                txs[xs < xc] = []
+                tys[xs < xc] = []
+            # concatenate
+            if i == 0:
+                xs += txs
+                ys += tys
+            else:
+                xs += txs[::-1]
+                ys += tys[::-1]
+        pts = [xs, ys]
+        return pts
+
+    def display(self, displ_fits=True, displ_ca=True,
+                *args, **kwargs):
+        """
+        """
+        super().display()
+        # Display fits
+        if displ_fits:
+            for i in range(2):
+                (xc, yc), R1, R2, theta = self.fits[i]
+                elxs, elys = helpers.get_ellipse_points(xc, yc, R1, R2, theta,
+                                                        res=100)
+                rxs = [xc + R1*np.cos(theta),
+                       xc,
+                       xc + R2*np.cos(theta + np.pi/2)]
+                rys = [yc + R1*np.sin(theta),
+                       yc,
+                       yc + R2*np.sin(theta + np.pi/2)]
+                plt.plot(rxs, rys, color=self.colors[3], ls=":")
+                plt.plot(elxs, elys, color=self.colors[3])
+                plt.plot(xc, yc, color=self.colors[3], marker='o', ls='none')
+        # Display contact angles
+        if displ_ca:
+            lines = self._get_angle_display_lines()
+            for line in lines:
+                plt.plot(line[0], line[1],
+                         color=self.colors[0])
+                plt.plot(line[0][0], line[0][1],
+                         color=self.colors[0])

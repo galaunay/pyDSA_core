@@ -22,7 +22,7 @@ from IMTreatment import Points, Profile
 import IMTreatment.plotlib as pplt
 from .helpers import fit_circle, fit_ellipse, get_ellipse_points
 from .dropfit import DropCircleFit, DropEllipseFit, DropSplineFit, \
-    DropCirclesFit
+    DropCirclesFit, DropEllipsesFit
 
 
 """  """
@@ -414,6 +414,79 @@ class DropEdges(Points):
                              baseline=self.baseline,
                              x_bounds=x_bounds,
                              y_bounds=y_bounds)
+        return des
+
+    def fit_ellipses(self, triple_pts=None, verbose=False):
+        """
+        Fit the drop edges with two ellipses (one on each sides).
+
+        Remove points under the triple points if possible.
+
+        Returns:
+        --------
+        fit: DropFit object
+            .
+        """
+        if self.drop_edges is None:
+            self._separate_drop_edges()
+        dex1, dey1, dex2, dey2 = self.drop_edges
+        if dex1 is None or dex2 is None:
+            des = DropEllipseFit(xyc=[np.nan, np.nan], R1=np.nan,
+                                 R2=np.nan, theta=np.nan,
+                                 baseline=self.baseline,
+                                 x_bounds=[np.nan, np.nan],
+                                 y_bounds=[np.nan, np.nan])
+            return des
+        xs1 = dex1.y
+        ys1 = dey1.y
+        xs2 = dex2.y
+        ys2 = dey2.y
+        if triple_pts is not None:
+            tp1 = triple_pts[0]
+            tp2 = triple_pts[1]
+            if not np.isnan(tp1[1]):
+                filt1 = ys1 > tp1[1]
+                xs1 = xs1[filt1]
+                ys1 = ys1[filt1]
+            if not np.isnan(tp2[1]):
+                filt2 = ys2 > tp2[1]
+                xs2 = xs2[filt2]
+                ys2 = ys2[filt2]
+            if verbose:
+                plt.figure()
+                self.display()
+                plt.figure()
+                plt.plot(xs1, ys1)
+                plt.plot(xs2, ys2)
+                plt.axis('equal')
+                plt.show()
+        fit1 = fit_ellipse(xs1, ys1)
+        fit2 = fit_ellipse(xs2, ys2)
+        if verbose:
+            plt.figure()
+            self.display()
+            thetas = np.linspace(0, np.pi*2, 100)
+            for fit in [fit1, fit2]:
+                (xc, yc), R1, R2, theta = fit
+                xs = xc + R1*np.cos(thetas)
+                ys = yc + R2*np.sin(thetas)
+                new_xs = xc + np.cos(theta)*(xs - xc) - np.sin(theta)*(ys - yc)
+                new_ys = yc + np.cos(theta)*(ys - yc) + np.sin(theta)*(xs - xc)
+                plt.figure()
+                self.display()
+                plt.plot(xc, yc, 'ok')
+                plt.plot(new_xs, new_ys)
+            plt.show()
+        # Return
+        x_bounds = [np.min(self.xy[:, 0]), np.max(self.xy[:, 0])]
+        y_bounds = [np.min(self.xy[:, 1]), np.max(self.xy[:, 1])]
+        des = DropEllipsesFit(xyc1=fit1[0], R1a=fit1[1], R1b=fit1[2],
+                              theta1=fit1[3],
+                              xyc2=fit2[0], R2a=fit2[1], R2b=fit2[2],
+                              theta2=fit2[3],
+                              baseline=self.baseline,
+                              x_bounds=x_bounds,
+                              y_bounds=y_bounds)
         return des
 
     def fit_LY(self, interp_res=100, method=None, verbose=False):
