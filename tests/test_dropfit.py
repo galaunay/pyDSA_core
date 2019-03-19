@@ -48,6 +48,7 @@ class TestDropFit(object):
         self.sfit = self.edges.fit_spline()
         self.cfit = self.edges.fit_circle()
         self.efit = self.edges.fit_ellipse()
+        self.tefit = self.edges.fit_ellipses()
         self.csfit = self.edges.fit_circles([[0, 30], [0, 31]])
         self.pfit = self.edges.fit_polyline()
 
@@ -58,6 +59,8 @@ class TestDropFit(object):
         assert np.allclose(self.cfit.thetas, [80.72975961, 99.27024039])
         self.efit.compute_contact_angle()
         assert np.allclose(self.efit.thetas, [86.49734474, 93.35350819])
+        self.tefit.compute_contact_angle()
+        assert np.allclose(self.tefit.thetas, [86.35520992, 92.90359146])
         self.csfit.compute_contact_angle()
         assert np.allclose(self.csfit.thetas, [78.56794776, 101.43205224])
         self.pfit.compute_contact_angle()
