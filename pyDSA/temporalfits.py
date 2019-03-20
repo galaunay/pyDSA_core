@@ -206,7 +206,7 @@ class TemporalFits(object):
                 bd = fld.get_drop_center()
                 bds.append(bd)
             except:
-                bds.append(np.nan)
+                bds.append([np.nan, np.nan])
         return np.array(bds)
 
     def get_drop_positions(self):

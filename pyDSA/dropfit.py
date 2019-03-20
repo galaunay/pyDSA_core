@@ -557,7 +557,7 @@ class DropCircleFit(DropFit):
         # h = yc - self.baseline.get_projection_to_baseline([xc, yc])[1]
         # Need to be in the baseline referential...
         print("Warning: not in the baseline referential")
-        return xc, yc
+        return np.array(xc, yc, dtype=float)
 
     def get_drop_area(self):
         """
@@ -681,7 +681,8 @@ class DropCirclesFit(DropFit):
         """
         Return the center of the drop.
         """
-        return self.fits[0][0]
+        return np.array(self.fits[0][0],
+                        dtype=float)
 
     def get_drop_height(self):
         """
@@ -795,7 +796,7 @@ class DropEllipseFit(DropFit):
         """
         Return the center of the drop.
         """
-        return self.fits[0]
+        return np.array(self.fits[0], dtype=float)
 
     def get_drop_height(self):
         """
@@ -925,8 +926,9 @@ class DropEllipsesFit(DropFit):
         """
         Return the center of the drop.
         """
-        return [(self.fits[0][0] + self.fits[1][0])/2,
-                (self.fits[0][1] + self.fits[1][1])/2]
+        return np.array([(self.fits[0][0] + self.fits[1][0])/2,
+                         (self.fits[0][1] + self.fits[1][1])/2],
+                        dtype=float)
 
     def get_fit_as_points(self, resolution=100):
         """
