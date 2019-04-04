@@ -8,11 +8,11 @@
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="1542.3271"
+   width="1449.5403"
    height="467.44189"
    id="svg2169"
    version="1.0"
-   viewBox="0 0 1079.629 327.20932"
+   viewBox="0 0 1014.6782 327.20932"
    sodipodi:docname="pyDSA_logo_python_text.svg"
    inkscape:version="0.92.4 5da689c313, 2019-01-14">
   <sodipodi:namedview
@@ -32,9 +32,9 @@
      fit-margin-left="0"
      fit-margin-right="0"
      fit-margin-bottom="0"
-     inkscape:zoom="0.28090359"
-     inkscape:cx="1402.1212"
-     inkscape:cy="-408.36154"
+     inkscape:zoom="0.099314417"
+     inkscape:cx="2273.618"
+     inkscape:cy="633.008"
      inkscape:window-x="0"
      inkscape:window-y="22"
      inkscape:window-maximized="0"
@@ -275,17 +275,17 @@
        y2="168.1012" />
     <clipPath
        clipPathUnits="userSpaceOnUse"
-       id="clipPath2386">
+       id="clipPath906">
       <text
-         id="text2390"
-         y="-197.69263"
-         x="297.56717"
+         xml:space="preserve"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:194.75730896px;line-height:73.03400421px;font-family:'dejavu serif';-inkscape-font-specification:'dejavu serif';font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-feature-settings:normal;text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:0px;word-spacing:0px;text-transform:none;writing-mode:lr-tb;direction:ltr;text-orientation:mixed;dominant-baseline:auto;baseline-shift:baseline;text-anchor:start;white-space:normal;shape-padding:0;opacity:1;vector-effect:none;fill:#393939;fill-opacity:1;stroke:#08131b;stroke-width:0.69999993px;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-         xml:space="preserve"><tspan
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'dejavu serif';-inkscape-font-specification:'dejavu serif';fill:#393939;fill-opacity:1;stroke:#08131b;stroke-width:0.69999993px;stroke-opacity:1"
-           y="-197.69263"
+         x="297.56717"
+         y="-197.69263"
+         id="text910"><tspan
+           id="tspan908"
            x="297.56717"
-           id="tspan2388">PyDSA</tspan></text>
+           y="-197.69263"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Droid Serif';-inkscape-font-specification:'Droid Serif';fill:#393939;fill-opacity:1;stroke:#08131b;stroke-width:0.69999993px;stroke-opacity:1">PyDSA</tspan></text>
     </clipPath>
   </defs>
   <metadata
@@ -302,8 +302,8 @@
   </metadata>
   <g
      id="g2253"
-     transform="translate(108.49442,411.96887)"
-     clip-path="url(#clipPath2386)">
+     transform="translate(108.49444,413.20955)"
+     clip-path="url(#clipPath906)">
     <rect
        clip-path="none"
        y="-352.06485"
@@ -340,7 +340,7 @@
        y="-365.11166" />
   </g>
   <g
-     transform="translate(-158.88622,90.048253)"
+     transform="translate(-158.8862,90.042949)"
      id="g1642">
     <circle
        r="162.99998"
