@@ -16,14 +16,14 @@ pytest:
   script:
     - pytest
 
-coverage:
-  stage: test
-  script:
-    - coverage run --source=pyDSA setup.py pytest
-    - coveralls
-  artifacts:
-    paths:
-      - coverage/
+# coverage:
+#   stage: test
+#   script:
+#     - coverage run --source=pyDSA setup.py pytest
+#     - coveralls
+#   artifacts:
+#     paths:
+#       - coverage/
 
 # pages:
 #   stage: deploy
