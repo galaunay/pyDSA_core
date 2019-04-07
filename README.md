@@ -26,25 +26,11 @@ pyDSA_core relies on matplotlib, numpy, scipy, IMTreatment and OpenCV.
 
 ## Installation
 
-### From Pypi
-
 ``pip install pydsa_core``
 
-### Manually (Linux)
+To update pyDSA_core, use:
 
-You will need git to be installed.
-
-``pip install 'git+https://framagit.org/gabylaunay/pyDSA_core.git#egg=pyDSA_core'``.
-
-### Manually (Anaconda)
-
-Install git with:
-
-``conda install git``
-
-And install pyDSA_core:
-
-``pip install git+https://framagit.org/gabylaunay/pyDSA_core.git#egg=pyDSA_core``.
+``pip install -U pydsa_core``
 
 ## Citing this software
 
