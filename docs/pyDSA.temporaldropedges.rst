@@ -1,7 +1,7 @@
-pyDSA.temporaldropedges module
+pyDSA_core.temporaldropedges module
 ==============================
 
-.. automodule:: pyDSA.temporaldropedges
+.. automodule:: pyDSA_core.temporaldropedges
     :members:
     :undoc-members:
     :show-inheritance:

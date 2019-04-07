@@ -1,7 +1,7 @@
-pyDSA.temporalimages module
+pyDSA_core.temporalimages module
 ===========================
 
-.. automodule:: pyDSA.temporalimages
+.. automodule:: pyDSA_core.temporalimages
     :members:
     :undoc-members:
     :show-inheritance:

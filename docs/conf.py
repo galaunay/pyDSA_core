@@ -19,9 +19,9 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'pyDSA'
-copyright = '2018, aby Launay'
-author = 'aby Launay'
+project = 'pyDSA_core'
+copyright = '2018, Gaby Launay'
+author = 'Gaby Launay'
 
 # The short X.Y version
 version = ''
@@ -132,7 +132,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'pyDSA.tex', 'pyDSA Documentation',
+    (master_doc, 'pyDSA_core.tex', 'pyDSA_core Documentation',
      'aby Launay', 'manual'),
 ]
 
@@ -142,7 +142,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'pydsa', 'pyDSA Documentation',
+    (master_doc, 'pydsa_core', 'pyDSA_core Documentation',
      [author], 1)
 ]
 
@@ -153,8 +153,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'pyDSA', 'pyDSA Documentation',
-     author, 'pyDSA', 'One line description of project.',
+    (master_doc, 'pyDSA_core', 'pyDSA_core Documentation',
+     author, 'pyDSA_core', 'One line description of project.',
      'Miscellaneous'),
 ]
 

@@ -4,12 +4,12 @@
 # Copyright (C) 2003-2007 Gaby Launay
 
 # Author: Gaby Launay  <gaby.launay@tutanota.com>
-# URL: https://github.com/gabylaunay/pyDSA
+# URL: https://github.com/gabylaunay/pyDSA_core
 # Version: 0.1
 
-# This file is part of pyDSA
+# This file is part of pyDSA_core
 
-# pyDSA is distributed in the hope that it will be useful,
+# pyDSA_core is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
@@ -23,11 +23,12 @@ with open(path.join(here, "README.md"), "r") as fh:
     long_description = fh.read()
 
 setup(
-    name='pyDSA',
+    name='pyDSA_core',
     version='1.0.0',
     description='Python Drop Shape Analyzer',
     long_description=long_description,
     long_description_content_type='text/markdown',
+    url='https://framagit.org/gabylaunay/pyDSA_core',
     author='Gaby Launay',
     author_email='gaby.launay@protonmail.com',
     classifiers=[

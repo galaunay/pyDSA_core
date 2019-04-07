@@ -1,7 +1,7 @@
-pyDSA.dropedges module
+pyDSA_core.dropedges module
 ======================
 
-.. automodule:: pyDSA.dropedges
+.. automodule:: pyDSA_core.dropedges
     :members:
     :undoc-members:
     :show-inheritance:

@@ -1,7 +1,7 @@
-pyDSA.helpers module
+pyDSA_core.helpers module
 ====================
 
-.. automodule:: pyDSA.helpers
+.. automodule:: pyDSA_core.helpers
     :members:
     :undoc-members:
     :show-inheritance:

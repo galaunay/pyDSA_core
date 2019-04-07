@@ -1,7 +1,7 @@
-pyDSA.baseline module
+pyDSA_core.baseline module
 =====================
 
-.. automodule:: pyDSA.baseline
+.. automodule:: pyDSA_core.baseline
     :members:
     :undoc-members:
     :show-inheritance:

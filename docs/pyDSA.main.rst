@@ -1,7 +1,7 @@
-pyDSA.main module
+pyDSA_core.main module
 =================
 
-.. automodule:: pyDSA.main
+.. automodule:: pyDSA_core.main
     :members:
     :undoc-members:
     :show-inheritance:

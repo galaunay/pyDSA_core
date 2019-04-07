@@ -1,7 +1,7 @@
-pyDSA
+pyDSA_core
 =====
 
 .. toctree::
    :maxdepth: 4
 
-   pyDSA
+   pyDSA_core

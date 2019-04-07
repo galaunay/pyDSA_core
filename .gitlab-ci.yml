@@ -19,7 +19,7 @@ pytest:
 # coverage:
 #   stage: test
 #   script:
-#     - coverage run --source=pyDSA setup.py pytest
+#     - coverage run --source=pyDSA_core setup.py pytest
 #     - coveralls
 #   artifacts:
 #     paths:
