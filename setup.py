@@ -15,25 +15,34 @@
 # GNU General Public License for more details.
 
 from setuptools import setup, find_packages
+from os import path
+
+here = path.abspath(path.dirname(__file__))
+
+with open(path.join(here, "README.md"), "r") as fh:
+    long_description = fh.read()
 
 setup(
     name='pyDSA',
-    version='1.0',
+    version='1.0.0',
     description='Python Drop Shape Analyzer',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     author='Gaby Launay',
-    author_email='gaby.launay@tutanota.com',
+    author_email='gaby.launay@protonmail.com',
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering',
         'Programming Language :: Python :: 3.5',
         'Natural Language :: English',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Operating System :: POSIX :: Linux',
     ],
     keywords='DSA drop shape contact angle hysteresis',
     packages=find_packages(exclude=['contrib', 'docs', 'tests', 'samples']),
     install_requires=['numpy', 'matplotlib', 'opencv-python', 'scipy',
-                      'imageio', 'scikit-image', 'IMTreatment==1.0'],
+                      'imageio', 'scikit-image', 'IMTreatment'],
     extras_require={},
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
