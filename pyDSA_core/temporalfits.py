@@ -353,7 +353,7 @@ class TemporalFits(object):
         Display a summary of the drop parameters evolution.
         """
         bdp = self._get_inters_base_fit()
-        radii = self.get_base_diameter()
+        radii = self.get_base_diameters()
         thetas = self.get_contact_angles()
         # triple_pts1, triple_pts2 = self.get_triple_points()
         ts = np.arange(0, len(self.fits)*self.dt, self.dt)[0: len(bdp)]
