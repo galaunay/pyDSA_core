@@ -107,6 +107,12 @@ class DropFit(object):
                           [np.nan, np.nan]])
         return lines
 
+    def get_fit_as_points(self, resolution=100):
+        """
+        Return a representation of the fit as point coordinates.
+        """
+        return [[np.nan, np.nan]]
+
     def get_drop_center(self):
         raise NotImplementedError("Not implemented yet")
 
@@ -690,6 +696,17 @@ class DropCirclesFit(DropFit):
         """
         hb = self.baseline.get_projection_to_baseline(self.fits[0][0])[1]
         return (self.fits[0][0][1] - hb) + self.fits[0][1]
+
+    def get_fit_as_points(self, resolution=100):
+        """
+        Return a representation of the fit as point coordinates.
+        """
+        (xc, yc), radius = self.fits[0]
+        theta = np.linspace(0, np.pi*2, resolution)
+        x = xc + radius*np.cos(theta)
+        y = yc + radius*np.sin(theta)
+        pts = [x, y]
+        return pts
 
     def display(self, displ_fits=True, displ_ca=True,
                 displ_tp=True, *args, **kwargs):
