@@ -47,6 +47,7 @@ class DropFit(object):
         """
         self.baseline = baseline
         self.thetas = None
+        self.fits = None
         self.triple_pts = None
         self.thetas_triple = None
         self.x_bounds = x_bounds
@@ -702,10 +703,21 @@ class DropCirclesFit(DropFit):
         Return a representation of the fit as point coordinates.
         """
         (xc, yc), radius = self.fits[0]
+        (xc1, yc1), radius1 = self.fits[1]
+        (xc2, yc2), radius2 = self.fits[2]
         theta = np.linspace(0, np.pi*2, resolution)
+        # main circle
         x = xc + radius*np.cos(theta)
         y = yc + radius*np.sin(theta)
-        pts = [x, y]
+        # small circle 1
+        x1 = xc1 + radius1*np.cos(theta)
+        y1 = yc1 + radius1*np.sin(theta)
+        # small circle 1
+        x2 = xc2 + radius2*np.cos(theta)
+        y2 = yc2 + radius2*np.sin(theta)
+        # returning
+        pts = [np.concatenate([x, [np.nan], x1, [np.nan], x2]),
+               np.concatenate([y, [np.nan], y1, [np.nan], y2])]
         return pts
 
     def display(self, displ_fits=True, displ_ca=True,

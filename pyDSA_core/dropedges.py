@@ -674,6 +674,19 @@ class DropEdges(Points):
         if self.drop_edges is None:
             self._separate_drop_edges()
         dex1, dey1, dex2, dey2 = self.drop_edges
+        # check
+        if dex1 is None or dex2 is None:
+            dcf = DropCirclesFit(xyc=[[np.nan, np.nan],
+                                      [np.nan, np.nan],
+                                      [np.nan, np.nan]],
+                                 Rs=[np.nan, np.nan, np.nan],
+                                 baseline=self.baseline,
+                                 triple_pts=[[np.nan, np.nan],
+                                             [np.nan, np.nan]],
+                                 x_bounds=[np.nan, np.nan],
+                                 y_bounds=[np.nan, np.nan])
+            return dcf
+        #
         xs1 = dex1.y
         ys1 = dey1.y
         xs2 = dex2.y
