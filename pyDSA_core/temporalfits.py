@@ -187,6 +187,19 @@ class TemporalFits(object):
         thetas = np.asarray(thetas)
         return thetas
 
+    def get_triple_pts_contact_angles(self):
+        """
+        Return the contact angles at the triple point.
+        """
+        thetas = []
+        for fit in self.fits:
+            if fit.thetas_triple is not None:
+                thetas.append(fit.thetas_triple)
+            else:
+                thetas.append([np.nan, np.nan])
+        thetas = np.asarray(thetas)
+        return thetas
+
     def get_base_diameters(self):
         """ Return the drop base diameter. """
         bds = []

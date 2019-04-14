@@ -112,7 +112,7 @@ class DropFit(object):
         """
         Return a representation of the fit as point coordinates.
         """
-        return [[np.nan, np.nan]]
+        return np.array([[np.nan], [np.nan]])
 
     def get_drop_center(self):
         raise NotImplementedError("Not implemented yet")
@@ -660,6 +660,18 @@ class DropCirclesFit(DropFit):
         y2 += yc
         return [[x1, y1], [x2, y2]]
 
+    def _compute_fitting_angle(self):
+        thetas = []
+        xyc = self.fits[0][0]
+        sides = [1, -1]
+        for i in range(2):
+            xyc2 = self.fits[i+1][0]
+            theta = sides[i]*np.pi/2 + np.arctan2(xyc[1] - xyc2[1],
+                                                  xyc[0] - xyc2[0])
+            theta = theta % (2*np.pi)
+            thetas.append(theta/np.pi*180)
+        return np.array(thetas)
+
     def compute_contact_angle(self, verbose=False):
         """
         Compute the contact angles.
@@ -680,6 +692,11 @@ class DropCirclesFit(DropFit):
         self.thetas = np.array(thetas)*180/np.pi
         # correct regarding baseline angle
         self.thetas -= bs_angle
+        # Compute contact angles at triple point
+        if self.triple_pts is not None:
+            self.thetas_triple = self._compute_fitting_angle()
+            # correct regardin baseline angle
+            self.thetas_triple -= bs_angle
         # display if asked
         if verbose:
             self.display()
@@ -718,7 +735,7 @@ class DropCirclesFit(DropFit):
         # returning
         pts = [np.concatenate([x, [np.nan], x1, [np.nan], x2]),
                np.concatenate([y, [np.nan], y1, [np.nan], y2])]
-        return pts
+        return np.array(pts)
 
     def display(self, displ_fits=True, displ_ca=True,
                 displ_tp=True, *args, **kwargs):
