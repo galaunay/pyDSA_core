@@ -36,16 +36,17 @@ To update pyDSA_core, use:
 
 If PyDSA_core have been usefull for you, please consider citing it:
 ```
-Launay G. pyDSA_core: Drop shape analysis in Python, 2018-, https://framagit.org/gabylaunay/pyDSA_core [Online; accessed <today>].
+Launay G. PyDSA: Drop shape analysis in Python, 2018-, https://framagit.org/gabylaunay/pyDSA_core [Online; accessed <today>].
 ```
 
 bibtex entry:
 ``` bibtex
-@Misc{,
+@Misc{launay_pydsa_2018,
   author =    {Gaby Launay},
-  title =     {{pyDSA_core}: Drop shape analysis in {Python}},
+  title =     {{PyDSA}: Drop shape analysis in {Python}},
   year =      {2018--},
   url = "https://framagit.org/gabylaunay/pyDSA_core",
   note = {[Online; accessed <today>]}
 }
+
 ```
