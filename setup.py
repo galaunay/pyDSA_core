@@ -5,7 +5,7 @@
 
 # Author: Gaby Launay  <gaby.launay@tutanota.com>
 # URL: https://github.com/gabylaunay/pyDSA_core
-# Version: 0.1
+
 
 # This file is part of pyDSA_core
 

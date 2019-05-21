@@ -5,7 +5,6 @@
 
 # Author: Gaby Launay  <gaby.launay@tutanota.com>
 # URL: https://github.com/gabylaunay/pyDSA_core
-# Version: 0.1
 
 # This file is part of pyDSA_core
 
@@ -20,8 +19,6 @@
 __author__ = "Gaby Launay"
 __copyright__ = "Gaby Launay 2017"
 __credits__ = ""
-__license__ = ""
-__version__ = ""
 __email__ = "gaby.launay@tutanota.com"
 __status__ = "Development"
 
