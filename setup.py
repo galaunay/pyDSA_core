@@ -24,7 +24,7 @@ with open(path.join(here, "README.md"), "r") as fh:
 
 setup(
     name='pyDSA_core',
-    version='1.1.0',
+    version='1.1.1',
     description='Python Drop Shape Analyzer',
     long_description=long_description,
     long_description_content_type='text/markdown',
