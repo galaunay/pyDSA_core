@@ -483,6 +483,10 @@ class Image(ScalarField):
         # Keep only the bigger edges
         #======================================================================
         nmb, labels = cv2.connectedComponents(im_edges)
+        # safeguard
+        if nmb > 1000:
+            raise Exception("Too many edges detected, you may want to use the "
+                            "'smooth' parameter")
         # labels, nmb = spim.label(im_edges, np.ones((3, 3)))
         nmb_edge = nmb
         if debug:
@@ -629,7 +633,6 @@ class Image(ScalarField):
                                           unit_y=tmp_im.unit_y)
                     im.display()
                     plt.title('Removed small edges because too numerous')
-        print(f"remaining edges: {nmb_edge}")
 
 
         #======================================================================
