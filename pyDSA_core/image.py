@@ -354,6 +354,7 @@ class Image(ScalarField):
                              base_max_dist=15, size_ratio=.5,
                              nmb_edges=2, ignored_pixels=2,
                              keep_exterior=True,
+                             remove_included=True,
                              smooth_size=None,
                              dilatation_steps=1,
                              verbose=False, debug=False):
@@ -380,6 +381,8 @@ class Image(ScalarField):
             small surface defects to be taken into account.
         keep_exterior: boolean
             If True (default), only keep the exterior edges.
+        remove_included: boolean
+            If True (default), remove edges included in other edges
         smooth_size: number
             If specified, the image is smoothed before
             performing the edge detection.
@@ -482,24 +485,9 @@ class Image(ScalarField):
         nmb, labels = cv2.connectedComponents(im_edges)
         # labels, nmb = spim.label(im_edges, np.ones((3, 3)))
         nmb_edge = nmb
+        if debug:
+            print(f"    Initial number of edges: {nmb_edge}")
         dy = self.axe_y[1] - self.axe_y[0]
-        # Let only the maximum allowed number of edges
-        if np.max(labels) > nmb_edges and not keep_exterior:
-            sizes = [np.sum(labels == label)
-                     for label in np.arange(1, nmb + 1)]
-            indsort = np.argsort(sizes)
-            for ind in indsort[:-nmb_edges]:
-                im_edges[ind + 1 == labels] = 0
-            nmb_edge = nmb_edges
-            if verbose:
-                plt.figure()
-                im = Image()
-                im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
-                                      im_edges, mask=tmp_im.mask,
-                                      unit_x=tmp_im.unit_x,
-                                      unit_y=tmp_im.unit_y)
-                im.display()
-                plt.title('Removed small edges because too numerous')
         if nmb_edge > 1:
             #==================================================================
             # Remove small patches
@@ -512,6 +500,9 @@ class Image(ScalarField):
                     im_edges[labels == i+1] = 0
                     labels[labels == i+1] = 0
                     nmb_edge -= 1
+                    if debug:
+                        print(f"Label {i+1} removed because too small")
+                        print(f"    Remaining edges: {nmb_edge}")
             if verbose:
                 plt.figure()
                 im = Image()
@@ -536,6 +527,7 @@ class Image(ScalarField):
                         if debug:
                             print(f"Label {i+1} removed because not touching "
                                   "baseline")
+                            print(f"    Remaining edges: {nmb_edge}")
                         im_edges[labels == i+1] = 0
                         labels[labels == i+1] = 0
                         nmb_edge -= 1
@@ -544,34 +536,102 @@ class Image(ScalarField):
                     im = Image()
                     im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
                                           im_edges, mask=tmp_im.mask,
-                                          unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
+                                          unit_x=tmp_im.unit_x,
+                                          unit_y=tmp_im.unit_y)
                     im.display()
                     plt.title('Removed edge not touching the baseline')
+            #==============================================================================
+            # Remove edges that are included in another edge
+            #==============================================================================
+            if nmb_edge > 1 and remove_included:
+                maxs = []
+                mins = []
+                # Get upper and lower bounds for edges
+                for i in np.arange(1, nmb + 1):
+                    xs = tmp_im.axe_x[np.sum(labels == i, axis=1) > 0]
+                    if len(xs) == 0:
+                        mins.append(None)
+                        maxs.append(None)
+                    else:
+                        mins.append(np.min(xs))
+                        maxs.append(np.max(xs))
+                # Remove edge if included in another one
+                for i in range(nmb):
+                    if mins[i] is None:
+                        continue
+                    for j in range(nmb):
+                        if mins[j] is None:
+                            continue
+                        if mins[i] < mins[j] and maxs[j] < maxs[i]:
+                            if debug:
+                                print(f"Label {j+1} removed because"
+                                      " included in another one")
+                                print(f"    Remaining edges: {nmb_edge}")
+                            im_edges[labels == j+1] = 0
+                            labels[labels == j+1] = 0
+                            nmb_edge -= 1
+                if verbose:
+                    plt.figure()
+                    im = Image()
+                    im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
+                                          im_edges, mask=tmp_im.mask,
+                                          unit_x=tmp_im.unit_x, unit_y=tmp_im.unit_y)
+                    im.display()
+                    plt.title('Removed edge included in another edge')
             #==================================================================
             # Keep only the exterior edges
             #==================================================================
             if nmb_edge > 2 and keep_exterior:
-                mean_xs = [np.mean(tmp_im.axe_x[np.sum(labels == i, axis=1)
-                                                > 0])
-                           for i in np.arange(1, nmb + 1)]
+                mean_xs = []
+                for i in np.arange(1, nmb + 1):
+                    xs = tmp_im.axe_x[np.sum(labels == i, axis=1) > 0]
+                    if len(xs) == 0:
+                        mean_xs.append(np.nan)
+                    else:
+                        mean_xs.append(np.mean(xs))
                 mean_xs = np.asarray(mean_xs)
-                mean_xs[np.isnan(mean_xs)] = np.mean(mean_xs[~np.isnan(mean_xs)])
+                # mean_xs[np.isnan(mean_xs)] = np.mean(mean_xs[~np.isnan(mean_xs)])
                 mean_xs_indsort = np.argsort(mean_xs)
                 for i in mean_xs_indsort[1:-1]:
+                    if np.isnan(mean_xs[i+1]):
+                        break
                     if debug:
                         print(f"Label {i+1} removed because not exterior")
+                        print(f"    Remaining edges: {nmb_edge}")
                     im_edges[labels == i+1] = 0
                     labels[labels == i+1] = 0
                     nmb_edge -= 1
-            if verbose:
-                plt.figure()
-                im = Image()
-                im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
-                                      im_edges, mask=tmp_im.mask,
-                                      unit_x=tmp_im.unit_x,
-                                      unit_y=tmp_im.unit_y)
-                im.display()
-                plt.title('Removed the interior edged')
+                if verbose:
+                    plt.figure()
+                    im = Image()
+                    im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
+                                          im_edges, mask=tmp_im.mask,
+                                          unit_x=tmp_im.unit_x,
+                                          unit_y=tmp_im.unit_y)
+                    im.display()
+                    plt.title('Removed the interior edges')
+            #==============================================================================
+            # Let only the maximum allowed number of edges
+            #==============================================================================
+            if nmb_edge > nmb_edges and keep_exterior:
+                sizes = [np.sum(labels == label)
+                         for label in np.arange(1, nmb + 1)]
+                indsort = np.argsort(sizes)
+                for ind in indsort[:-nmb_edges]:
+                    im_edges[ind + 1 == labels] = 0
+                nmb_edge = nmb_edges
+                if verbose:
+                    plt.figure()
+                    im = Image()
+                    im.import_from_arrays(tmp_im.axe_x, tmp_im.axe_y,
+                                          im_edges, mask=tmp_im.mask,
+                                          unit_x=tmp_im.unit_x,
+                                          unit_y=tmp_im.unit_y)
+                    im.display()
+                    plt.title('Removed small edges because too numerous')
+        print(f"remaining edges: {nmb_edge}")
+
+
         #======================================================================
         # Check and Return
         #======================================================================
