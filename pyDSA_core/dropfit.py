@@ -954,12 +954,11 @@ class DropEllipsesFit(DropFit):
             (xc, yc), R1, R2, theta = self.fits[i]
             x_ref = (xy[0] - xc)*np.cos(theta) + (xy[1] - yc)*np.sin(theta)
             y_ref = (xy[1] - yc)*np.cos(theta) - (xy[0] - xc)*np.sin(theta)
-            slope = -(R2**2*x_ref)/(R1**2*y_ref)
-            thet = np.arctan(slope)
-            if np.sin(thet) < 0:
+            thet = np.arctan2(-(R2**2*x_ref), (R1**2*y_ref))
+            if i == 1:
                 thet += np.pi
             thet += (theta - bs_angle)
-            thetas.append(thet)
+            thetas.append(thet % (2*np.pi))
         self.thetas = np.array(thetas)*180/np.pi
         # display if asked
         if verbose:
