@@ -24,7 +24,7 @@ with open(path.join(here, "README.md"), "r") as fh:
 
 setup(
     name='pyDSA_core',
-    version='1.2.0',
+    version='1.2.1',
     description='Python Drop Shape Analyzer',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -43,7 +43,7 @@ setup(
     keywords='DSA drop shape contact angle hysteresis',
     packages=find_packages(exclude=['contrib', 'docs', 'tests', 'samples']),
     install_requires=['numpy', 'matplotlib', 'opencv-python', 'scipy',
-                      'imageio', 'scikit-image', 'IMTreatment==1.2.0'],
+                      'imageio', 'scikit-image', 'IMTreatment==1.2.1'],
     extras_require={},
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
