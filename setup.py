@@ -43,7 +43,7 @@ setup(
     keywords='DSA drop shape contact angle hysteresis',
     packages=find_packages(exclude=['contrib', 'docs', 'tests', 'samples']),
     install_requires=['numpy', 'matplotlib', 'opencv-python', 'scipy',
-                      'imageio', 'scikit-image', 'IMTreatment==1.2.1'],
+                      'imageio', 'scikit-image', 'IMTreatment==1.2.0'],
     extras_require={},
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
