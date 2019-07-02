@@ -165,8 +165,8 @@ class DropFit(object):
         # y_left = np.concatenate((y_left, [y_meet]))
         # x_right = np.concatenate((x_right, [x_middle]))
         # y_right = np.concatenate((y_right, [y_meet]))
-        vol_left = spint.trapz(x_left**2*np.pi/2, y_left)
-        vol_right = spint.trapz(x_right**2*np.pi/2, y_right)
+        vol_left = spint.trapz((x_left - x_middle)**2*np.pi/2, y_left)
+        vol_right = spint.trapz((x_right - x_middle)**2*np.pi/2, y_right)
         # if vol_left < 0 or vol_right < 0:
 
         if debug:
@@ -175,14 +175,12 @@ class DropFit(object):
                 print(f"x_left: {x_left}")
                 print(f"y_left: {y_left}")
             print(f"vol_right: {vol_right}")
-            plt.figure()
             self.display()
             plt.axvline(x_middle, ls=':', color='k')
             plt.plot(x_left, y_left, 'o-', label="left")
             plt.plot(x_right, y_right, 'o-', label="right")
             plt.title("Fit as points")
             plt.legend()
-            plt.show()
         vol = vol_right + vol_left
         return vol
 
