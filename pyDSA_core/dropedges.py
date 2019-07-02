@@ -748,7 +748,8 @@ class DropEdges(Points):
             plt.plot(xs1, ys1, color='k', marker='o')
             plt.plot(xs2, ys2, color='k', marker='o')
         else:
-            plt.plot(self.xy[:, 0], self.xy[:, 1], color='k', marker='o')
+            plt.plot(self.xy[:, 0], self.xy[:, 1], color='k', marker='o',
+                     ls='none')
         plt.axis('equal')
         plt.gca().set_adjustable('box')
         # Display baseline

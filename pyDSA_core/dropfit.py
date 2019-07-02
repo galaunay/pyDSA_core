@@ -17,6 +17,7 @@ import numpy as np
 import warnings
 import matplotlib.pyplot as plt
 import scipy.optimize as spopt
+import scipy.integrate as spint
 import scipy.misc as spmisc
 import IMTreatment.plotlib as pplt
 from . import helpers
@@ -139,8 +140,51 @@ class DropFit(object):
     def get_drop_area(self):
         raise NotImplementedError("Not implemented yet")
 
-    def get_drop_volume(self):
-        raise NotImplementedError("Not implemented yet")
+    def get_drop_volume(self, resolution=100, debug=False):
+        # Getting fitting points
+        x, y = self.get_fit_as_points(resolution=resolution)
+        # Getting the droplet axisymetric axis
+        x_middle = np.nanmean(x)
+        # Cutting both edges
+        filt_left = x < x_middle
+        filt_right = x >= x_middle
+        x_left = x[filt_left]
+        y_left = y[filt_left]
+        x_right = x[filt_right]
+        y_right = y[filt_right]
+        # Sorting for integration
+        argsort_left = np.argsort(y_left)
+        argsort_right = np.argsort(y_right)
+        x_left = x_left[argsort_left]
+        y_left = y_left[argsort_left]
+        x_right = x_right[argsort_right]
+        y_right = y_right[argsort_right]
+        # # Adding the meeting point
+        # y_meet = (y_left[-1] + y_right[-1])/2
+        # x_left = np.concatenate((x_left, [x_middle]))
+        # y_left = np.concatenate((y_left, [y_meet]))
+        # x_right = np.concatenate((x_right, [x_middle]))
+        # y_right = np.concatenate((y_right, [y_meet]))
+        vol_left = spint.trapz(x_left**2*np.pi/2, y_left)
+        vol_right = spint.trapz(x_right**2*np.pi/2, y_right)
+        # if vol_left < 0 or vol_right < 0:
+
+        if debug:
+            print(f"vol_left: {vol_left}")
+            if vol_left < 0:
+                print(f"x_left: {x_left}")
+                print(f"y_left: {y_left}")
+            print(f"vol_right: {vol_right}")
+            plt.figure()
+            self.display()
+            plt.axvline(x_middle, ls=':', color='k')
+            plt.plot(x_left, y_left, 'o-', label="left")
+            plt.plot(x_right, y_right, 'o-', label="right")
+            plt.title("Fit as points")
+            plt.legend()
+            plt.show()
+        vol = vol_right + vol_left
+        return vol
 
     def get_ridge_height(self):
         """
@@ -416,11 +460,21 @@ class DropSplineFit(DropFit):
         Return a representation of the fit as point coordinates.
         """
         (fit1x, fit1y), (fit2x, fit2y) = self.fits
-        t = np.linspace(0, 1, resolution)
-        x1 = fit1x(t)
-        y1 = fit1y(t)
-        x2 = fit2x(t)
-        y2 = fit2y(t)
+        # Get interesection with baseline
+        xy_inter = self._get_inters_base_fit()
+        t1_init = spopt.root(lambda t: fit1y(t) - xy_inter[0][1], 0).x[0]
+        t2_init = spopt.root(lambda t: fit2y(t) - xy_inter[1][1], 0).x[0]
+        if t1_init < -0.5 or t1_init > 0:
+            t1_init = 0
+        if t2_init < -0.5 or t2_init > 0:
+            t2_init = 0
+        #
+        t1 = np.linspace(t1_init, 1, resolution)
+        t2 = np.linspace(t2_init, 1, resolution)
+        x1 = fit1x(t1)
+        y1 = fit1y(t1)
+        x2 = fit2x(t2)
+        y2 = fit2y(t2)
         xs = np.concatenate((x1, [np.nan], x2))
         ys = np.concatenate((y1, [np.nan], y2))
         pts = [xs, ys]
@@ -479,9 +533,6 @@ class DropSplineFit(DropFit):
         area = 0.5*np.abs(np.dot(xs, np.roll(ys, 1))
                           - np.dot(ys, np.roll(xs, 1)))
         return area
-
-    def get_drop_volume(self):
-        raise Exception('Cannot get the drop volume from a spline fit')
 
 
 class DropCircleFit(DropFit):
@@ -850,13 +901,33 @@ class DropEllipseFit(DropFit):
         R = ((R1*np.sin(theta))**2 + (R2*np.cos(theta))**2)**.5
         return (xyc[1] - hb) + R
 
-    def get_fit_as_points(self, resolution=100):
+    def get_fit_as_points(self, resolution=200):
         """
         Return a representation of the fit as point coordinates.
         """
+        inters = self._get_inters_base_fit()
         (xc, yc), R1, R2, theta = self.fits
-        xs, ys = helpers.get_ellipse_points(xc, yc, R1, R2, theta, res=resolution)
-        pts = [xs, ys]
+        txs, tys = helpers.get_ellipse_points(xc, yc, R1, R2, theta, res=resolution)
+        # remove useless part
+        filt = np.logical_or(np.logical_and(txs < xc,
+                                            tys > inters[0][1]),
+                             np.logical_and(txs > xc,
+                                            tys > inters[1][1]))
+        txs = txs[filt]
+        tys = tys[filt]
+        # Nothing remaining
+        if len(txs) == 0:
+            txs = [np.nan]
+            tys = [np.nan]
+        # Add intersection with baseline
+        txs = np.concatenate(([inters[0][0]], txs, [inters[1][0]]))
+        tys = np.concatenate(([inters[0][1]], tys, [inters[1][1]]))
+        # Make sure it starts at the intersection point
+        ind = np.argmax(abs(txs - np.roll(txs, 1)))
+        txs = np.roll(txs, -ind)
+        tys = np.roll(tys, -ind)
+        #
+        pts = [txs, tys]
         return pts
 
     def display(self, displ_fits=True, displ_ca=True,
@@ -999,6 +1070,9 @@ class DropEllipsesFit(DropFit):
                 xs.append(txs)
                 ys.append(tys)
                 continue
+            # Add intersection with baseline
+            txs = np.concatenate(([inters[i][0]], txs))
+            tys = np.concatenate(([inters[i][1]], tys))
             # Make sure it starts at the intersection point
             ind = np.argmax(abs(tys - np.roll(tys, 1)))
             txs = np.roll(txs, -ind)
